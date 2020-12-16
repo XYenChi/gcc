@@ -88,6 +88,16 @@
   ;; Stack Smash Protector
   UNSPEC_SSP_SET
   UNSPEC_SSP_TEST
+
+  ;; CMO instructions.
+  UNSPECV_CLEAN
+  UNSPECV_FLUSH
+  UNSPECV_INVAL
+  UNSPECV_ZERO
+  UNSPECV_PREI
+
+  ;; Zihintpause unspec
+  UNSPECV_PAUSE
 ])
 
 (define_constants
@@ -1883,6 +1893,11 @@
   [(unspec_volatile [(const_int 0)] UNSPECV_FENCE_I)]
   "TARGET_ZIFENCEI"
   "fence.i")
+
+(define_insn "riscv_pause"
+  [(unspec_volatile [(const_int 0)] UNSPECV_PAUSE)]
+  ""
+  "pause")
 
 ;;
 ;;  ....................

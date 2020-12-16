@@ -87,7 +87,18 @@ struct riscv_builtin_description {
   unsigned int (*avail) (void);
 };
 
-AVAIL (hard_float, TARGET_HARD_FLOAT)
+AVAIL (hard_float, TARGET_HARD_FLOAT || TARGET_ZFINX)
+AVAIL (clean32, TARGET_ZICBOM && !TARGET_64BIT)
+AVAIL (clean64, TARGET_ZICBOM && TARGET_64BIT)
+AVAIL (flush32, TARGET_ZICBOM && !TARGET_64BIT)
+AVAIL (flush64, TARGET_ZICBOM && TARGET_64BIT)
+AVAIL (inval32, TARGET_ZICBOM && !TARGET_64BIT)
+AVAIL (inval64, TARGET_ZICBOM && TARGET_64BIT)
+AVAIL (zero32,  TARGET_ZICBOZ && !TARGET_64BIT)
+AVAIL (zero64,  TARGET_ZICBOZ && TARGET_64BIT)
+AVAIL (prefetchi32, TARGET_ZICBOP && !TARGET_64BIT)
+AVAIL (prefetchi64, TARGET_ZICBOP && TARGET_64BIT)
+AVAIL (always,     (!0))
 
 /* Construct a riscv_builtin_description from the given arguments.
 
@@ -131,7 +142,8 @@ AVAIL (hard_float, TARGET_HARD_FLOAT)
 
 static const struct riscv_builtin_description riscv_builtins[] = {
   DIRECT_BUILTIN (frflags, RISCV_USI_FTYPE, hard_float),
-  DIRECT_NO_TARGET_BUILTIN (fsflags, RISCV_VOID_FTYPE_USI, hard_float)
+  DIRECT_NO_TARGET_BUILTIN (fsflags, RISCV_VOID_FTYPE_USI, hard_float),
+  DIRECT_NO_TARGET_BUILTIN (pause, RISCV_VOID_FTYPE, always),
 };
 
 /* Index I is the function declaration for riscv_builtins[I], or null if the
