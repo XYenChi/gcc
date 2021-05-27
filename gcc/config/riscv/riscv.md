@@ -60,6 +60,9 @@
 
   ;; Stack tie
   UNSPEC_TIE
+
+  ;; OR-COMBINE
+  UNSPEC_ORC_B
 ])
 
 (define_c_enum "unspecv" [
