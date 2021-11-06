@@ -1106,7 +1106,7 @@ gfc_find_subroutine (const char *name)
 /* Given a string, figure out if it is the name of a generic intrinsic
    function or not.  */
 
-int
+bool
 gfc_generic_intrinsic (const char *name)
 {
   gfc_intrinsic_sym *sym;
@@ -1119,7 +1119,7 @@ gfc_generic_intrinsic (const char *name)
 /* Given a string, figure out if it is the name of a specific
    intrinsic function or not.  */
 
-int
+bool
 gfc_specific_intrinsic (const char *name)
 {
   gfc_intrinsic_sym *sym;
@@ -1131,7 +1131,7 @@ gfc_specific_intrinsic (const char *name)
 
 /* Given a string, figure out if it is the name of an intrinsic function
    or subroutine allowed as an actual argument or not.  */
-int
+bool
 gfc_intrinsic_actual_ok (const char *name, const bool subroutine_flag)
 {
   gfc_intrinsic_sym *sym;
