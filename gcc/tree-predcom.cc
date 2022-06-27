@@ -3528,8 +3528,8 @@ public:
   {}
 
   /* opt_pass methods: */
-  virtual bool
-  gate (function *)
+  bool
+  gate (function *) final override
   {
     if (flag_predictive_commoning != 0)
       return true;
@@ -3543,8 +3543,8 @@ public:
     return false;
   }
 
-  virtual unsigned int
-  execute (function *fun)
+  unsigned int
+  execute (function *fun) final override
   {
     bool allow_unroll_p = flag_predictive_commoning != 0;
     return run_tree_predictive_commoning (fun, allow_unroll_p);

@@ -2436,12 +2436,12 @@ public:
   {}
 
   /* opt_pass methods: */
-  virtual bool gate (function *fun)
+  bool gate (function *fun) final override
     {
       return !(fun->curr_properties & PROP_gimple_lvec);
     }
 
-  virtual unsigned int execute (function *)
+  unsigned int execute (function *) final override
     {
       return expand_vector_operations ();
     }
@@ -2480,8 +2480,11 @@ public:
   {}
 
   /* opt_pass methods: */
-  opt_pass * clone () { return new pass_lower_vector_ssa (m_ctxt); }
-  virtual unsigned int execute (function *)
+  opt_pass * clone () final override
+  {
+    return new pass_lower_vector_ssa (m_ctxt);
+  }
+  unsigned int execute (function *) final override
     {
       return expand_vector_operations ();
     }

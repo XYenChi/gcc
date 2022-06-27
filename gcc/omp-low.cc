@@ -14565,7 +14565,10 @@ public:
   {}
 
   /* opt_pass methods: */
-  virtual unsigned int execute (function *) { return execute_lower_omp (); }
+  unsigned int execute (function *) final override
+  {
+    return execute_lower_omp ();
+  }
 
 }; // class pass_lower_omp
 
@@ -14873,11 +14876,11 @@ public:
   {}
 
   /* opt_pass methods: */
-  virtual bool gate (function *)
+  bool gate (function *) final override
   {
     return flag_openacc || flag_openmp || flag_openmp_simd;
   }
-  virtual unsigned int execute (function *)
+  unsigned int execute (function *) final override
     {
       return diagnose_omp_structured_block_errors ();
     }
