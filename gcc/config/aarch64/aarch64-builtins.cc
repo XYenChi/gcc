@@ -2626,6 +2626,7 @@ aarch64_general_expand_builtin (unsigned int fcode, tree exp, rtx target,
   gcc_unreachable ();
 }
 
+<<<<<<< HEAD
 tree
 aarch64_builtin_vectorized_function (unsigned int fn, tree type_out,
 				     tree type_in)
@@ -2741,6 +2742,8 @@ aarch64_builtin_vectorized_function (unsigned int fn, tree type_out,
   return NULL_TREE;
 }
 
+=======
+>>>>>>> 00eab0c654e (Add internal functions for iround etc. [PR106253])
 /* Return builtin for reciprocal square root.  */
 
 tree
