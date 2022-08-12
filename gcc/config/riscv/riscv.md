@@ -19,6 +19,21 @@
 ;; along with GCC; see the file COPYING3.  If not see
 ;; <http://www.gnu.org/licenses/>.
 
+
+;; Keep this list and the one above riscv_print_operand in sync.
+;; The special asm out single letter directives following a '%' are:
+;; h -- Print the high-part relocation associated with OP, after stripping
+;;	  any outermost HIGH.
+;; R -- Print the low-part relocation associated with OP.
+;; C -- Print the integer branch condition for comparison OP.
+;; A -- Print the atomic operation suffix for memory model OP.
+;; F -- Print a FENCE if the memory model requires a release.
+;; z -- Print x0 if OP is zero, otherwise print OP normally.
+;; i -- Print i if the operand is not a register.
+;; S -- Print shift-index of single-bit mask OP.
+;; T -- Print shift-index of inverted single-bit mask OP.
+;; ~ -- Print w if TARGET_64BIT is true; otherwise not print anything.
+
 (define_c_enum "unspec" [
   ;; Override return address for exception handling.
   UNSPEC_EH_RETURN
@@ -291,7 +306,7 @@
 	(plus:SI (match_operand:SI 1 "register_operand" " r,r")
 		 (match_operand:SI 2 "arith_operand"    " r,I")))]
   ""
-  { return TARGET_64BIT ? "add%i2w\t%0,%1,%2" : "add%i2\t%0,%1,%2"; }
+  "add%i2%~\t%0,%1,%2"
   [(set_attr "type" "arith")
    (set_attr "mode" "SI")])
 
@@ -431,7 +446,7 @@
 	(minus:SI (match_operand:SI 1 "reg_or_0_operand" " rJ")
 		  (match_operand:SI 2 "register_operand" "  r")))]
   ""
-  { return TARGET_64BIT ? "subw\t%0,%z1,%2" : "sub\t%0,%z1,%2"; }
+  "sub%~\t%0,%z1,%2"
   [(set_attr "type" "arith")
    (set_attr "mode" "SI")])
 
@@ -547,7 +562,7 @@
   [(set (match_operand:SI         0 "register_operand" "=r")
 	(neg:SI (match_operand:SI 1 "register_operand" " r")))]
   ""
-  { return TARGET_64BIT ? "negw\t%0,%1" : "neg\t%0,%1"; }
+  "neg%~\t%0,%1"
   [(set_attr "type" "arith")
    (set_attr "mode" "SI")])
 
@@ -592,7 +607,7 @@
 	(mult:SI (match_operand:SI 1 "register_operand" " r")
 		 (match_operand:SI 2 "register_operand" " r")))]
   "TARGET_MUL"
-  { return TARGET_64BIT ? "mulw\t%0,%1,%2" : "mul\t%0,%1,%2"; }
+  "mul%~\t%0,%1,%2"
   [(set_attr "type" "imul")
    (set_attr "mode" "SI")])
 
@@ -862,7 +877,7 @@
 	(any_div:SI (match_operand:SI 1 "register_operand" " r")
 		    (match_operand:SI 2 "register_operand" " r")))]
   "TARGET_DIV"
-  { return TARGET_64BIT ? "<insn>%i2w\t%0,%1,%2" : "<insn>%i2\t%0,%1,%2"; }
+  "<insn>%i2%~\t%0,%1,%2"
   [(set_attr "type" "idiv")
    (set_attr "mode" "SI")])
 
@@ -1564,7 +1579,7 @@
 	(plus:HI (match_operand:HISI 1 "register_operand" " r,r")
 		 (match_operand:HISI 2 "arith_operand"    " r,I")))]
   ""
-  { return TARGET_64BIT ? "add%i2w\t%0,%1,%2" : "add%i2\t%0,%1,%2"; }
+  "add%i2%~\t%0,%1,%2"
   [(set_attr "type" "arith")
    (set_attr "mode" "HI")])
 
@@ -1746,7 +1761,7 @@
     operands[2] = GEN_INT (INTVAL (operands[2])
 			   & (GET_MODE_BITSIZE (SImode) - 1));
 
-  return TARGET_64BIT ? "<insn>%i2w\t%0,%1,%2" : "<insn>%i2\t%0,%1,%2";
+  return "<insn>%i2%~\t%0,%1,%2";
 }
   [(set_attr "type" "shift")
    (set_attr "mode" "SI")])
