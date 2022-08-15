@@ -239,3 +239,23 @@
 (define_predicate "const63_operand"
   (and (match_code "const_int")
        (match_test "INTVAL (op) == 63")))
+
+(define_predicate "imm5_operand"
+  (and (match_code "const_int")
+       (match_test "INTVAL (op) < 5")))
+
+;; A const_int for sh1add/sh2add/sh3add
+(define_predicate "imm123_operand"
+  (and (match_code "const_int")
+       (match_test "IN_RANGE (INTVAL (op), 1, 3)")))
+
+;; A CONST_INT operand that consists of a single run of consecutive set bits.
+(define_predicate "consecutive_bits_operand"
+  (match_code "const_int")
+{
+	unsigned HOST_WIDE_INT val = UINTVAL (op);
+	if (exact_log2 ((val >> ctz_hwi (val)) + 1) < 0)
+	        return false;
+
+	return true;
+})
