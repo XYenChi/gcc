@@ -2551,6 +2551,272 @@ range_tests_misc ()
   ASSERT_TRUE (r0.contains_p (UINT (2)));
 }
 
+static void
+range_tests_nonzero_bits ()
+{
+  int_range<2> r0, r1;
+
+  // Adding nonzero bits to a varying drops the varying.
+  r0.set_varying (integer_type_node);
+  r0.set_nonzero_bits (255);
+  ASSERT_TRUE (!r0.varying_p ());
+  // Dropping the nonzero bits brings us back to varying.
+  r0.set_nonzero_bits (-1);
+  ASSERT_TRUE (r0.varying_p ());
+
+  // Test contains_p with nonzero bits.
+  r0.set_zero (integer_type_node);
+  ASSERT_TRUE (r0.contains_p (INT (0)));
+  ASSERT_FALSE (r0.contains_p (INT (1)));
+  r0.set_nonzero_bits (0xfe);
+  ASSERT_FALSE (r0.contains_p (INT (0x100)));
+  ASSERT_FALSE (r0.contains_p (INT (0x3)));
+
+  // Union of nonzero bits.
+  r0.set_varying (integer_type_node);
+  r0.set_nonzero_bits (0xf0);
+  r1.set_varying (integer_type_node);
+  r1.set_nonzero_bits (0xf);
+  r0.union_ (r1);
+  ASSERT_TRUE (r0.get_nonzero_bits () == 0xff);
+
+  // Union where the mask of nonzero bits is implicit from the range.
+  r0.set_varying (integer_type_node);
+  r0.set_nonzero_bits (0xf00);
+  r1.set_zero (integer_type_node); // nonzero mask is implicitly 0
+  r0.union_ (r1);
+  ASSERT_TRUE (r0.get_nonzero_bits () == 0xf00);
+
+  // Intersect of nonzero bits.
+  r0.set (INT (0), INT (255));
+  r0.set_nonzero_bits (0xfe);
+  r1.set_varying (integer_type_node);
+  r1.set_nonzero_bits (0xf0);
+  r0.intersect (r1);
+  ASSERT_TRUE (r0.get_nonzero_bits () == 0xf0);
+
+  // Intersect where the mask of nonzero bits is implicit from the range.
+  r0.set_varying (integer_type_node);
+  r1.set (INT (0), INT (255));
+  r0.intersect (r1);
+  ASSERT_TRUE (r0.get_nonzero_bits () == 0xff);
+
+  // The union of a mask of 0xff..ffff00 with a mask of 0xff spans the
+  // entire domain, and makes the range a varying.
+  r0.set_varying (integer_type_node);
+  wide_int x = wi::shwi (0xff, TYPE_PRECISION (integer_type_node));
+  x = wi::bit_not (x);
+  r0.set_nonzero_bits (x); 	// 0xff..ff00
+  r1.set_varying (integer_type_node);
+  r1.set_nonzero_bits (0xff);
+  r0.union_ (r1);
+  ASSERT_TRUE (r0.varying_p ());
+}
+
+// Build an frange from string endpoints.
+
+static inline frange
+frange_float (const char *lb, const char *ub, tree type = float_type_node)
+{
+  REAL_VALUE_TYPE min, max;
+  gcc_assert (real_from_string (&min, lb) == 0);
+  gcc_assert (real_from_string (&max, ub) == 0);
+  return frange (type, min, max);
+}
+
+static void
+range_tests_nan ()
+{
+  frange r0, r1;
+  REAL_VALUE_TYPE q, r;
+
+  // Equal ranges but with differing NAN bits are not equal.
+  if (HONOR_NANS (float_type_node))
+    {
+      r1 = frange_float ("10", "12");
+      r0 = r1;
+      ASSERT_EQ (r0, r1);
+      r0.set_nan (fp_prop::NO);
+      ASSERT_NE (r0, r1);
+      r0.set_nan (fp_prop::YES);
+      ASSERT_NE (r0, r1);
+    }
+
+  // NAN ranges are not equal to each other.
+  r0 = frange_nan (float_type_node);
+  r1 = r0;
+  ASSERT_FALSE (r0 == r1);
+  ASSERT_FALSE (r0 == r0);
+  ASSERT_TRUE (r0 != r0);
+
+  // [5,6] U NAN is [5,6] with an unknown NAN bit.
+  r0 = frange_float ("5", "6");
+  r0.set_nan (fp_prop::NO);
+  r1 = frange_nan (float_type_node);
+  r0.union_ (r1);
+  real_from_string (&q, "5");
+  real_from_string (&r, "6");
+  ASSERT_TRUE (real_identical (&q, &r0.lower_bound ()));
+  ASSERT_TRUE (real_identical (&r, &r0.upper_bound ()));
+  ASSERT_TRUE (r0.get_nan ().varying_p ());
+
+  // NAN U NAN = NAN
+  r0 = frange_nan (float_type_node);
+  r1 = frange_nan (float_type_node);
+  r0.union_ (r1);
+  ASSERT_TRUE (real_isnan (&r0.lower_bound ()));
+  ASSERT_TRUE (real_isnan (&r1.upper_bound ()));
+  ASSERT_TRUE (r0.get_nan ().yes_p ());
+
+  // [INF, INF] ^ NAN = VARYING
+  r0 = frange_nan (float_type_node);
+  r1 = frange_float ("+Inf", "+Inf");
+  r0.intersect (r1);
+  ASSERT_TRUE (r0.varying_p ());
+
+  // NAN ^ NAN = NAN
+  r0 = frange_nan (float_type_node);
+  r1 = frange_nan (float_type_node);
+  r0.intersect (r1);
+  ASSERT_TRUE (r0.get_nan ().yes_p ());
+
+  // VARYING ^ NAN = NAN.
+  r0 = frange_nan (float_type_node);
+  r1.set_varying (float_type_node);
+  r0.intersect (r1);
+  ASSERT_TRUE (r0.get_nan ().yes_p ());
+
+  // Setting the NAN bit to yes, forces to range to [NAN, NAN].
+  r0.set_varying (float_type_node);
+  r0.set_nan (fp_prop::YES);
+  ASSERT_TRUE (r0.get_nan ().yes_p ());
+  ASSERT_TRUE (real_isnan (&r0.lower_bound ()));
+  ASSERT_TRUE (real_isnan (&r0.upper_bound ()));
+}
+
+static void
+range_tests_signed_zeros ()
+{
+  tree zero = build_zero_cst (float_type_node);
+  tree neg_zero = fold_build1 (NEGATE_EXPR, float_type_node, zero);
+  frange r0, r1;
+
+  // ?? If -0.0 == +0.0, then a range of [-0.0, -0.0] should
+  // contain +0.0 and vice versa.  We probably need a property to
+  // track signed zeros in the frange like we do for NAN, to
+  // properly model all this.
+  r0 = frange (zero, zero);
+  r1 = frange (neg_zero, neg_zero);
+  ASSERT_TRUE (r0.contains_p (zero));
+  ASSERT_TRUE (r0.contains_p (neg_zero));
+  ASSERT_TRUE (r1.contains_p (zero));
+  ASSERT_TRUE (r1.contains_p (neg_zero));
+}
+
+static void
+range_tests_floats ()
+{
+  frange r0, r1;
+
+  range_tests_nan ();
+
+  if (HONOR_SIGNED_ZEROS (float_type_node))
+    range_tests_signed_zeros ();
+
+  // A range of [-INF,+INF] is actually VARYING if no other properties
+  // are set.
+  r0 = frange_float ("-Inf", "+Inf");
+  if (r0.get_nan ().varying_p ())
+    ASSERT_TRUE (r0.varying_p ());
+  // ...unless it has some special property...
+  r0.set_nan (fp_prop::NO);
+  ASSERT_FALSE (r0.varying_p ());
+
+  // The endpoints of a VARYING are +-INF.
+  REAL_VALUE_TYPE inf, ninf;
+  real_inf (&inf, 0);
+  real_inf (&ninf, 1);
+  r0.set_varying (float_type_node);
+  ASSERT_TRUE (real_identical (&r0.lower_bound (), &ninf));
+  ASSERT_TRUE (real_identical (&r0.upper_bound (), &inf));
+
+  // The maximum representable range for a type is still a subset of VARYING.
+  REAL_VALUE_TYPE q, r;
+  real_min_representable (&q, float_type_node);
+  real_max_representable (&r, float_type_node);
+  r0 = frange (float_type_node, q, r);
+  // r0 is not a varying, because it does not include -INF/+INF.
+  ASSERT_FALSE (r0.varying_p ());
+  // The upper bound of r0 must be less than +INF.
+  ASSERT_TRUE (real_less (&r0.upper_bound (), &inf));
+  // The lower bound of r0 must be greater than -INF.
+  ASSERT_TRUE (real_less (&ninf, &r0.lower_bound ()));
+
+  // For most architectures, where float and double are different
+  // sizes, having the same endpoints does not necessarily mean the
+  // ranges are equal.
+  if (!types_compatible_p (float_type_node, double_type_node))
+    {
+      r0 = frange_float ("3.0", "3.0", float_type_node);
+      r1 = frange_float ("3.0", "3.0", double_type_node);
+      ASSERT_NE (r0, r1);
+    }
+
+  // [3,5] U [10,12] = [3,12].
+  r0 = frange_float ("3", "5");
+  r1 = frange_float ("10", "12");
+  r0.union_ (r1);
+  ASSERT_EQ (r0, frange_float ("3", "12"));
+
+  // [5,10] U [4,8] = [4,10]
+  r0 = frange_float ("5", "10");
+  r1 = frange_float ("4", "8");
+  r0.union_ (r1);
+  ASSERT_EQ (r0, frange_float ("4", "10"));
+
+  // [3,5] U [4,10] = [3,10]
+  r0 = frange_float ("3", "5");
+  r1 = frange_float ("4", "10");
+  r0.union_ (r1);
+  ASSERT_EQ (r0, frange_float ("3", "10"));
+
+  // [4,10] U [5,11] = [4,11]
+  r0 = frange_float ("4", "10");
+  r1 = frange_float ("5", "11");
+  r0.union_ (r1);
+  ASSERT_EQ (r0, frange_float ("4", "11"));
+
+  // [3,12] ^ [10,12] = [10,12].
+  r0 = frange_float ("3", "12");
+  r1 = frange_float ("10", "12");
+  r0.intersect (r1);
+  ASSERT_EQ (r0, frange_float ("10", "12"));
+
+  // [10,12] ^ [11,11] = [11,11]
+  r0 = frange_float ("10", "12");
+  r1 = frange_float ("11", "11");
+  r0.intersect (r1);
+  ASSERT_EQ (r0, frange_float ("11", "11"));
+
+  // [10,20] ^ [5,15] = [10,15]
+  r0 = frange_float ("10", "20");
+  r1 = frange_float ("5",  "15");
+  r0.intersect (r1);
+  ASSERT_EQ (r0, frange_float ("10", "15"));
+
+  // [10,20] ^ [15,25] = [15,20]
+  r0 = frange_float ("10", "20");
+  r1 = frange_float ("15", "25");
+  r0.intersect (r1);
+  ASSERT_EQ (r0, frange_float ("15", "20"));
+
+  // [10,20] ^ [21,25] = []
+  r0 = frange_float ("10", "20");
+  r1 = frange_float ("21", "25");
+  r0.intersect (r1);
+  ASSERT_TRUE (r0.undefined_p ());
+}
+
 void
 range_tests ()
 {
