@@ -4555,7 +4555,6 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	      std::iter_swap(__i, __j);
 	  }
     }
-#endif
 
   /**
    *  @brief Shuffle the elements of a sequence using a random number
@@ -4599,6 +4598,7 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    std::iter_swap(__i, __j);
 	}
     }
+#endif // HOSTED
 #endif // C++11 || USE_DEPRECATED
 
   /**
