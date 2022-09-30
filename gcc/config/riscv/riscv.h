@@ -1076,4 +1076,8 @@ extern void riscv_remove_unneeded_save_restore_calls (void);
 #define CTZ_DEFINED_VALUE_AT_ZERO(MODE, VALUE) \
   ((VALUE) = GET_MODE_UNIT_BITSIZE (MODE), 2)
 
+#define TARGET_SUPPORTS_WIDE_INT 1
+
+#define REGISTER_TARGET_PRAGMAS() riscv_register_pragmas ()
+
 #endif /* ! GCC_RISCV_H */
