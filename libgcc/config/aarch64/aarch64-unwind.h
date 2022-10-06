@@ -78,7 +78,17 @@ static inline void
 aarch64_frob_update_context (struct _Unwind_Context *context,
 			     _Unwind_FrameState *fs)
 {
+<<<<<<< HEAD
   if (fs->regs.reg[DWARF_REGNUM_AARCH64_RA_STATE].loc.offset & 0x1)
+=======
+  const int reg = DWARF_REGNUM_AARCH64_RA_STATE;
+  int ra_signed;
+  if (fs->regs.how[reg] == REG_UNSAVED)
+    ra_signed = fs->regs.reg[reg].loc.offset & 0x1;
+  else
+    ra_signed = _Unwind_GetGR (context, reg) & 0x1;
+  if (ra_signed)
+>>>>>>> 146e4591403 (libgcc: Decrease size of _Unwind_FrameState and even more size of cleared area in uw_frame_state_for)
     /* The flag is used for re-authenticating EH handler's address.  */
     context->flags |= RA_SIGNED_BIT;
   else
