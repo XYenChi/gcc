@@ -5793,7 +5793,8 @@ push_agg_values_from_edge (struct cgraph_edge *cs,
 	}
 
       ipcp_param_lattices *plats = ipa_get_parm_lattices (dest_info, index);
-      if (plats->aggs_bottom)
+      if (!ipa_is_param_used (dest_info, index)
+	  || plats->aggs_bottom)
 	continue;
       push_agg_values_for_index_from_edge (cs, index, res, interim);
     }
@@ -6157,6 +6158,9 @@ decide_whether_version_node (struct cgraph_node *node)
 
   for (i = 0; i < count;i++)
     {
+      if (!ipa_is_param_used (info, i))
+	continue;
+
       class ipcp_param_lattices *plats = ipa_get_parm_lattices (info, i);
       ipcp_lattice<tree> *lat = &plats->itself;
       ipcp_lattice<ipa_polymorphic_call_context> *ctxlat = &plats->ctxlat;
