@@ -24342,6 +24342,45 @@ aarch64_vectorize_vec_perm_const (machine_mode vmode, machine_mode op_mode,
   return ret;
 }
 
+/* Implement TARGET_VECTORIZE_CAN_SPECIAL_DIV_BY_CONST.  */
+
+bool
+aarch64_vectorize_can_special_div_by_constant (enum tree_code code,
+					       tree vectype, wide_int cst,
+					       rtx *output, rtx in0, rtx in1)
+{
+  if (code != TRUNC_DIV_EXPR
+      || !TYPE_UNSIGNED (vectype))
+    return false;
+
+  unsigned int flags = aarch64_classify_vector_mode (TYPE_MODE (vectype));
+  if ((flags & VEC_ANY_SVE) && !TARGET_SVE2)
+    return false;
+
+  int pow = wi::exact_log2 (cst + 1);
+  auto insn_code = maybe_code_for_aarch64_bitmask_udiv3 (TYPE_MODE (vectype));
+  /* SVE actually has a div operator, we may have gotten here through
+     that route.  */
+  if (pow != (int) (element_precision (vectype) / 2)
+      || insn_code == CODE_FOR_nothing)
+    return false;
+
+  /* We can use the optimized pattern.  */
+  if (in0 == NULL_RTX && in1 == NULL_RTX)
+    return true;
+
+  if (!VECTOR_TYPE_P (vectype))
+   return false;
+
+  gcc_assert (output);
+
+  if (!*output)
+    *output = gen_reg_rtx (TYPE_MODE (vectype));
+
+  emit_insn (gen_aarch64_bitmask_udiv3 (TYPE_MODE (vectype), *output, in0, in1));
+  return true;
+}
+
 /* Generate a byte permute mask for a register of mode MODE,
    which has NUNITS units.  */
 
