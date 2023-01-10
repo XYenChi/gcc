@@ -43,6 +43,7 @@
 #include <iterator>
 #include <optional>
 #include <span>
+#include <string_view>
 #include <tuple>
 #include <bits/ranges_util.h>
 #include <bits/refwrap.h>
