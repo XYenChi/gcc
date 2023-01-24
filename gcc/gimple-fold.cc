@@ -6918,6 +6918,7 @@ and_comparisons_1 (tree type, enum tree_code code1, tree op1a, tree op1b,
 }
 
 static basic_block fosa_bb;
+static vec<std::pair<tree, vrange_storage *> > *fosa_unwind;
 static tree
 follow_outer_ssa_edges (tree val)
 {
@@ -6990,6 +6991,8 @@ maybe_fold_comparisons_from_match_pd (tree type, enum tree_code code,
 		      type, gimple_assign_lhs (stmt1),
 		      gimple_assign_lhs (stmt2));
   fosa_bb = outer_cond_bb;
+  auto_vec<std::pair<tree, vrange_storage *>, 8> unwind_stack;
+  fosa_unwind = &unwind_stack;
   if (op.resimplify (NULL, (!outer_cond_bb
 			    ? follow_all_ssa_edges : follow_outer_ssa_edges)))
     {
