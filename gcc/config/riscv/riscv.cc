@@ -4262,7 +4262,8 @@ riscv_print_operand (FILE *file, rtx op, int letter)
 	      output_operand_lossage ("invalid vector constant");
 	    else if (satisfies_constraint_Wc0 (op))
 	      asm_fprintf (file, "0");
-	    else if (satisfies_constraint_vi (op))
+	    else if (satisfies_constraint_vi (op)
+		     || satisfies_constraint_vj (op))
 	      asm_fprintf (file, "%wd", INTVAL (elt));
 	    else
 	      output_operand_lossage ("invalid vector constant");
@@ -4373,6 +4374,10 @@ riscv_print_operand (FILE *file, rtx op, int letter)
     case 'i':
       if (code != REG)
         fputs ("i", file);
+      break;
+
+    case 'B':
+      fputs (GET_RTX_NAME (code), file);
       break;
 
     case 'S':
