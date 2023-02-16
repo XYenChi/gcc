@@ -59,7 +59,7 @@ gimple_range_handler (const gimple *s)
 // Return the type of range which statement S calculates.  If the type is
 // unsupported or no type can be determined, return NULL_TREE.
 
-static inline tree
+inline tree
 gimple_range_type (const gimple *s)
 {
   tree lhs = gimple_get_lhs (s);
@@ -88,7 +88,7 @@ gimple_range_type (const gimple *s)
 
 // Return EXP if it is an SSA_NAME with a type supported by gimple ranges.
 
-static inline tree
+inline tree
 gimple_range_ssa_p (tree exp)
 {
   if (exp && TREE_CODE (exp) == SSA_NAME &&
@@ -101,7 +101,7 @@ gimple_range_ssa_p (tree exp)
 
 // Return true if TYPE1 and TYPE2 are compatible range types.
 
-static inline bool
+inline bool
 range_compatible_p (tree type1, tree type2)
 {
   // types_compatible_p requires conversion in both directions to be useless.
