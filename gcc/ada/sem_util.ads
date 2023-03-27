@@ -1517,19 +1517,8 @@ package Sem_Util is
    --  Return True if the loop has no side effect and can therefore be
    --  marked for removal. Return False if N is not a N_Loop_Statement.
 
-   subtype Static_Accessibility_Level_Kind
-     is Accessibility_Level_Kind range Object_Decl_Level
-                                         .. Zero_On_Dynamic_Level;
-   --  Restrict the reange of Accessibility_Level_Kind to be non-dynamic for
-   --  use in the static version of Accessibility_Level below.
-
-   function Static_Accessibility_Level
-     (Expr              : Node_Id;
-      Level             : Static_Accessibility_Level_Kind;
-      In_Return_Context : Boolean := False) return Uint;
-   --  Overloaded version of Accessibility_Level which returns a universal
-   --  integer for use in compile-time checking. Note: Level is restricted to
-   --  be non-dynamic.
+   function Is_Container_Aggregate (Exp : Node_Id) return Boolean;
+   --  Is the given expression a container aggregate?
 
    function Is_Newly_Constructed
      (Exp : Node_Id; Context_Requires_NC : Boolean) return Boolean;
