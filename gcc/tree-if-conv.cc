@@ -2665,11 +2665,8 @@ predicate_statements (loop_p loop)
 	      update_stmt (stmt);
 	    }
 
-	  /* Convert functions that have a SIMD clone to IFN_MASK_CALL.  This
-	     will cause the vectorizer to match the "in branch" clone variants,
-	     and serves to build the mask vector in a natural way.  */
-	  gcall *call = dyn_cast <gcall *> (gsi_stmt (gsi));
-	  if (call && !gimple_call_internal_p (call))
+	  if (gimple_plf (gsi_stmt (gsi), GF_PLF_2)
+	      && is_gimple_call (gsi_stmt (gsi)))
 	    {
 	      tree orig_fn = gimple_call_fn (call);
 	      int orig_nargs = gimple_call_num_args (call);
