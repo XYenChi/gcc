@@ -152,9 +152,14 @@ LTLIBRARIES = $(toolexeclib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 @GLIBCXX_LDBL_COMPAT_TRUE@am__objects_1 = compatibility-ldbl.lo
 am__objects_2 = compatibility.lo compatibility-debug_list.lo \
-	compatibility-debug_list-2.lo $(am__objects_1)
-@ENABLE_DUAL_ABI_TRUE@@GLIBCXX_LDBL_ALT128_COMPAT_TRUE@am__objects_3 = compatibility-ldbl-alt128-cxx11.lo
-@GLIBCXX_LDBL_ALT128_COMPAT_TRUE@am__objects_4 =  \
+	compatibility-debug_list-2.lo globals_io.lo $(am__objects_1)
+@ENABLE_SYMVERS_GNU_NAMESPACE_FALSE@am__objects_3 = compatibility-atomic-c++0x.lo \
+@ENABLE_SYMVERS_GNU_NAMESPACE_FALSE@	compatibility-c++0x.lo \
+@ENABLE_SYMVERS_GNU_NAMESPACE_FALSE@	compatibility-chrono.lo \
+@ENABLE_SYMVERS_GNU_NAMESPACE_FALSE@	compatibility-condvar.lo \
+@ENABLE_SYMVERS_GNU_NAMESPACE_FALSE@	compatibility-thread-c++0x.lo
+@ENABLE_DUAL_ABI_TRUE@@GLIBCXX_LDBL_ALT128_COMPAT_TRUE@am__objects_4 = compatibility-ldbl-alt128-cxx11.lo
+@GLIBCXX_LDBL_ALT128_COMPAT_TRUE@am__objects_5 =  \
 @GLIBCXX_LDBL_ALT128_COMPAT_TRUE@	compatibility-ldbl-alt128.lo \
 @GLIBCXX_LDBL_ALT128_COMPAT_TRUE@	$(am__objects_3)
 am__objects_5 = compatibility-c++0x.lo compatibility-atomic-c++0x.lo \
@@ -519,6 +524,7 @@ cxx98_sources = \
 	compatibility.cc \
 	compatibility-debug_list.cc \
 	compatibility-debug_list-2.cc \
+	globals_io.cc \
 	${ldbl_compat_sources}
 
 cxx11_sources = \

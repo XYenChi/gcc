@@ -2444,6 +2444,62 @@ GLIBCXX_3.4.30 {
 
 } GLIBCXX_3.4.29;
 
+GLIBCXX_3.4.31 {
+    _ZNSt7__cxx1112basic_stringI[cw]St11char_traitsI[cw]ESaI[cw]EE15_M_replace_cold*;
+
+    _ZSt20__to_chars_float16_tPcS_fSt12chars_format;
+    _ZSt21__to_chars_bfloat16_tPcS_fSt12chars_format;
+    _ZSt22__from_chars_float16_tPKcS0_RfSt12chars_format;
+    _ZSt23__from_chars_bfloat16_tPKcS0_RfSt12chars_format;
+    _ZSt8to_charsPcS_DF128_;
+    _ZSt8to_charsPcS_DF128_St12chars_format;
+    _ZSt8to_charsPcS_DF128_St12chars_formati;
+    _ZSt10from_charsPKcS0_RDF128_St12chars_format;
+
+    _ZSt15__try_use_facetISt*;
+    _ZSt15__try_use_facetINSt7__cxx11*;
+
+    _ZNSt6chrono11reload_tzdbEv;
+    _ZNSt6chrono8get_tzdbEv;
+    _ZNSt6chrono13get_tzdb_listEv;
+    _ZNSt6chrono14remote_version*;
+    _ZNSt6chrono12current_zoneEv;
+    _ZNSt6chrono11locate_zoneESt17basic_string_viewIcSt11char_traitsIcEE;
+    _ZNKSt6chrono9time_zone15_M_get_sys_info*;
+    _ZNKSt6chrono9time_zone17_M_get_local_info*;
+    _ZNKSt6chrono4tzdb12current_zoneEv;
+    _ZNKSt6chrono4tzdb11locate_zoneESt17basic_string_viewIcSt11char_traitsIcEE;
+    _ZNKSt6chrono9tzdb_list5beginEv;
+    _ZNKSt6chrono9tzdb_list5frontEv;
+    _ZNSt6chrono9tzdb_list11erase_afterENS0_14const_iteratorE;
+    _ZNKSt6chrono9tzdb_list14const_iteratordeEv;
+    _ZNSt6chrono9tzdb_list14const_iteratorppEv;
+    _ZNSt6chrono9tzdb_list14const_iteratorppEi;
+    _ZN9__gnu_cxx21zoneinfo_dir_overrideEv;
+
+    # __shared_ptr<directory_iterator::_Dir>::operator bool()
+    _ZNKSt12__shared_ptrINSt10filesystem4_DirELN9__gnu_cxx12_Lock_policyE[012]EEcvbEv;
+    _ZNKSt12__shared_ptrINSt10filesystem7__cxx114_DirELN9__gnu_cxx12_Lock_policyE[012]EEcvbEv;
+    # __shared_ptr<recursive_directory_iterator::_Dir_stack>::operator bool()
+    _ZNKSt12__shared_ptrINSt10filesystem28recursive_directory_iterator10_Dir_stackELN9__gnu_cxx12_Lock_policyE[012]EEcvbEv;
+    _ZNKSt12__shared_ptrINSt10filesystem7__cxx1128recursive_directory_iterator10_Dir_stackELN9__gnu_cxx12_Lock_policyE[012]EEcvbEv;
+
+#if defined(_GLIBCXX_SYMVER_GNU) && defined(_GLIBCXX_SHARED) \
+    && defined(_GLIBCXX_HAVE_AS_SYMVER_DIRECTIVE) \
+    && defined(_GLIBCXX_HAVE_SYMVER_SYMBOL_RENAMING_RUNTIME_SUPPORT)
+    # See src/c++98/globals_io.cc
+    _ZSt3cin;
+    _ZSt4cout;
+    _ZSt4cerr;
+    _ZSt4clog;
+    _ZSt4wcin;
+    _ZSt5wcout;
+    _ZSt5wcerr;
+    _ZSt5wclog;
+#endif
+
+} GLIBCXX_3.4.30;
+
 # Symbols in the support library (libsupc++) have their own tag.
 CXXABI_1.3 {
 
