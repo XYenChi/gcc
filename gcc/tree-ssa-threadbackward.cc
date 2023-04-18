@@ -520,7 +520,10 @@ get_gimple_control_stmt (basic_block bb)
 void
 back_threader::maybe_thread_block (basic_block bb)
 {
-  gimple *stmt = get_gimple_control_stmt (bb);
+  if (EDGE_COUNT (bb->succs) <= 1)
+    return;
+
+  gimple *stmt = *gsi_last_bb (bb);
   if (!stmt)
     return;
 
@@ -714,10 +717,11 @@ back_threader_profitability::profitable_path_p (const vec<basic_block> &m_path,
 	  if (last && (gimple_code (last) == GIMPLE_SWITCH
 		       || gimple_code (last) == GIMPLE_GOTO))
 	    {
-	      if (j == 0)
-		threaded_multiway_branch = true;
-	      else
-		multiway_branch_in_path = true;
+	      gimple *last = *gsi_last_bb (bb);
+	      if (last
+		  && (gimple_code (last) == GIMPLE_SWITCH
+		      || gimple_code (last) == GIMPLE_GOTO))
+		m_multiway_branch_in_path = true;
 	    }
 	}
 
