@@ -7185,7 +7185,7 @@ riscv_subword_address (rtx mem, rtx *aligned_mem, rtx *shift, rtx *mask,
   emit_move_insn (*mask, gen_rtx_ASHIFT (SImode, *mask,
 					 gen_lowpart (QImode, *shift)));
 
-  emit_move_insn (*not_mask, gen_rtx_NOT(SImode, *mask));
+  emit_move_insn (*not_mask, gen_rtx_NOT (SImode, *mask));
 }
 
 /* Leftshift a subword within an SImode register.  */
@@ -7198,8 +7198,8 @@ riscv_lshift_subword (machine_mode mode, rtx value, rtx shift,
   emit_move_insn (value_reg, simplify_gen_subreg (SImode, value,
 						  mode, 0));
 
-  emit_move_insn(*shifted_value, gen_rtx_ASHIFT (SImode, value_reg,
-						 gen_lowpart (QImode, shift)));
+  emit_move_insn (*shifted_value, gen_rtx_ASHIFT (SImode, value_reg,
+						  gen_lowpart (QImode, shift)));
 }
 
 /* Initialize the GCC target structure.  */
