@@ -69,6 +69,10 @@
 #include <cstdlib>	     // for rand
 #endif
 
+#define __glibcxx_want_clamp
+#define __glibcxx_want_sample
+#include <bits/version.h>
+
 // See concept_check.h for the __glibcxx_*_requires macros.
 
 namespace std _GLIBCXX_VISIBILITY(default)
@@ -3600,11 +3604,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       return std::__is_permutation(__first1, __last1, __first2, __last2,
 				   __gnu_cxx::__ops::__iter_comp_iter(__pred));
     }
+#endif // C++14
 
-#if __cplusplus >= 201703L
-
-#define __cpp_lib_clamp 201603L
-
+#ifdef  __cpp_lib_clamp // C++ >= 17
   /**
    *  @brief  Returns the value clamped between lo and hi.
    *  @ingroup sorting_algorithms
@@ -3643,8 +3645,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_assert(!__comp(__hi, __lo));
       return std::min(std::max(__val, __lo, __comp), __hi, __comp);
     }
-#endif // C++17
-#endif // C++14
+#endif // __cpp_lib_clamp
 
 #ifdef _GLIBCXX_USE_C99_STDINT_TR1
   /**
@@ -5856,9 +5857,9 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	  }
       return __out;
     }
+#endif // C++14
 
-#if __cplusplus > 201402L
-#define __cpp_lib_sample 201603L
+#ifdef __cpp_lib_sample // C++ >= 17
   /// Take a random sample from a population.
   template<typename _PopulationIterator, typename _SampleIterator,
            typename _Distance, typename _UniformRandomBitGenerator>
@@ -5886,8 +5887,7 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	__sample(__first, __last, __pop_cat{}, __out, __samp_cat{}, __d,
 		 std::forward<_UniformRandomBitGenerator>(__g));
     }
-#endif // C++17
-#endif // C++14
+#endif // __cpp_lib_sample
 
 _GLIBCXX_END_NAMESPACE_ALGO
 _GLIBCXX_END_NAMESPACE_VERSION

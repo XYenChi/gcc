@@ -39,9 +39,15 @@
 #else
 
 #include <bits/chrono.h>
-#if __cplusplus > 201703L
-# include <sstream> // ostringstream
-# include <bits/charconv.h>
+
+#if __cplusplus >= 202002L
+# include <bit>
+# include <sstream>
+# include <string>
+# include <vector>
+# include <bits/stl_algo.h> // upper_bound
+# include <bits/shared_ptr.h>
+# include <bits/unique_ptr.h>
 #endif
 
 namespace std _GLIBCXX_VISIBILITY(default)

@@ -34,6 +34,10 @@
 
 #include <bits/move.h>
 
+#define __glibcxx_want_constexpr_memory
+#define __glibcxx_want_to_address
+#include <bits/version.h>
+
 #if __cplusplus > 201703L
 #include <concepts>
 # ifndef __cpp_lib_constexpr_memory
@@ -231,7 +235,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       return __ptr;
     }
 
-#if __cplusplus <= 201703L
+#ifndef __cpp_lib_to_address // C++ < 20
   template<typename _Ptr>
     constexpr typename std::pointer_traits<_Ptr>::element_type*
     __to_address(const _Ptr& __ptr)
@@ -252,8 +256,6 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       else
 	return std::__to_address(__ptr.operator->());
     }
-
-#define __cpp_lib_to_address 201711L
 
   /**
    * @brief Obtain address referenced by a pointer to an object
@@ -277,7 +279,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     constexpr auto
     to_address(const _Ptr& __ptr) noexcept
     { return std::__to_address(__ptr); }
-#endif // C++2a
+#endif // __cpp_lib_to_address
 
 _GLIBCXX_END_NAMESPACE_VERSION
 } // namespace std

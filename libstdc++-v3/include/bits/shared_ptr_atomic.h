@@ -32,6 +32,9 @@
 
 #include <bits/atomic_base.h>
 
+#define __glibcxx_want_atomic_shared_ptr
+#include <bits/version.h>
+
 // Annotations for the custom locking in atomic<shared_ptr<T>>.
 #if defined _GLIBCXX_TSAN && __has_include(<sanitizer/tsan_interface.h>)
 #include <sanitizer/tsan_interface.h>
@@ -353,8 +356,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     }
   /// @}
 
-#if __cplusplus >= 202002L
-# define __cpp_lib_atomic_shared_ptr 201711L
+  /// @} group pointer_abstractions
+
+#ifdef  __cpp_lib_atomic_shared_ptr // C++ >= 20 && HOSTED
   template<typename _Tp>
     class atomic;
 
