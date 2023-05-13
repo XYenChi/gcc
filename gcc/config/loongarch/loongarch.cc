@@ -5783,6 +5783,261 @@ loongarch_starting_frame_offset (void)
   return crtl->outgoing_args_size;
 }
 
+
+static tree
+loongarch_handle_model_attribute (tree *node, tree name, tree arg, int,
+				  bool *no_add_attrs)
+{
+  tree decl = *node;
+  if (VAR_P (decl))
+    {
+      if (DECL_THREAD_LOCAL_P (decl))
+	{
+	  error_at (DECL_SOURCE_LOCATION (decl),
+		    "%qE attribute cannot be specified for thread-local "
+		    "variables", name);
+	  *no_add_attrs = true;
+	  return NULL_TREE;
+	}
+      if (DECL_CONTEXT (decl)
+	  && TREE_CODE (DECL_CONTEXT (decl)) == FUNCTION_DECL
+	  && !TREE_STATIC (decl))
+	{
+	  error_at (DECL_SOURCE_LOCATION (decl),
+		    "%qE attribute cannot be specified for local "
+		    "variables", name);
+	  *no_add_attrs = true;
+	  return NULL_TREE;
+	}
+      if (DECL_REGISTER (decl))
+	{
+	  error_at (DECL_SOURCE_LOCATION (decl),
+		    "%qE attribute cannot be specified for register "
+		    "variables", name);
+	  *no_add_attrs = true;
+	  return NULL_TREE;
+	}
+      if (!TARGET_EXPLICIT_RELOCS)
+	{
+	  error_at (DECL_SOURCE_LOCATION (decl),
+		    "%qE attribute requires %s", name, "-mexplicit-relocs");
+	  *no_add_attrs = true;
+	  return NULL_TREE;
+	}
+
+      arg = TREE_VALUE (arg);
+      if (TREE_CODE (arg) != STRING_CST)
+	{
+	  error_at (DECL_SOURCE_LOCATION (decl),
+		    "invalid argument of %qE attribute", name);
+	  *no_add_attrs = true;
+	  return NULL_TREE;
+	}
+
+      const char *model = TREE_STRING_POINTER (arg);
+      if (strcmp (model, "normal") != 0
+	  && strcmp (model, "extreme") != 0)
+	{
+	  error_at (DECL_SOURCE_LOCATION (decl),
+		    "invalid argument of %qE attribute", name);
+	  *no_add_attrs = true;
+	  return NULL_TREE;
+	}
+
+      if (lookup_attribute ("model", DECL_ATTRIBUTES (decl)))
+	{
+	  error_at (DECL_SOURCE_LOCATION (decl),
+		    "multiple %qE attribute", name);
+	  *no_add_attrs = true;
+	  return NULL_TREE;
+	}
+    }
+  else
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored", name);
+      *no_add_attrs = true;
+    }
+  return NULL_TREE;
+}
+
+static const struct attribute_spec loongarch_attribute_table[] =
+{
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req,
+       affects_type_identity, handler, exclude } */
+  { "model", 1, 1, true, false, false, false,
+    loongarch_handle_model_attribute, NULL },
+  /* The last attribute spec is set to be NULL.  */
+  {}
+};
+
+bool
+loongarch_use_anchors_for_symbol_p (const_rtx symbol)
+{
+  tree decl = SYMBOL_REF_DECL (symbol);
+
+  /* The section anchor optimization may break custom address model.  */
+  if (decl && lookup_attribute ("model", DECL_ATTRIBUTES (decl)))
+    return false;
+
+  return default_use_anchors_for_symbol_p (symbol);
+}
+
+/* Implement the TARGET_ASAN_SHADOW_OFFSET hook.  */
+
+static unsigned HOST_WIDE_INT
+loongarch_asan_shadow_offset (void)
+{
+  /* We only have libsanitizer support for LOONGARCH64 at present.
+     This value is taken from the file libsanitizer/asan/asan_mapping.h.  */
+  return TARGET_64BIT ? (HOST_WIDE_INT_1 << 46) : 0;
+}
+
+static sbitmap
+loongarch_get_separate_components (void)
+{
+  HOST_WIDE_INT offset;
+  sbitmap components = sbitmap_alloc (FIRST_PSEUDO_REGISTER);
+  bitmap_clear (components);
+  offset = cfun->machine->frame.gp_sp_offset;
+
+  /* The stack should be aligned to 16-bytes boundary, so we can make the use
+     of ldptr instructions.  */
+  gcc_assert (offset % UNITS_PER_WORD == 0);
+
+  for (unsigned int regno = GP_REG_FIRST; regno <= GP_REG_LAST; regno++)
+    if (BITSET_P (cfun->machine->frame.mask, regno - GP_REG_FIRST))
+      {
+	/* We can wrap general registers saved at [sp, sp + 32768) using the
+	   ldptr/stptr instructions.  For large offsets a pseudo register
+	   might be needed which cannot be created during the shrink
+	   wrapping pass.
+
+	   TODO: This may need a revise when we add LA32 as ldptr.w is not
+	   guaranteed available by the manual.  */
+	if (offset < 32768)
+	  bitmap_set_bit (components, regno);
+
+	offset -= UNITS_PER_WORD;
+      }
+
+  offset = cfun->machine->frame.fp_sp_offset;
+  for (unsigned int regno = FP_REG_FIRST; regno <= FP_REG_LAST; regno++)
+    if (BITSET_P (cfun->machine->frame.fmask, regno - FP_REG_FIRST))
+      {
+	/* We can only wrap FP registers with imm12 offsets.  For large
+	   offsets a pseudo register might be needed which cannot be
+	   created during the shrink wrapping pass.  */
+	if (IMM12_OPERAND (offset))
+	  bitmap_set_bit (components, regno);
+
+	offset -= UNITS_PER_FPREG;
+      }
+
+  /* Don't mess with the hard frame pointer.  */
+  if (frame_pointer_needed)
+    bitmap_clear_bit (components, HARD_FRAME_POINTER_REGNUM);
+
+  bitmap_clear_bit (components, RETURN_ADDR_REGNUM);
+
+  return components;
+}
+
+static sbitmap
+loongarch_components_for_bb (basic_block bb)
+{
+  /* Registers are used in a bb if they are in the IN, GEN, or KILL sets.  */
+  auto_bitmap used;
+  bitmap_copy (used, DF_LIVE_IN (bb));
+  bitmap_ior_into (used, &DF_LIVE_BB_INFO (bb)->gen);
+  bitmap_ior_into (used, &DF_LIVE_BB_INFO (bb)->kill);
+
+  sbitmap components = sbitmap_alloc (FIRST_PSEUDO_REGISTER);
+  bitmap_clear (components);
+
+  function_abi_aggregator callee_abis;
+  rtx_insn *insn;
+  FOR_BB_INSNS (bb, insn)
+    if (CALL_P (insn))
+      callee_abis.note_callee_abi (insn_callee_abi (insn));
+
+  HARD_REG_SET extra_caller_saves =
+    callee_abis.caller_save_regs (*crtl->abi);
+
+  for (unsigned int regno = GP_REG_FIRST; regno <= GP_REG_LAST; regno++)
+    if (!fixed_regs[regno]
+	&& !crtl->abi->clobbers_full_reg_p (regno)
+	&& (TEST_HARD_REG_BIT (extra_caller_saves, regno) ||
+	    bitmap_bit_p (used, regno)))
+      bitmap_set_bit (components, regno);
+
+  for (unsigned int regno = FP_REG_FIRST; regno <= FP_REG_LAST; regno++)
+    if (!fixed_regs[regno]
+	&& !crtl->abi->clobbers_full_reg_p (regno)
+	&& (TEST_HARD_REG_BIT (extra_caller_saves, regno) ||
+	    bitmap_bit_p (used, regno)))
+      bitmap_set_bit (components, regno);
+
+  return components;
+}
+
+static void
+loongarch_disqualify_components (sbitmap, edge, sbitmap, bool)
+{
+  /* Do nothing.  */
+}
+
+static void
+loongarch_process_components (sbitmap components, loongarch_save_restore_fn fn)
+{
+  HOST_WIDE_INT offset = cfun->machine->frame.gp_sp_offset;
+
+  for (unsigned int regno = GP_REG_FIRST; regno <= GP_REG_LAST; regno++)
+    if (BITSET_P (cfun->machine->frame.mask, regno - GP_REG_FIRST))
+      {
+	if (bitmap_bit_p (components, regno))
+	  loongarch_save_restore_reg (word_mode, regno, offset, fn);
+
+	offset -= UNITS_PER_WORD;
+      }
+
+  offset = cfun->machine->frame.fp_sp_offset;
+  machine_mode mode = TARGET_DOUBLE_FLOAT ? DFmode : SFmode;
+
+  for (unsigned int regno = FP_REG_FIRST; regno <= FP_REG_LAST; regno++)
+    if (BITSET_P (cfun->machine->frame.fmask, regno - FP_REG_FIRST))
+      {
+	if (bitmap_bit_p (components, regno))
+	  loongarch_save_restore_reg (mode, regno, offset, fn);
+
+	offset -= UNITS_PER_FPREG;
+      }
+}
+
+static void
+loongarch_emit_prologue_components (sbitmap components)
+{
+  loongarch_process_components (components, loongarch_save_reg);
+}
+
+static void
+loongarch_emit_epilogue_components (sbitmap components)
+{
+  loongarch_process_components (components, loongarch_restore_reg);
+}
+
+static void
+loongarch_set_handled_components (sbitmap components)
+{
+    for (unsigned int regno = GP_REG_FIRST; regno <= GP_REG_LAST; regno++)
+      if (bitmap_bit_p (components, regno))
+	cfun->machine->reg_is_wrapped_separately[regno] = true;
+
+    for (unsigned int regno = FP_REG_FIRST; regno <= FP_REG_LAST; regno++)
+      if (bitmap_bit_p (components, regno))
+	cfun->machine->reg_is_wrapped_separately[regno] = true;
+}
+
+
 /* Initialize the GCC target structure.  */
 #undef TARGET_ASM_ALIGNED_HI_OP
 #define TARGET_ASM_ALIGNED_HI_OP "\t.half\t"
