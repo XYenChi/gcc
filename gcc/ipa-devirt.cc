@@ -1249,7 +1249,7 @@ odr_types_equivalent_p (tree t1, tree t2, bool warn, bool *warned,
   if (INTEGRAL_TYPE_P (t1)
       || SCALAR_FLOAT_TYPE_P (t1)
       || FIXED_POINT_TYPE_P (t1)
-      || TREE_CODE (t1) == VECTOR_TYPE
+      || VECTOR_TYPE_P (t1)
       || TREE_CODE (t1) == COMPLEX_TYPE
       || TREE_CODE (t1) == OFFSET_TYPE
       || POINTER_TYPE_P (t1))
@@ -1307,7 +1307,7 @@ odr_types_equivalent_p (tree t1, tree t2, bool warn, bool *warned,
 	    }
 	}
 
-      if ((TREE_CODE (t1) == VECTOR_TYPE || TREE_CODE (t1) == COMPLEX_TYPE)
+      if ((VECTOR_TYPE_P (t1) || TREE_CODE (t1) == COMPLEX_TYPE)
 	  && !odr_subtypes_equivalent_p (TREE_TYPE (t1), TREE_TYPE (t2),
 					 visited, loc1, loc2))
 	{
