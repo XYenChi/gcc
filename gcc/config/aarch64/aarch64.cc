@@ -81,8 +81,6 @@
 #include "rtlanal.h"
 #include "tree-dfa.h"
 #include "asan.h"
-<<<<<<< HEAD
-=======
 #include "aarch64-feature-deps.h"
 #include "config/arm/aarch-common.h"
 #include "config/arm/aarch-common-protos.h"
@@ -97,7 +95,6 @@
 #include "ipa-prop.h"
 #include "ipa-fnsummary.h"
 #include "hash-map.h"
->>>>>>> c8742849e22 (ipa: Convert lattices from pure array to vector (PR 113476))
 
 /* This file should be included last.  */
 #include "target-def.h"

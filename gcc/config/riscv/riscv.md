@@ -2497,24 +2497,6 @@
   [(set_attr "type" "shift")
    (set_attr "mode" "SI")])
 
-(define_expand "<optab>si3"
-  [(set (match_operand:SI     0 "register_operand" "= r")
-       (any_shift:SI (match_operand:SI 1 "register_operand" "  r")
-                (match_operand:QI 2 "arith_operand"    " rI")))]
-  ""
-{
-  if (TARGET_64BIT)
-    {
-      rtx t = gen_reg_rtx (DImode);
-      emit_insn (gen_<optab>si3_extend (t, operands[1], operands[2]));
-      t = gen_lowpart (SImode, t);
-      SUBREG_PROMOTED_VAR_P (t) = 1;
-      SUBREG_PROMOTED_SET (t, SRP_SIGNED);
-      emit_move_insn (operands[0], t);
-      DONE;
-    }
-})
-
 (define_insn "<optab>di3"
   [(set (match_operand:DI 0 "register_operand"     "= r")
 	(any_shift:DI
@@ -2531,45 +2513,23 @@
   [(set_attr "type" "shift")
    (set_attr "mode" "DI")])
 
-(define_insn_and_split "*<optab>di3_mask"
-  [(set (match_operand:DI     0 "register_operand" "= r")
-	(any_shift:DI
-	    (match_operand:DI 1 "register_operand" "  r")
+(define_insn_and_split "*<optab><GPR:mode>3_mask_1"
+  [(set (match_operand:GPR     0 "register_operand" "= r")
+	(any_shift:GPR
+	    (match_operand:GPR 1 "register_operand" "  r")
 	    (match_operator 4 "subreg_lowpart_operator"
-	     [(and:SI
-	       (match_operand:SI 2 "register_operand"  "r")
-	       (match_operand 3 "const_int_operand"))])))]
-  "TARGET_64BIT
-   && (INTVAL (operands[3]) & (GET_MODE_BITSIZE (DImode)-1))
-       == GET_MODE_BITSIZE (DImode)-1"
+	     [(and:GPR2
+	       (match_operand:GPR2 2 "register_operand"  "r")
+	       (match_operand 3 "<GPR:shiftm1>"))])))]
+  ""
   "#"
   "&& 1"
   [(set (match_dup 0)
-	(any_shift:DI (match_dup 1)
+	(any_shift:GPR (match_dup 1)
 		      (match_dup 2)))]
   "operands[2] = gen_lowpart (QImode, operands[2]);"
   [(set_attr "type" "shift")
-   (set_attr "mode" "DI")])
-
-(define_insn_and_split "*<optab>di3_mask_1"
-  [(set (match_operand:DI     0 "register_operand" "= r")
-	(any_shift:DI
-	    (match_operand:DI 1 "register_operand" "  r")
-	    (match_operator 4 "subreg_lowpart_operator"
-	     [(and:DI
-	       (match_operand:DI 2 "register_operand"  "r")
-	       (match_operand 3 "const_int_operand"))])))]
-  "TARGET_64BIT
-   && (INTVAL (operands[3]) & (GET_MODE_BITSIZE (DImode)-1))
-       == GET_MODE_BITSIZE (DImode)-1"
-  "#"
-  "&& 1"
-  [(set (match_dup 0)
-	(any_shift:DI (match_dup 1)
-		      (match_dup 2)))]
-  "operands[2] = gen_lowpart (QImode, operands[2]);"
-  [(set_attr "type" "shift")
-   (set_attr "mode" "DI")])
+   (set_attr "mode" "<GPR:MODE>")])
 
 (define_insn "<optab>si3_extend"
   [(set (match_operand:DI                   0 "register_operand" "= r")
@@ -2592,34 +2552,10 @@
 	    (any_shift:SI
 	     (match_operand:SI 1 "register_operand" "  r")
 	     (match_operator 4 "subreg_lowpart_operator"
-	      [(and:SI
-	        (match_operand:SI 2 "register_operand" " r")
-	        (match_operand 3 "const_int_operand"))]))))]
-  "TARGET_64BIT
-   && (INTVAL (operands[3]) & (GET_MODE_BITSIZE (SImode)-1))
-       == GET_MODE_BITSIZE (SImode)-1"
-  "#"
-  "&& 1"
-  [(set (match_dup 0)
-	(sign_extend:DI
-	 (any_shift:SI (match_dup 1)
-		       (match_dup 2))))]
-  "operands[2] = gen_lowpart (QImode, operands[2]);"
-  [(set_attr "type" "shift")
-   (set_attr "mode" "SI")])
-
-(define_insn_and_split "*<optab>si3_extend_mask_1"
-  [(set (match_operand:DI                   0 "register_operand" "= r")
-	(sign_extend:DI
-	    (any_shift:SI
-	     (match_operand:SI 1 "register_operand" "  r")
-	     (match_operator 4 "subreg_lowpart_operator"
-	      [(and:DI
-	        (match_operand:DI 2 "register_operand" " r")
-	        (match_operand 3 "const_int_operand"))]))))]
-  "TARGET_64BIT
-   && (INTVAL (operands[3]) & (GET_MODE_BITSIZE (SImode)-1))
-       == GET_MODE_BITSIZE (SImode)-1"
+	      [(and:GPR
+	        (match_operand:GPR 2 "register_operand" " r")
+	        (match_operand 3 "const_si_mask_operand"))]))))]
+  "TARGET_64BIT"
   "#"
   "&& 1"
   [(set (match_dup 0)

@@ -2,7 +2,11 @@
 /* { dg-options "-march=rv64gc_zbb -mabi=lp64d -fno-lto -O2" } */
 /* { dg-skip-if "" { *-*-* } { "-g" } } */
 /* { dg-final { check-function-bodies "**" "" } } */
+<<<<<<< HEAD
 /* { dg-final { scan-assembler-not {\mand} } } */
+=======
+/* { dg-final { scan-assembler-not "and" } } */
+>>>>>>> 6da6ed95c9c (RISC-V: Remove masking third operand of rotate instructions)
 
 /*
 **foo1:

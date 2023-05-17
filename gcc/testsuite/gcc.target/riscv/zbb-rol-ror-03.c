@@ -14,7 +14,13 @@ unsigned int ror(unsigned int rs1, unsigned int rs2)
     return (rs1 >> shamt) | (rs1 << ((32 - shamt) & (32 - 1)));
 }
 
+<<<<<<< HEAD
 /* { dg-final { scan-assembler-times {\mrolw} 1 } } */
 /* { dg-final { scan-assembler-times {\mrorw} 1 } } */
 /* { dg-final { scan-assembler-not {\mand} } } */
 /* { dg-final { scan-assembler-not {\msext\.w\M} } } */
+=======
+/* { dg-final { scan-assembler-times "rolw" 1 } } */
+/* { dg-final { scan-assembler-times "rorw" 1 } } */
+/* { dg-final { scan-assembler-not "and" } } */
+>>>>>>> 6da6ed95c9c (RISC-V: Remove masking third operand of rotate instructions)
