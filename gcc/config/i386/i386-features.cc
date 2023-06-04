@@ -932,7 +932,121 @@ general_scalar_chain::convert_op (rtx *op, rtx_insn *insn)
     }
 }
 
-/* Convert INSN to vector mode.  */
+/* Convert CCZmode COMPARE to vector mode.  */
+
+rtx
+scalar_chain::convert_compare (rtx op1, rtx op2, rtx_insn *insn)
+{
+  rtx src, tmp;
+
+  /* Handle any REG_EQUAL notes.  */
+  tmp = find_reg_equal_equiv_note (insn);
+  if (tmp)
+    {
+      if (GET_CODE (XEXP (tmp, 0)) == COMPARE
+	  && GET_MODE (XEXP (tmp, 0)) == CCZmode
+	  && REG_P (XEXP (XEXP (tmp, 0), 0)))
+	{
+	  rtx *op = &XEXP (XEXP (tmp, 0), 1);
+	  if (CONST_SCALAR_INT_P (*op))
+	    {
+	      if (constm1_operand (*op, GET_MODE (*op)))
+		*op = CONSTM1_RTX (vmode);
+	      else
+		{
+		  unsigned n = GET_MODE_NUNITS (vmode);
+		  rtx *v = XALLOCAVEC (rtx, n);
+		  v[0] = *op;
+		  for (unsigned i = 1; i < n; ++i)
+		    v[i] = const0_rtx;
+		  *op = gen_rtx_CONST_VECTOR (vmode, gen_rtvec_v (n, v));
+		}
+	      tmp = NULL_RTX;
+	    }
+	  else if (REG_P (*op))
+	    tmp = NULL_RTX;
+	}
+
+      if (tmp)
+	remove_note (insn, tmp);
+    }
+
+  /* Comparison against anything other than zero, requires an XOR.  */
+  if (op2 != const0_rtx)
+    {
+      convert_op (&op1, insn);
+      convert_op (&op2, insn);
+      /* If both operands are MEMs, explicitly load the OP1 into TMP.  */
+      if (MEM_P (op1) && MEM_P (op2))
+	{
+	  tmp = gen_reg_rtx (vmode);
+	  emit_insn_before (gen_rtx_SET (tmp, op1), insn);
+	  src = tmp;
+	}
+      else
+	src = op1;
+      src = gen_rtx_XOR (vmode, src, op2);
+    }
+  else if (GET_CODE (op1) == AND
+	   && GET_CODE (XEXP (op1, 0)) == NOT)
+    {
+      rtx op11 = XEXP (XEXP (op1, 0), 0);
+      rtx op12 = XEXP (op1, 1);
+      convert_op (&op11, insn);
+      convert_op (&op12, insn);
+      if (!REG_P (op11))
+	{
+	  tmp = gen_reg_rtx (vmode);
+	  emit_insn_before (gen_rtx_SET (tmp, op11), insn);
+	  op11 = tmp;
+	}
+      src = gen_rtx_AND (vmode, gen_rtx_NOT (vmode, op11), op12);
+    }
+  else if (GET_CODE (op1) == AND)
+    {
+      rtx op11 = XEXP (op1, 0);
+      rtx op12 = XEXP (op1, 1);
+      convert_op (&op11, insn);
+      convert_op (&op12, insn);
+      if (!REG_P (op11))
+	{
+	  tmp = gen_reg_rtx (vmode);
+	  emit_insn_before (gen_rtx_SET (tmp, op11), insn);
+	  op11 = tmp;
+	}
+      return gen_rtx_UNSPEC (CCZmode, gen_rtvec (2, op11, op12),
+			     UNSPEC_PTEST);
+    }
+  else
+    {
+      convert_op (&op1, insn);
+      src = op1;
+    }
+
+  if (!REG_P (src))
+    {
+      tmp = gen_reg_rtx (vmode);
+      emit_insn_before (gen_rtx_SET (tmp, src), insn);
+      src = tmp;
+    }
+
+  if (vmode == V2DImode)
+    {
+      tmp = gen_reg_rtx (vmode);
+      emit_insn_before (gen_vec_interleave_lowv2di (tmp, src, src), insn);
+      src = tmp;
+    }
+  else if (vmode == V4SImode)
+    {
+      tmp = gen_reg_rtx (vmode);
+      emit_insn_before (gen_sse2_pshufd (tmp, src, const0_rtx), insn);
+      src = tmp;
+    }
+
+  return gen_rtx_UNSPEC (CCZmode, gen_rtvec (2, src, src), UNSPEC_PTEST);
+}
+
+/* Helper function for converting INSN to vector mode.  */
 
 void
 general_scalar_chain::convert_insn (rtx_insn *insn)
