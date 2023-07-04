@@ -20816,21 +20816,41 @@ ix86_rtx_costs (rtx x, machine_mode mode, int outer_code_i, int opno,
 	}
 
       if (SSE_FLOAT_MODE_SSEMATH_OR_HF_P (mode))
+	*total = cost->addss;
+      else if (X87_FLOAT_MODE_P (mode))
+	*total = cost->fadd;
+      else if (FLOAT_MODE_P (mode))
+	*total = ix86_vec_cost (mode, cost->addss);
+      else if (GET_MODE_CLASS (mode) == MODE_VECTOR_INT)
+	*total = ix86_vec_cost (mode, cost->sse_op);
+      else if (GET_MODE_SIZE (mode) > UNITS_PER_WORD)
+	*total = cost->add * 2;
+      else
+	*total = cost->add;
+      return false;
+
+    case IOR:
+      if (GET_MODE_CLASS (mode) == MODE_VECTOR_INT
+	  || SSE_FLOAT_MODE_P (mode))
 	{
 	  *total = cost->addss;
 	  return false;
 	}
-      else if (X87_FLOAT_MODE_P (mode))
-	{
-	  *total = cost->fadd;
-	  return false;
-	}
-      else if (FLOAT_MODE_P (mode))
-	{
-	  *total = ix86_vec_cost (mode, cost->addss);
-	  return false;
-	}
-      /* FALLTHRU */
+      else if (GET_MODE_SIZE (mode) > UNITS_PER_WORD)
+	*total = cost->add * 2;
+      else
+	*total = cost->add;
+      return false;
+
+    case XOR:
+      if (GET_MODE_CLASS (mode) == MODE_VECTOR_INT
+	  || SSE_FLOAT_MODE_P (mode))
+	*total = ix86_vec_cost (mode, cost->sse_op);
+      else if (GET_MODE_SIZE (mode) > UNITS_PER_WORD)
+	*total = cost->add * 2;
+      else
+	*total = cost->add;
+      return false;
 
     case AND:
     case IOR:
@@ -20851,7 +20871,107 @@ ix86_rtx_costs (rtx x, machine_mode mode, int outer_code_i, int opno,
 	  *total = cost->lea;
 	  return true;
 	}
-      /* FALLTHRU */
+      else if (GET_MODE_CLASS (mode) == MODE_VECTOR_INT
+	       || SSE_FLOAT_MODE_P (mode))
+	{
+	  /* pandn is a single instruction.  */
+	  if (GET_CODE (XEXP (x, 0)) == NOT)
+	    {
+	      rtx right = XEXP (x, 1);
+
+	      /* (and (not ...) (not ...)) can be a single insn in AVX512.  */
+	      if (GET_CODE (right) == NOT && TARGET_AVX512F
+		  && (GET_MODE_SIZE (mode) == 64
+		      || (TARGET_AVX512VL
+			  && (GET_MODE_SIZE (mode) == 32
+			      || GET_MODE_SIZE (mode) == 16))))
+		right = XEXP (right, 0);
+
+	      *total = ix86_vec_cost (mode, cost->sse_op)
+		       + rtx_cost (XEXP (XEXP (x, 0), 0), mode,
+				   outer_code, opno, speed)
+		       + rtx_cost (right, mode, outer_code, opno, speed);
+	      return true;
+	    }
+	  else if (GET_CODE (XEXP (x, 1)) == NOT)
+	    {
+	      *total = ix86_vec_cost (mode, cost->sse_op)
+		       + rtx_cost (XEXP (x, 0), mode,
+				   outer_code, opno, speed)
+		       + rtx_cost (XEXP (XEXP (x, 1), 0), mode,
+				   outer_code, opno, speed);
+	      return true;
+	    }
+	  *total = ix86_vec_cost (mode, cost->sse_op);
+	}
+      else if (GET_MODE_SIZE (mode) > UNITS_PER_WORD)
+	{
+	  if (TARGET_BMI && GET_CODE (XEXP (x,0)) == NOT)
+	    {
+	      *total = cost->add * 2
+		       + rtx_cost (XEXP (XEXP (x, 0), 0), mode,
+				   outer_code, opno, speed)
+		       + rtx_cost (XEXP (x, 1), mode,
+				   outer_code, opno, speed);
+	      return true;
+	    }
+	  else if (TARGET_BMI && GET_CODE (XEXP (x, 1)) == NOT)
+	    {
+	      *total = cost->add * 2
+		       + rtx_cost (XEXP (x, 0), mode,
+				   outer_code, opno, speed)
+		       + rtx_cost (XEXP (XEXP (x, 1), 0), mode,
+				   outer_code, opno, speed);
+	      return true;
+	    }
+	  *total = cost->add * 2;
+	}
+      else if (TARGET_BMI && GET_CODE (XEXP (x,0)) == NOT)
+	{
+	  *total = cost->add
+		   + rtx_cost (XEXP (XEXP (x, 0), 0), mode,
+			       outer_code, opno, speed)
+		   + rtx_cost (XEXP (x, 1), mode, outer_code, opno, speed);
+	  return true;
+	}
+      else if (TARGET_BMI && GET_CODE (XEXP (x,1)) == NOT)
+	{
+	  *total = cost->add
+		   + rtx_cost (XEXP (x, 0), mode, outer_code, opno, speed)
+		   + rtx_cost (XEXP (XEXP (x, 1), 0), mode,
+			       outer_code, opno, speed);
+	  return true;
+	}
+      else
+	*total = cost->add;
+      return false;
+
+    case NOT:
+      if (GET_MODE_CLASS (mode) == MODE_VECTOR_INT)
+	{
+	  /* (not (xor ...)) can be a single insn in AVX512.  */
+	  if (GET_CODE (XEXP (x, 0)) == XOR && TARGET_AVX512F
+	      && (GET_MODE_SIZE (mode) == 64
+		  || (TARGET_AVX512VL
+		      && (GET_MODE_SIZE (mode) == 32
+			  || GET_MODE_SIZE (mode) == 16))))
+	    {
+	      *total = ix86_vec_cost (mode, cost->sse_op)
+		       + rtx_cost (XEXP (XEXP (x, 0), 0), mode,
+				   outer_code, opno, speed)
+		       + rtx_cost (XEXP (XEXP (x, 0), 1), mode,
+				   outer_code, opno, speed);
+	      return true;
+	    }
+
+	  // vnot is pxor -1.
+	  *total = ix86_vec_cost (mode, cost->sse_op) + 1;
+	}
+      else if (GET_MODE_SIZE (mode) > UNITS_PER_WORD)
+	*total = cost->add * 2;
+      else
+	*total = cost->add;
+      return false;
 
     case NEG:
       if (SSE_FLOAT_MODE_SSEMATH_OR_HF_P (mode))
