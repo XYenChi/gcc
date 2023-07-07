@@ -1057,7 +1057,8 @@
 
   "TARGET_VECTOR|| TARGET_XTHEADV"
   ""
-  [(set_attr "type" "vector")])
+  [(set_attr "type" "vsetvl_pre")]
+  )
 
 
 ;; Set VXRM
