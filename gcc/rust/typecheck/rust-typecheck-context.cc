@@ -565,6 +565,13 @@ TypeCheckContextItem::get_context_type ()
     case TRAIT_ITEM:
       reference = get_trait_item ()->get_mappings ().get_hirid ();
       break;
+<<<<<<< HEAD
+=======
+
+    case ERROR:
+      rust_unreachable ();
+      return nullptr;
+>>>>>>> 93866b6a930 (gccrs: rust-unreachable: Add specific behavior for rust_unreachable)
     }
 
   rust_assert (reference != UNKNOWN_HIRID);
