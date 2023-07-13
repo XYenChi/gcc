@@ -9678,7 +9678,9 @@ vectorizable_load (vec_info *vinfo,
 	}
     }
 
-  if (!vec_stmt) /* transformation not required.  */
+  bool costing_p = !vec_stmt;
+
+  if (costing_p) /* transformation not required.  */
     {
       if (slp_node
 	  && mask
@@ -9712,17 +9714,13 @@ vectorizable_load (vec_info *vinfo,
 	vinfo->any_known_not_updated_vssa = true;
 
       STMT_VINFO_TYPE (stmt_info) = load_vec_info_type;
-      vect_model_load_cost (vinfo, stmt_info, ncopies, vf, memory_access_type,
-			    alignment_support_scheme, misalignment,
-			    &gs_info, slp_node, cost_vec);
-      return true;
     }
 
   if (!slp)
     gcc_assert (memory_access_type
 		== STMT_VINFO_MEMORY_ACCESS_TYPE (stmt_info));
 
-  if (dump_enabled_p ())
+  if (dump_enabled_p () && !costing_p)
     dump_printf_loc (MSG_NOTE, vect_location,
                      "transform load. ncopies = %d\n", ncopies);
 
@@ -9733,13 +9731,26 @@ vectorizable_load (vec_info *vinfo,
 
   if (memory_access_type == VMAT_GATHER_SCATTER && gs_info.decl)
     {
-      vect_build_gather_load_calls (vinfo,
-				    stmt_info, gsi, vec_stmt, &gs_info, mask);
+      if (costing_p)
+	vect_model_load_cost (vinfo, stmt_info, ncopies, vf, memory_access_type,
+			      alignment_support_scheme, misalignment, &gs_info,
+			      slp_node, cost_vec);
+      else
+	vect_build_gather_load_calls (vinfo, stmt_info, gsi, vec_stmt, &gs_info,
+				      mask);
       return true;
     }
 
   if (memory_access_type == VMAT_INVARIANT)
     {
+      if (costing_p)
+	{
+	  vect_model_load_cost (vinfo, stmt_info, ncopies, vf,
+				memory_access_type, alignment_support_scheme,
+				misalignment, &gs_info, slp_node, cost_vec);
+	  return true;
+	}
+
       gcc_assert (!grouped_load && !mask && !bb_vinfo);
       /* If we have versioned for aliasing or the loop doesn't
 	 have any data dependencies that would preclude this,
@@ -9794,6 +9805,14 @@ vectorizable_load (vec_info *vinfo,
   if (memory_access_type == VMAT_ELEMENTWISE
       || memory_access_type == VMAT_STRIDED_SLP)
     {
+      if (costing_p)
+	{
+	  vect_model_load_cost (vinfo, stmt_info, ncopies, vf,
+				memory_access_type, alignment_support_scheme,
+				misalignment, &gs_info, slp_node, cost_vec);
+	  return true;
+	}
+
       gimple_stmt_iterator incr_gsi;
       bool insert_after;
       tree offvar;
@@ -10244,17 +10263,20 @@ vectorizable_load (vec_info *vinfo,
 	 here, since we can't guarantee first_stmt_info DR has been
 	 initialized yet, use first_stmt_info_for_drptr DR by bumping the
 	 distance from first_stmt_info DR instead as below.  */
-      if (!diff_first_stmt_info)
-	msq = vect_setup_realignment (vinfo,
-				      first_stmt_info, gsi, &realignment_token,
-				      alignment_support_scheme, NULL_TREE,
-				      &at_loop);
-      if (alignment_support_scheme == dr_explicit_realign_optimized)
+      if (!costing_p)
 	{
-	  phi = as_a <gphi *> (SSA_NAME_DEF_STMT (msq));
-	  offset = size_binop (MINUS_EXPR, TYPE_SIZE_UNIT (vectype),
-			       size_one_node);
-	  gcc_assert (!first_stmt_info_for_drptr);
+	  if (!diff_first_stmt_info)
+	    msq = vect_setup_realignment (vinfo, first_stmt_info, gsi,
+					  &realignment_token,
+					  alignment_support_scheme, NULL_TREE,
+					  &at_loop);
+	  if (alignment_support_scheme == dr_explicit_realign_optimized)
+	    {
+	      phi = as_a<gphi *> (SSA_NAME_DEF_STMT (msq));
+	      offset = size_binop (MINUS_EXPR, TYPE_SIZE_UNIT (vectype),
+				   size_one_node);
+	      gcc_assert (!first_stmt_info_for_drptr);
+	    }
 	}
     }
   else
@@ -10275,8 +10297,9 @@ vectorizable_load (vec_info *vinfo,
   else if (memory_access_type == VMAT_GATHER_SCATTER)
     {
       aggr_type = elem_type;
-      vect_get_strided_load_store_ops (stmt_info, loop_vinfo, gsi, &gs_info,
-				       &bump, &vec_offset, loop_lens);
+      if (!costing_p)
+	vect_get_strided_load_store_ops (stmt_info, loop_vinfo, gsi, &gs_info,
+					 &bump, &vec_offset, loop_lens);
     }
   else
     {
@@ -10290,7 +10313,7 @@ vectorizable_load (vec_info *vinfo,
 
   auto_vec<tree> vec_offsets;
   auto_vec<tree> vec_masks;
-  if (mask)
+  if (mask && !costing_p)
     {
       if (slp_node)
 	vect_get_slp_defs (SLP_TREE_CHILDREN (slp_node)[mask_index],
@@ -10304,7 +10327,7 @@ vectorizable_load (vec_info *vinfo,
   for (j = 0; j < ncopies; j++)
     {
       /* 1. Create the vector or array pointer update chain.  */
-      if (j == 0)
+      if (j == 0 && !costing_p)
 	{
 	  bool simd_lane_access_p
 	    = STMT_VINFO_SIMD_LANE_ACCESS_P (stmt_info) != 0;
@@ -10363,7 +10386,7 @@ vectorizable_load (vec_info *vinfo,
 	  if (mask)
 	    vec_mask = vec_masks[0];
 	}
-      else
+      else if (!costing_p)
 	{
 	  gcc_assert (!LOOP_VINFO_USING_SELECT_VL_P (loop_vinfo));
 	  if (dataref_offset)
@@ -10380,7 +10403,7 @@ vectorizable_load (vec_info *vinfo,
 	dr_chain.create (vec_num);
 
       gimple *new_stmt = NULL;
-      if (memory_access_type == VMAT_LOAD_STORE_LANES)
+      if (memory_access_type == VMAT_LOAD_STORE_LANES && !costing_p)
 	{
 	  tree vec_array;
 
@@ -10432,7 +10455,7 @@ vectorizable_load (vec_info *vinfo,
 	  /* Record that VEC_ARRAY is now dead.  */
 	  vect_clobber_variable (vinfo, stmt_info, gsi, vec_array);
 	}
-      else
+      else if (!costing_p)
 	{
 	  for (i = 0; i < vec_num; i++)
 	    {
@@ -10956,7 +10979,7 @@ vectorizable_load (vec_info *vinfo,
       if (slp && !slp_perm)
 	continue;
 
-      if (slp_perm)
+      if (slp_perm && !costing_p)
         {
 	  unsigned n_perms;
 	  /* For SLP we know we've seen all possible uses of dr_chain so
@@ -10968,7 +10991,7 @@ vectorizable_load (vec_info *vinfo,
 						  nullptr, true);
 	  gcc_assert (ok);
         }
-      else
+      else if (!costing_p)
         {
           if (grouped_load)
   	    {
@@ -10984,8 +11007,13 @@ vectorizable_load (vec_info *vinfo,
         }
       dr_chain.release ();
     }
-  if (!slp)
+  if (!slp && !costing_p)
     *vec_stmt = STMT_VINFO_VEC_STMTS (stmt_info)[0];
+
+  if (costing_p)
+    vect_model_load_cost (vinfo, stmt_info, ncopies, vf, memory_access_type,
+			  alignment_support_scheme, misalignment, &gs_info,
+			  slp_node, cost_vec);
 
   return true;
 }
