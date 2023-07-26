@@ -3365,3 +3365,4 @@
 (include "sifive-7.md")
 (include "thead.md")
 (include "vector.md")
+(include "zicond.md")
