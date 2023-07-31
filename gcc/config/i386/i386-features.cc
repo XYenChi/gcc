@@ -564,6 +564,27 @@ general_scalar_chain::compute_convert_gain ()
 	      igain -= vector_const_cost (XEXP (src, 0));
 	    break;
 
+	  case ROTATE:
+	  case ROTATERT:
+	    igain += m * ix86_cost->shift_const;
+	    if (TARGET_AVX512VL)
+	      igain -= ix86_cost->sse_op;
+	    else if (smode == DImode)
+	      {
+		int bits = INTVAL (XEXP (src, 1));
+		if ((bits & 0x0f) == 0)
+		  igain -= ix86_cost->sse_op;
+		else if ((bits & 0x07) == 0)
+		  igain -= 2 * ix86_cost->sse_op;
+		else
+		  igain -= 3 * ix86_cost->sse_op;
+	      }
+	    else if (INTVAL (XEXP (src, 1)) == 16)
+	      igain -= ix86_cost->sse_op;
+	    else
+	      igain -= 2 * ix86_cost->sse_op;
+	    break;
+
 	  case AND:
 	  case IOR:
 	  case XOR:
@@ -1111,6 +1132,104 @@ general_scalar_chain::convert_insn (rtx_insn *insn)
 	  *DF_REF_REAL_LOC (ref) = *vreg;
 	}
 
+/* Convert INSN which is an SImode or DImode rotation by a constant
+   to vector mode.  CODE is either ROTATE or ROTATERT with operands
+   OP0 and OP1.  Returns the SET_SRC of the last instruction in the
+   resulting sequence, which is emitted before INSN.  */
+
+rtx
+general_scalar_chain::convert_rotate (enum rtx_code code, rtx op0, rtx op1,
+				      rtx_insn *insn)
+{
+  int bits = INTVAL (op1);
+  rtx pat, result;
+
+  convert_op (&op0, insn);
+  if (bits == 0)
+    return op0;
+
+  if (smode == DImode)
+    {
+      if (code == ROTATE)
+	bits = 64 - bits;
+      if (bits == 32)
+	{
+	  rtx tmp1 = gen_reg_rtx (V4SImode);
+	  pat = gen_sse2_pshufd (tmp1, gen_lowpart (V4SImode, op0),
+				 GEN_INT (225));
+	  emit_insn_before (pat, insn);
+	  result = gen_lowpart (V2DImode, tmp1);
+	}
+      else if (TARGET_AVX512VL)
+	result = simplify_gen_binary (code, V2DImode, op0, op1);
+      else if (bits == 16 || bits == 48)
+	{
+	  rtx tmp1 = gen_reg_rtx (V8HImode);
+	  pat = gen_sse2_pshuflw (tmp1, gen_lowpart (V8HImode, op0),
+				  GEN_INT (bits == 16 ? 57 : 147));
+	  emit_insn_before (pat, insn);
+	  result = gen_lowpart (V2DImode, tmp1);
+	}
+      else if ((bits & 0x07) == 0)
+	{
+	  rtx tmp1 = gen_reg_rtx (V4SImode);
+	  pat = gen_sse2_pshufd (tmp1, gen_lowpart (V4SImode, op0),
+				 GEN_INT (68));
+	  emit_insn_before (pat, insn);
+	  rtx tmp2 = gen_reg_rtx (V1TImode);
+	  pat = gen_sse2_lshrv1ti3 (tmp2, gen_lowpart (V1TImode, tmp1),
+				    GEN_INT (bits));
+	  emit_insn_before (pat, insn);
+	  result = gen_lowpart (V2DImode, tmp2);
+	}
+      else
+	{
+	  rtx tmp1 = gen_reg_rtx (V4SImode);
+	  pat = gen_sse2_pshufd (tmp1, gen_lowpart (V4SImode, op0),
+				 GEN_INT (20));
+	  emit_insn_before (pat, insn);
+	  rtx tmp2 = gen_reg_rtx (V2DImode);
+	  pat = gen_lshrv2di3 (tmp2, gen_lowpart (V2DImode, tmp1),
+			       GEN_INT (bits & 31));
+	  emit_insn_before (pat, insn);
+	  rtx tmp3 = gen_reg_rtx (V4SImode);
+	  pat = gen_sse2_pshufd (tmp3, gen_lowpart (V4SImode, tmp2),
+				 GEN_INT (bits > 32 ? 34 : 136));
+	  emit_insn_before (pat, insn);
+	  result = gen_lowpart (V2DImode, tmp3);
+	}
+    }
+  else if (bits == 16)
+    {
+      rtx tmp1 = gen_reg_rtx (V8HImode);
+      pat = gen_sse2_pshuflw (tmp1, gen_lowpart (V8HImode, op0), GEN_INT (225));
+      emit_insn_before (pat, insn);
+      result = gen_lowpart (V4SImode, tmp1);
+    }
+  else if (TARGET_AVX512VL)
+    result = simplify_gen_binary (code, V4SImode, op0, op1);
+  else
+    {
+      if (code == ROTATE)
+	bits = 32 - bits;
+
+      rtx tmp1 = gen_reg_rtx (V4SImode);
+      emit_insn_before (gen_sse2_pshufd (tmp1, op0, GEN_INT (224)), insn);
+      rtx tmp2 = gen_reg_rtx (V2DImode);
+      pat = gen_lshrv2di3 (tmp2, gen_lowpart (V2DImode, tmp1),
+			   GEN_INT (bits));
+      emit_insn_before (pat, insn);
+      result = gen_lowpart (V4SImode, tmp2);
+    }
+
+  return result;
+}
+
+/* Convert INSN to vector mode.  */
+
+void
+general_scalar_chain::convert_insn (rtx_insn *insn)
+{
   rtx def_set = single_set (insn);
   rtx src = SET_SRC (def_set);
   rtx dst = SET_DEST (def_set);
