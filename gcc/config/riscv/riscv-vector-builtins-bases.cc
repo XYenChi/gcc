@@ -379,28 +379,6 @@ public:
   }
 };
 
-/* Implements below instructions for frm
-   - vfnmacc
-*/
-class vfnmacc_frm : public function_base
-{
-public:
-  bool has_rounding_mode_operand_p () const override { return true; }
-
-  bool has_merge_operand_p () const override { return false; }
-
-  rtx expand (function_expander &e) const override
-  {
-    if (e.op_info->op == OP_TYPE_vf)
-      return e.use_ternop_insn (
-	true, code_for_pred_mul_neg_scalar (MINUS, e.vector_mode ()));
-    if (e.op_info->op == OP_TYPE_vv)
-      return e.use_ternop_insn (
-	true, code_for_pred_mul_neg (MINUS, e.vector_mode ()));
-    gcc_unreachable ();
-  }
-};
-
 /* Implements vrsub.  */
 class vrsub : public function_base
 {
