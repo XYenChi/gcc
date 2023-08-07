@@ -145,6 +145,7 @@ public:
 /* Implements
  * vle.v/vse.v/vlm.v/vsm.v/vlse.v/vsse.v/vluxei.v/vloxei.v/vsuxei.v/vsoxei.v
  * codegen.  */
+ /*RVV 0.7 vsxei*/
 template<bool STORE_P, lst_type LST_TYPE, bool ORDERED_P>
 class loadstore : public function_base
 {
@@ -2177,6 +2178,7 @@ static CONSTEXPR const freducop<UNSPEC_ORDERED> vfredosum_obj;
 static CONSTEXPR const reducop<SMAX> vfredmax_obj;
 static CONSTEXPR const reducop<SMIN> vfredmin_obj;
 static CONSTEXPR const widen_freducop<UNSPEC_UNORDERED> vfwredusum_obj;
+static CONSTEXPR const widen_freducop<UNSPEC_UNORDERED> vfwredsum_obj;
 static CONSTEXPR const widen_freducop<UNSPEC_ORDERED> vfwredosum_obj;
 static CONSTEXPR const vmv vmv_x_obj;
 static CONSTEXPR const vmv_s vmv_s_obj;
@@ -2239,6 +2241,12 @@ BASE (vsoxei8)
 BASE (vsoxei16)
 BASE (vsoxei32)
 BASE (vsoxei64)
+/*RVV 0.7*/
+BASE (vsxei8)
+BASE (vsxei16)
+BASE (vsxei32)
+BASE (vsxei64)
+
 BASE (vadd)
 BASE (vsub)
 BASE (vrsub)
@@ -2413,6 +2421,7 @@ BASE (vfredmax)
 BASE (vfredmin)
 BASE (vfwredosum)
 BASE (vfwredusum)
+BASE (vfwredsum)
 BASE (vmv_x)
 BASE (vmv_s)
 BASE (vfmv_f)
