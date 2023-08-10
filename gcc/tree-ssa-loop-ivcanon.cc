@@ -1250,12 +1250,6 @@ canonicalize_loop_induction_variables (class loop *loop,
 	      || TREE_CODE (niter) != INTEGER_CST))
 	niter = find_loop_niter_by_eval (loop, &exit);
 
-<<<<<<< HEAD
-      if (exit)
-        locus = last_stmt (exit->src);
-
-=======
->>>>>>> 8a6097c7425 (Use find_loop_location from unrolling)
       if (TREE_CODE (niter) != INTEGER_CST)
 	exit = NULL;
     }
