@@ -3367,6 +3367,8 @@
 (include "bitmanip.md")
 (include "crypto.md")
 (include "sync.md")
+(include "sync-rvwmo.md")
+(include "sync-ztso.md")
 (include "peephole.md")
 (include "pic.md")
 (include "generic.md")
