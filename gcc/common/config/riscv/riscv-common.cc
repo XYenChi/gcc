@@ -323,6 +323,8 @@ static const struct riscv_ext_version riscv_ext_version_table[] =
   {"xtheadsync", ISA_SPEC_CLASS_NONE, 1, 0},
   {"xtheadv", ISA_SPEC_CLASS_NONE, 1, 0}, /* for RVV0.7*/
 
+  {"xventanacondops", ISA_SPEC_CLASS_NONE, 1, 0},
+
   /* Terminate the list.  */
   {NULL, ISA_SPEC_CLASS_NONE, 0, 0}
 };
