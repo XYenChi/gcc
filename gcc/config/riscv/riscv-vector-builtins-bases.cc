@@ -145,6 +145,7 @@ public:
 /* Implements
  * vle.v/vse.v/vlm.v/vsm.v/vlse.v/vsse.v/vluxei.v/vloxei.v/vsuxei.v/vsoxei.v
  * codegen.  */
+ /* RVV 0.7 vsxei*/
 template<bool STORE_P, lst_type LST_TYPE, bool ORDERED_P>
 class loadstore : public function_base
 {
@@ -893,6 +894,7 @@ public:
 };
 
 /* Implements vmand/vmnand/vmandn/vmxor/vmor/vmnor/vmorn/vmxnor  */
+/* and vmornot/vmornot for RVV 0.7 */
 template<rtx_code CODE>
 class mask_logic : public function_base
 {
@@ -1000,6 +1002,21 @@ public:
 
 /* Implements vcpop.  */
 class vcpop : public function_base
+{
+public:
+  bool apply_tail_policy_p () const override { return false; }
+  bool apply_mask_policy_p () const override { return false; }
+  bool has_merge_operand_p () const override { return false; }
+
+  rtx expand (function_expander &e) const override
+  {
+    return e.use_exact_insn (code_for_pred_popcount (e.vector_mode (), Pmode));
+  }
+};
+
+/* Implements vmpopc.  */
+/* RVV 0.7 */
+class vmpopc : public function_base
 {
 public:
   bool apply_tail_policy_p () const override { return false; }
@@ -1996,6 +2013,12 @@ static CONSTEXPR const loadstore<false, LST_INDEXED, true> vloxei8_obj;
 static CONSTEXPR const loadstore<false, LST_INDEXED, true> vloxei16_obj;
 static CONSTEXPR const loadstore<false, LST_INDEXED, true> vloxei32_obj;
 static CONSTEXPR const loadstore<false, LST_INDEXED, true> vloxei64_obj;
+/*RVV 0.7 */
+static CONSTEXPR const loadstore<false, LST_INDEXED, true> vlxei8_obj;
+static CONSTEXPR const loadstore<false, LST_INDEXED, true> vlxei16_obj;
+static CONSTEXPR const loadstore<false, LST_INDEXED, true> vlxei32_obj;
+static CONSTEXPR const loadstore<false, LST_INDEXED, true> vlxei64_obj;
+
 static CONSTEXPR const loadstore<true, LST_INDEXED, false> vsuxei8_obj;
 static CONSTEXPR const loadstore<true, LST_INDEXED, false> vsuxei16_obj;
 static CONSTEXPR const loadstore<true, LST_INDEXED, false> vsuxei32_obj;
@@ -2004,6 +2027,12 @@ static CONSTEXPR const loadstore<true, LST_INDEXED, true> vsoxei8_obj;
 static CONSTEXPR const loadstore<true, LST_INDEXED, true> vsoxei16_obj;
 static CONSTEXPR const loadstore<true, LST_INDEXED, true> vsoxei32_obj;
 static CONSTEXPR const loadstore<true, LST_INDEXED, true> vsoxei64_obj;
+/* RVV 0.7 */
+static CONSTEXPR const loadstore<true, LST_INDEXED, true> vsxei8_obj;
+static CONSTEXPR const loadstore<true, LST_INDEXED, true> vsxei16_obj;
+static CONSTEXPR const loadstore<true, LST_INDEXED, true> vsxei32_obj;
+static CONSTEXPR const loadstore<true, LST_INDEXED, true> vsxei64_obj;
+
 static CONSTEXPR const binop<PLUS> vadd_obj;
 static CONSTEXPR const binop<MINUS> vsub_obj;
 static CONSTEXPR const vrsub vrsub_obj;
@@ -2081,16 +2110,19 @@ static CONSTEXPR const vnclip<UNSPEC_VNCLIPU> vnclipu_obj;
 static CONSTEXPR const mask_logic<AND> vmand_obj;
 static CONSTEXPR const mask_nlogic<AND> vmnand_obj;
 static CONSTEXPR const mask_notlogic<AND> vmandn_obj;
+static CONSTEXPR const mask_notlogic<AND> vmandnot_obj; /* RVV 0.7 */
 static CONSTEXPR const mask_logic<XOR> vmxor_obj;
 static CONSTEXPR const mask_logic<IOR> vmor_obj;
 static CONSTEXPR const mask_nlogic<IOR> vmnor_obj;
 static CONSTEXPR const mask_notlogic<IOR> vmorn_obj;
+static CONSTEXPR const mask_notlogic<IOR> vmornot_obj; /* RVV 0.7 */
 static CONSTEXPR const mask_nlogic<XOR> vmxnor_obj;
 static CONSTEXPR const vmmv vmmv_obj;
 static CONSTEXPR const vmclr vmclr_obj;
 static CONSTEXPR const vmset vmset_obj;
 static CONSTEXPR const vmnot vmnot_obj;
 static CONSTEXPR const vcpop vcpop_obj;
+static CONSTEXPR const vmpopc vmpopc_obj; /*RVV 0.7*/
 static CONSTEXPR const vfirst vfirst_obj;
 static CONSTEXPR const mask_misc<UNSPEC_VMSBF> vmsbf_obj;
 static CONSTEXPR const mask_misc<UNSPEC_VMSIF> vmsif_obj;
@@ -2173,10 +2205,12 @@ static CONSTEXPR const reducop<XOR> vredxor_obj;
 static CONSTEXPR const widen_reducop<UNSPEC_WREDUC_SUM> vwredsum_obj;
 static CONSTEXPR const widen_reducop<UNSPEC_WREDUC_USUM> vwredsumu_obj;
 static CONSTEXPR const freducop<UNSPEC_UNORDERED> vfredusum_obj;
+static CONSTEXPR const freducop<UNSPEC_UNORDERED> vfredsum_obj; /*RVV 0.7*/
 static CONSTEXPR const freducop<UNSPEC_ORDERED> vfredosum_obj;
 static CONSTEXPR const reducop<SMAX> vfredmax_obj;
 static CONSTEXPR const reducop<SMIN> vfredmin_obj;
 static CONSTEXPR const widen_freducop<UNSPEC_UNORDERED> vfwredusum_obj;
+static CONSTEXPR const widen_freducop<UNSPEC_UNORDERED> vfwredsum_obj; /*RVV 0.7*/
 static CONSTEXPR const widen_freducop<UNSPEC_ORDERED> vfwredosum_obj;
 static CONSTEXPR const vmv vmv_x_obj;
 static CONSTEXPR const vmv_s vmv_s_obj;
@@ -2208,6 +2242,7 @@ static CONSTEXPR const seg_indexed_load<UNSPEC_UNORDERED> vluxseg_obj;
 static CONSTEXPR const seg_indexed_load<UNSPEC_ORDERED> vloxseg_obj;
 static CONSTEXPR const seg_indexed_store<UNSPEC_UNORDERED> vsuxseg_obj;
 static CONSTEXPR const seg_indexed_store<UNSPEC_ORDERED> vsoxseg_obj;
+static CONSTEXPR const seg_indexed_store<UNSPEC_VSXSEG> vsxseg_obj; /*RVV 0.7 indexed segment store*/
 static CONSTEXPR const vlsegff vlsegff_obj;
 
 /* Declare the function base NAME, pointing it to an instance
@@ -2239,6 +2274,12 @@ BASE (vsoxei8)
 BASE (vsoxei16)
 BASE (vsoxei32)
 BASE (vsoxei64)
+/*RVV 0.7*/
+BASE (vsxei8)
+BASE (vsxei16)
+BASE (vsxei32)
+BASE (vsxei64)
+
 BASE (vadd)
 BASE (vsub)
 BASE (vrsub)
@@ -2320,12 +2361,14 @@ BASE (vmxor)
 BASE (vmor)
 BASE (vmnor)
 BASE (vmorn)
+BASE (vmornot)
 BASE (vmxnor)
 BASE (vmmv)
 BASE (vmclr)
 BASE (vmset)
 BASE (vmnot)
 BASE (vcpop)
+BASE (vmpopc)
 BASE (vfirst)
 BASE (vmsbf)
 BASE (vmsif)
@@ -2413,6 +2456,7 @@ BASE (vfredmax)
 BASE (vfredmin)
 BASE (vfwredosum)
 BASE (vfwredusum)
+BASE (vfwredsum)
 BASE (vmv_x)
 BASE (vmv_s)
 BASE (vfmv_f)
@@ -2443,6 +2487,9 @@ BASE (vluxseg)
 BASE (vloxseg)
 BASE (vsuxseg)
 BASE (vsoxseg)
+BASE (vsxseg)
 BASE (vlsegff)
+BASE (vsxei)
+BASE (vsxseg)
 
 } // end namespace riscv_vector

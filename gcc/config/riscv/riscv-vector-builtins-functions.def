@@ -75,6 +75,12 @@ DEF_RVV_FUNCTION (vsoxei16, indexed_loadstore, none_m_preds, all_v_scalar_ptr_ee
 DEF_RVV_FUNCTION (vsoxei32, indexed_loadstore, none_m_preds, all_v_scalar_ptr_eew32_index_ops)
 DEF_RVV_FUNCTION (vsoxei64, indexed_loadstore, none_m_preds, all_v_scalar_ptr_eew64_index_ops)
 
+// RVV0.7
+DEF_RVV_FUNCTION (vsxei8, indexed_loadstore, none_m_preds, all_v_scalar_ptr_eew8_index_ops)
+DEF_RVV_FUNCTION (vsxei16, indexed_loadstore, none_m_preds, all_v_scalar_ptr_eew16_index_ops)
+DEF_RVV_FUNCTION (vsxei32, indexed_loadstore, none_m_preds, all_v_scalar_ptr_eew32_index_ops)
+DEF_RVV_FUNCTION (vsxei64, indexed_loadstore, none_m_preds, all_v_scalar_ptr_eew64_index_ops)
+
 // 7.7. Unit-stride Fault-Only-First Loads
 DEF_RVV_FUNCTION (vleff, fault_load, full_preds, all_v_scalar_const_ptr_size_ptr_ops)
 
@@ -225,6 +231,15 @@ DEF_RVV_FUNCTION (vmadd, alu, full_preds, iu_vvvv_ops)
 DEF_RVV_FUNCTION (vmadd, alu, full_preds, iu_vvxv_ops)
 DEF_RVV_FUNCTION (vnmsub, alu, full_preds, iu_vvvv_ops)
 DEF_RVV_FUNCTION (vnmsub, alu, full_preds, iu_vvxv_ops)
+
+// RVV 0.7 copy from vmacc, don't have referrence
+DEF_RVV_FUNCTION (vqmacc, alu, full_preds, i_qqvv_ops)
+DEF_RVV_FUNCTION (vqmacc, alu, full_preds, i_qqxv_ops)
+DEF_RVV_FUNCTION (vqmaccsu, alu, full_preds, i_su_qqvv_ops)
+DEF_RVV_FUNCTION (vqmaccsu, alu, full_preds, i_su_qqxv_ops)
+DEF_RVV_FUNCTION (vqmaccu, alu, full_preds, u_qqvv_ops)
+DEF_RVV_FUNCTION (vqmaccu, alu, full_preds, u_qqxv_ops)
+DEF_RVV_FUNCTION (vqmaccus, alu, full_preds, i_us_qqxv_ops)
 
 // 11.14. Vector Widening Integer Multiply-Add Instructions
 DEF_RVV_FUNCTION (vwmaccu, alu, full_preds, u_wwvv_ops)
@@ -452,6 +467,7 @@ DEF_RVV_FUNCTION (vwredsumu, reduc_alu, no_mu_preds, wu_vs_ops)
 
 // 14.3. Vector Single-Width Floating-Point Reduction Instructions
 DEF_RVV_FUNCTION (vfredusum, reduc_alu, no_mu_preds, f_vs_ops)
+DEF_RVV_FUNCTION (vfredsum, reduc_alu, no_mu_preds, f_vs_ops)    /* RVV 0.7 */
 DEF_RVV_FUNCTION (vfredosum, reduc_alu, no_mu_preds, f_vs_ops)
 DEF_RVV_FUNCTION (vfredmax, reduc_alu, no_mu_preds, f_vs_ops)
 DEF_RVV_FUNCTION (vfredmin, reduc_alu, no_mu_preds, f_vs_ops)
@@ -459,6 +475,7 @@ DEF_RVV_FUNCTION (vfredmin, reduc_alu, no_mu_preds, f_vs_ops)
 // 14.4. Vector Widening Floating-Point Reduction Instructions
 DEF_RVV_FUNCTION (vfwredosum, reduc_alu, no_mu_preds, wf_vs_ops)
 DEF_RVV_FUNCTION (vfwredusum, reduc_alu, no_mu_preds, wf_vs_ops)
+DEF_RVV_FUNCTION (vfwredsum, reduc_alu, no_mu_preds, wf_vs_ops)    /* RVV 0.7 */
 
 /* 15. Vector Mask Instructions.  */
 
@@ -466,10 +483,12 @@ DEF_RVV_FUNCTION (vfwredusum, reduc_alu, no_mu_preds, wf_vs_ops)
 DEF_RVV_FUNCTION (vmand, mask_alu, none_preds, b_mmm_ops)
 DEF_RVV_FUNCTION (vmnand, mask_alu, none_preds, b_mmm_ops)
 DEF_RVV_FUNCTION (vmandn, mask_alu, none_preds, b_mmm_ops)
+DEF_RVV_FUNCTION (vmandnot, mask_alu, none_preds, b_mmm_ops) /* RVV 0.7 */
 DEF_RVV_FUNCTION (vmxor, mask_alu, none_preds, b_mmm_ops)
 DEF_RVV_FUNCTION (vmor, mask_alu, none_preds, b_mmm_ops)
 DEF_RVV_FUNCTION (vmnor, mask_alu, none_preds, b_mmm_ops)
 DEF_RVV_FUNCTION (vmorn, mask_alu, none_preds, b_mmm_ops)
+DEF_RVV_FUNCTION (vmornot, mask_alu, none_preds, b_mmm_ops) /* RVV 0.7 */
 DEF_RVV_FUNCTION (vmxnor, mask_alu, none_preds, b_mmm_ops)
 DEF_RVV_FUNCTION (vmmv, mask_alu, none_preds, b_mm_ops)
 DEF_RVV_FUNCTION (vmclr, mask_alu, none_preds, b_m_ops)
@@ -568,6 +587,22 @@ DEF_RVV_FUNCTION (vget, vget, none_preds, all_v_vget_lmul2_x2_ops)
 DEF_RVV_FUNCTION (vget, vget, none_preds, all_v_vget_lmul2_x4_ops)
 DEF_RVV_FUNCTION (vget, vget, none_preds, all_v_vget_lmul4_x2_ops)
 
+/* RVV 0.7 copy from vget, but can't find referrence */
+DEF_RVV_FUNCTION (vcopy, vcopy, none_preds, all_v_vcopy_lmul1_x2_ops)
+DEF_RVV_FUNCTION (vcopy, vcopy, none_preds, all_v_vcopy_lmul1_x4_ops)
+DEF_RVV_FUNCTION (vcopy, vcopy, none_preds, all_v_vcopy_lmul1_x8_ops)
+DEF_RVV_FUNCTION (vcopy, vcopy, none_preds, all_v_vcopy_lmul2_x2_ops)
+DEF_RVV_FUNCTION (vcopy, vcopy, none_preds, all_v_vcopy_lmul2_x4_ops)
+DEF_RVV_FUNCTION (vcopy, vcopy, none_preds, all_v_vcopy_lmul4_x2_ops)
+
+/* RVV 0.7 copy from vget, but can't find referrence */
+DEF_RVV_FUNCTION (vcreate, vcreate, none_preds, all_v_vcreate_lmul1_x2_ops)
+DEF_RVV_FUNCTION (vcreate, vcreate, none_preds, all_v_vcreate_lmul1_x4_ops)
+DEF_RVV_FUNCTION (vcreate, vcreate, none_preds, all_v_vcreate_lmul1_x8_ops)
+DEF_RVV_FUNCTION (vcreate, vcreate, none_preds, all_v_vcreate_lmul2_x2_ops)
+DEF_RVV_FUNCTION (vcreate, vcreate, none_preds, all_v_vcreate_lmul2_x4_ops)
+DEF_RVV_FUNCTION (vcreate, vcreate, none_preds, all_v_vcreate_lmul4_x2_ops)
+
 // Tuple types
 DEF_RVV_FUNCTION (vset, vset, none_preds, all_v_vset_tuple_ops)
 DEF_RVV_FUNCTION (vget, vget, none_preds, all_v_vget_tuple_ops)
@@ -591,6 +626,13 @@ DEF_RVV_FUNCTION (vsoxseg, seg_indexed_loadstore, none_m_preds, tuple_v_scalar_p
 DEF_RVV_FUNCTION (vsoxseg, seg_indexed_loadstore, none_m_preds, tuple_v_scalar_ptr_eew16_index_ops)
 DEF_RVV_FUNCTION (vsoxseg, seg_indexed_loadstore, none_m_preds, tuple_v_scalar_ptr_eew32_index_ops)
 DEF_RVV_FUNCTION (vsoxseg, seg_indexed_loadstore, none_m_preds, tuple_v_scalar_ptr_eew64_index_ops)
+
+// RVV 0.7
+DEF_RVV_FUNCTION (vsxseg, seg_indexed_loadstore, none_m_preds, tuple_v_scalar_ptr_eew8_index_ops)
+DEF_RVV_FUNCTION (vsxseg, seg_indexed_loadstore, none_m_preds, tuple_v_scalar_ptr_eew16_index_ops)
+DEF_RVV_FUNCTION (vsxseg, seg_indexed_loadstore, none_m_preds, tuple_v_scalar_ptr_eew32_index_ops)
+DEF_RVV_FUNCTION (vsxseg, seg_indexed_loadstore, none_m_preds, tuple_v_scalar_ptr_eew64_index_ops)
+
 DEF_RVV_FUNCTION (vlsegff, seg_fault_load, full_preds, tuple_v_scalar_const_ptr_size_ptr_ops)
 
 #undef DEF_RVV_FUNCTION

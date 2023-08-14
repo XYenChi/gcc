@@ -144,6 +144,7 @@
 (include "predicates.md")
 (include "constraints.md")
 (include "iterators.md")
+(include "xtheadv.md")
 
 ;; ....................
 ;;
@@ -258,6 +259,7 @@
 	 (and (eq_attr "ext" "vector")
 	      (match_test "TARGET_VECTOR"))
 	 (const_string "yes")
+
 	]
 	(const_string "no")))
 

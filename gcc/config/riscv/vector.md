@@ -7941,7 +7941,7 @@
 		 (parallel [(const_int 0)])))
 	     (match_operand:VHF           3 "register_operand"      "   vr,   vr"))
 	   (match_operand:VHF_LMUL1       2 "vector_merge_operand"  "   vu,    0")] UNSPEC_REDUC))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR || TARGET_XTHEADV"
   "vfred<reduc>.vs\t%0,%3,%4%p1"
   [(set_attr "type" "vfredu")
    (set_attr "mode" "<VHF:MODE>")])
@@ -7964,7 +7964,7 @@
 		(parallel [(const_int 0)])))
 	    (match_operand:VSF           3 "register_operand"      "   vr,   vr"))
 	 (match_operand:VSF_LMUL1        2 "vector_merge_operand"  "   vu,    0")] UNSPEC_REDUC))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR || TARGET_XTHEADV"
   "vfred<reduc>.vs\t%0,%3,%4%p1"
   [(set_attr "type" "vfredu")
    (set_attr "mode" "<VSF:MODE>")])
