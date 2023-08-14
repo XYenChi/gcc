@@ -284,6 +284,7 @@ enum riscv_entity
 #define MASK_XTHEADMEMIDX  (1 << 9)
 #define MASK_XTHEADMEMPAIR (1 << 10)
 #define MASK_XTHEADSYNC    (1 << 11)
+#define MASK_XTHEADV       (1 << 12)
 
 #define TARGET_XTHEADBA      ((riscv_xthead_subext & MASK_XTHEADBA) != 0)
 #define TARGET_XTHEADBB      ((riscv_xthead_subext & MASK_XTHEADBB) != 0)
@@ -297,6 +298,7 @@ enum riscv_entity
 #define TARGET_XTHEADMEMIDX  ((riscv_xthead_subext & MASK_XTHEADMEMIDX) != 0)
 #define TARGET_XTHEADMEMPAIR ((riscv_xthead_subext & MASK_XTHEADMEMPAIR) != 0)
 #define TARGET_XTHEADSYNC    ((riscv_xthead_subext & MASK_XTHEADSYNC) != 0)
+#define TARGET_XTHEADV       ((riscv_xthead_subext & MASK_XTHEADV) != 0)
 
 /* We only enable VLS modes for VLA vectorization since fixed length VLMAX mode
    is the highest priority choice and should not conflict with VLS modes.  */
