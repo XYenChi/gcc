@@ -6044,22 +6044,6 @@
   [(set_attr "type" "vmpop")
    (set_attr "mode" "<VB:MODE>")])
 
-(define_insn "@pred_popcount<VB:mode><P:mode>"
-  [(set (match_operand:P 0 "register_operand"               "=r")
-	(popcount:P
-	  (unspec:VB
-	    [(and:VB
-	       (match_operand:VB 1 "vector_mask_operand" "vmWc1")
-	       (match_operand:VB 2 "register_operand"    "   vr"))
-	     (match_operand 3 "vector_length_operand"    "   rK")
-	     (match_operand 4 "const_int_operand"        "    i")
-	     (reg:SI VL_REGNUM)
-	     (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE)))]
-  "TARGET_VECTOR_07"
-  "vmcpop.m\t%0,%2%p1"
-  [(set_attr "type" "vmpop")
-   (set_attr "mode" "<VB:MODE>")])
-
 (define_insn "@pred_ffs<VB:mode><P:mode>"
   [(set (match_operand:P 0 "register_operand"                 "=r")
 	(plus:P
@@ -7957,7 +7941,7 @@
 		 (parallel [(const_int 0)])))
 	     (match_operand:VHF           3 "register_operand"      "   vr,   vr"))
 	   (match_operand:VHF_LMUL1       2 "vector_merge_operand"  "   vu,    0")] UNSPEC_REDUC))]
-  "TARGET_VECTOR && TARGET_VECTOR_07"
+  "TARGET_VECTOR || TARGET_XTHEADV"
   "vfred<reduc>.vs\t%0,%3,%4%p1"
   [(set_attr "type" "vfredu")
    (set_attr "mode" "<VHF:MODE>")])
@@ -7980,7 +7964,7 @@
 		(parallel [(const_int 0)])))
 	    (match_operand:VSF           3 "register_operand"      "   vr,   vr"))
 	 (match_operand:VSF_LMUL1        2 "vector_merge_operand"  "   vu,    0")] UNSPEC_REDUC))]
-  "TARGET_VECTOR && TARGET_VECTOR_07"
+  "TARGET_VECTOR || TARGET_XTHEADV"
   "vfred<reduc>.vs\t%0,%3,%4%p1"
   [(set_attr "type" "vfredu")
    (set_attr "mode" "<VSF:MODE>")])

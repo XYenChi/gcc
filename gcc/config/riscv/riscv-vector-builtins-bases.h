@@ -260,6 +260,7 @@ extern const function_base *const vloxseg;
 extern const function_base *const vsuxseg;
 extern const function_base *const vsoxseg;
 extern const function_base *const vlsegff;
+extern const function_base *const vqmacc;
 }
 
 } // end namespace riscv_vector
