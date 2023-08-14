@@ -174,6 +174,9 @@ struct _slp_tree {
   _slp_tree ();
   ~_slp_tree ();
 
+  void push_vec_def (gimple *def);
+  void push_vec_def (tree def) { vec_defs.quick_push (def); }
+
   /* Nodes that contain def-stmts of this node statements operands.  */
   vec<slp_tree> children;
 
@@ -194,8 +197,7 @@ struct _slp_tree {
   lane_permutation_t lane_permutation;
 
   tree vectype;
-  /* Vectorized stmt/s.  */
-  vec<gimple *> vec_stmts;
+  /* Vectorized defs.  */
   vec<tree> vec_defs;
   /* Number of vector stmts that are created to replace the group of scalar
      stmts. It is calculated during the transformation phase as the number of
@@ -255,6 +257,10 @@ public:
      from, NULL otherwise.  */
   vec<stmt_vec_info> root_stmts;
 
+  /* For slp_inst_kind_bb_reduc the defs that were not vectorized, NULL
+     otherwise.  */
+  vec<stmt_vec_info> remain_stmts;
+
   /* The unrolling factor required to vectorized this SLP instance.  */
   poly_uint64 unrolling_factor;
 
@@ -283,13 +289,13 @@ public:
 #define SLP_INSTANCE_UNROLLING_FACTOR(S)         (S)->unrolling_factor
 #define SLP_INSTANCE_LOADS(S)                    (S)->loads
 #define SLP_INSTANCE_ROOT_STMTS(S)               (S)->root_stmts
+#define SLP_INSTANCE_REMAIN_STMTS(S)             (S)->remain_stmts
 #define SLP_INSTANCE_KIND(S)                     (S)->kind
 
 #define SLP_TREE_CHILDREN(S)                     (S)->children
 #define SLP_TREE_SCALAR_STMTS(S)                 (S)->stmts
 #define SLP_TREE_SCALAR_OPS(S)                   (S)->ops
 #define SLP_TREE_REF_COUNT(S)                    (S)->refcnt
-#define SLP_TREE_VEC_STMTS(S)                    (S)->vec_stmts
 #define SLP_TREE_VEC_DEFS(S)                     (S)->vec_defs
 #define SLP_TREE_NUMBER_OF_VEC_STMTS(S)          (S)->vec_stmts_size
 #define SLP_TREE_LOAD_PERMUTATION(S)             (S)->load_permutation
@@ -2356,8 +2362,7 @@ extern opt_result vect_analyze_loop_form (class loop *, vect_loop_form_info *);
 extern loop_vec_info vect_create_loop_vinfo (class loop *, vec_info_shared *,
 					     const vect_loop_form_info *,
 					     loop_vec_info = nullptr);
-extern bool vectorizable_live_operation (vec_info *,
-					 stmt_vec_info, gimple_stmt_iterator *,
+extern bool vectorizable_live_operation (vec_info *, stmt_vec_info,
 					 slp_tree, slp_instance, int,
 					 bool, stmt_vector_for_cost *);
 extern bool vectorizable_reduction (loop_vec_info, stmt_vec_info,

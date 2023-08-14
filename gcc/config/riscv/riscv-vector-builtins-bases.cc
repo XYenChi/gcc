@@ -261,12 +261,6 @@ template<rtx_code CODE>
 class binop : public function_base
 {
 public:
-  bool has_rounding_mode_operand_p () const override
-  {
-    return CODE == SS_PLUS || CODE == SS_MINUS || CODE == US_PLUS
-	   || CODE == US_MINUS;
-  }
-
   rtx expand (function_expander &e) const override
   {
     switch (e.op_info->op)
@@ -284,6 +278,9 @@ public:
 
 /* Implements below instructions for now.
    - vfadd
+   - vfsub
+   - vfmul
+   - vfdiv
 */
 template<rtx_code CODE>
 class binop_frm : public function_base
@@ -302,6 +299,267 @@ public:
       default:
 	gcc_unreachable ();
       }
+  }
+};
+
+/* Implements below instructions for frm
+   - vfrsub
+   - vfrdiv
+*/
+template<rtx_code CODE>
+class reverse_binop_frm : public function_base
+{
+public:
+  bool has_rounding_mode_operand_p () const override { return true; }
+
+public:
+  rtx expand (function_expander &e) const override
+  {
+    return e.use_exact_insn (
+      code_for_pred_reverse_scalar (CODE, e.vector_mode ()));
+  }
+};
+
+/* Implements below instructions for frm
+   - vfwadd
+   - vfwsub
+   - vfwmul
+*/
+template<rtx_code CODE>
+class widen_binop_frm : public function_base
+{
+public:
+  bool has_rounding_mode_operand_p () const override { return true; }
+
+  rtx expand (function_expander &e) const override
+  {
+    switch (e.op_info->op)
+      {
+      case OP_TYPE_vv:
+	return e.use_exact_insn (
+	  code_for_pred_dual_widen (CODE, e.vector_mode ()));
+      case OP_TYPE_vf:
+	return e.use_exact_insn (
+	  code_for_pred_dual_widen_scalar (CODE, e.vector_mode ()));
+      case OP_TYPE_wv:
+	if (CODE == PLUS)
+	  return e.use_exact_insn (
+	    code_for_pred_single_widen_add (e.vector_mode ()));
+	else
+	  return e.use_exact_insn (
+	    code_for_pred_single_widen_sub (e.vector_mode ()));
+      case OP_TYPE_wf:
+	return e.use_exact_insn (
+	  code_for_pred_single_widen_scalar (CODE, e.vector_mode ()));
+      default:
+	gcc_unreachable ();
+      }
+  }
+};
+
+/* Implements below instructions for frm
+   - vfmacc
+*/
+class vfmacc_frm : public function_base
+{
+public:
+  bool has_rounding_mode_operand_p () const override { return true; }
+
+  bool has_merge_operand_p () const override { return false; }
+
+  rtx expand (function_expander &e) const override
+  {
+    if (e.op_info->op == OP_TYPE_vf)
+      return e.use_ternop_insn (true,
+				code_for_pred_mul_scalar (PLUS,
+							  e.vector_mode ()));
+    if (e.op_info->op == OP_TYPE_vv)
+      return e.use_ternop_insn (true,
+				code_for_pred_mul (PLUS, e.vector_mode ()));
+    gcc_unreachable ();
+  }
+};
+
+/* Implements below instructions for frm
+   - vfnmacc
+*/
+class vfnmacc_frm : public function_base
+{
+public:
+  bool has_rounding_mode_operand_p () const override { return true; }
+
+  bool has_merge_operand_p () const override { return false; }
+
+  rtx expand (function_expander &e) const override
+  {
+    if (e.op_info->op == OP_TYPE_vf)
+      return e.use_ternop_insn (
+	true, code_for_pred_mul_neg_scalar (MINUS, e.vector_mode ()));
+    if (e.op_info->op == OP_TYPE_vv)
+      return e.use_ternop_insn (
+	true, code_for_pred_mul_neg (MINUS, e.vector_mode ()));
+    gcc_unreachable ();
+  }
+};
+
+/* Implements below instructions for frm
+   - vfmsac
+*/
+class vfmsac_frm : public function_base
+{
+public:
+  bool has_rounding_mode_operand_p () const override { return true; }
+
+  bool has_merge_operand_p () const override { return false; }
+
+  rtx expand (function_expander &e) const override
+  {
+    if (e.op_info->op == OP_TYPE_vf)
+      return e.use_ternop_insn (
+	true, code_for_pred_mul_scalar (MINUS, e.vector_mode ()));
+    if (e.op_info->op == OP_TYPE_vv)
+      return e.use_ternop_insn (
+	true, code_for_pred_mul (MINUS, e.vector_mode ()));
+
+    gcc_unreachable ();
+  }
+};
+
+/* Implements below instructions for frm
+   - vfnmsac
+*/
+class vfnmsac_frm : public function_base
+{
+public:
+  bool has_rounding_mode_operand_p () const override { return true; }
+
+  bool has_merge_operand_p () const override { return false; }
+
+  rtx expand (function_expander &e) const override
+  {
+    if (e.op_info->op == OP_TYPE_vf)
+      return e.use_ternop_insn (
+	true, code_for_pred_mul_neg_scalar (PLUS, e.vector_mode ()));
+    if (e.op_info->op == OP_TYPE_vv)
+      return e.use_ternop_insn (
+	true, code_for_pred_mul_neg (PLUS, e.vector_mode ()));
+
+    gcc_unreachable ();
+  }
+};
+
+/* Implements below instructions for frm
+   - vfmadd
+*/
+class vfmadd_frm : public function_base
+{
+public:
+  bool has_rounding_mode_operand_p () const override { return true; }
+
+  bool has_merge_operand_p () const override { return false; }
+
+  rtx expand (function_expander &e) const override
+  {
+    if (e.op_info->op == OP_TYPE_vf)
+      return e.use_ternop_insn (
+	false, code_for_pred_mul_scalar (PLUS, e.vector_mode ()));
+    if (e.op_info->op == OP_TYPE_vv)
+      return e.use_ternop_insn (
+	false, code_for_pred_mul (PLUS, e.vector_mode ()));
+
+    gcc_unreachable ();
+  }
+};
+
+/* Implements below instructions for frm
+   - vfnmadd
+*/
+class vfnmadd_frm : public function_base
+{
+public:
+  bool has_rounding_mode_operand_p () const override { return true; }
+
+  bool has_merge_operand_p () const override { return false; }
+
+  rtx expand (function_expander &e) const override
+  {
+    if (e.op_info->op == OP_TYPE_vf)
+      return e.use_ternop_insn (
+	false, code_for_pred_mul_neg_scalar (MINUS, e.vector_mode ()));
+    if (e.op_info->op == OP_TYPE_vv)
+      return e.use_ternop_insn (
+	false, code_for_pred_mul_neg (MINUS, e.vector_mode ()));
+
+    gcc_unreachable ();
+  }
+};
+
+/* Implements below instructions for frm
+   - vfmsub
+*/
+class vfmsub_frm : public function_base
+{
+public:
+  bool has_rounding_mode_operand_p () const override { return true; }
+
+  bool has_merge_operand_p () const override { return false; }
+
+  rtx expand (function_expander &e) const override
+  {
+    if (e.op_info->op == OP_TYPE_vf)
+      return e.use_ternop_insn (
+	false, code_for_pred_mul_scalar (MINUS, e.vector_mode ()));
+    if (e.op_info->op == OP_TYPE_vv)
+      return e.use_ternop_insn (
+	false, code_for_pred_mul (MINUS, e.vector_mode ()));
+
+    gcc_unreachable ();
+  }
+};
+
+/* Implements below instructions for frm
+   - vfnmsub
+*/
+class vfnmsub_frm : public function_base
+{
+public:
+  bool has_rounding_mode_operand_p () const override { return true; }
+
+  bool has_merge_operand_p () const override { return false; }
+
+  rtx expand (function_expander &e) const override
+  {
+    if (e.op_info->op == OP_TYPE_vf)
+      return e.use_ternop_insn (
+	false, code_for_pred_mul_neg_scalar (PLUS, e.vector_mode ()));
+    if (e.op_info->op == OP_TYPE_vv)
+      return e.use_ternop_insn (
+	false, code_for_pred_mul_neg (PLUS, e.vector_mode ()));
+
+    gcc_unreachable ();
+  }
+};
+
+/* Implements below instructions for frm
+   - vfwmacc
+*/
+class vfwmacc_frm : public function_base
+{
+public:
+  bool has_rounding_mode_operand_p () const override { return true; }
+
+  bool has_merge_operand_p () const override { return false; }
+
+  rtx expand (function_expander &e) const override
+  {
+    if (e.op_info->op == OP_TYPE_vf)
+      return e.use_widen_ternop_insn (
+	code_for_pred_widen_mul_scalar (PLUS, e.vector_mode ()));
+    if (e.op_info->op == OP_TYPE_vv)
+      return e.use_widen_ternop_insn (
+	code_for_pred_widen_mul (PLUS, e.vector_mode ()));
+
+    gcc_unreachable ();
   }
 };
 
@@ -2049,22 +2307,39 @@ static CONSTEXPR const vid vid_obj;
 static CONSTEXPR const binop<PLUS> vfadd_obj;
 static CONSTEXPR const binop<MINUS> vfsub_obj;
 static CONSTEXPR const binop_frm<PLUS> vfadd_frm_obj;
+static CONSTEXPR const binop_frm<MINUS> vfsub_frm_obj;
 static CONSTEXPR const reverse_binop<MINUS> vfrsub_obj;
+static CONSTEXPR const reverse_binop_frm<MINUS> vfrsub_frm_obj;
 static CONSTEXPR const widen_binop<PLUS> vfwadd_obj;
+static CONSTEXPR const widen_binop_frm<PLUS> vfwadd_frm_obj;
 static CONSTEXPR const widen_binop<MINUS> vfwsub_obj;
+static CONSTEXPR const widen_binop_frm<MINUS> vfwsub_frm_obj;
 static CONSTEXPR const binop<MULT> vfmul_obj;
+static CONSTEXPR const binop_frm<MULT> vfmul_frm_obj;
 static CONSTEXPR const binop<DIV> vfdiv_obj;
+static CONSTEXPR const binop_frm<DIV> vfdiv_frm_obj;
 static CONSTEXPR const reverse_binop<DIV> vfrdiv_obj;
+static CONSTEXPR const reverse_binop_frm<DIV> vfrdiv_frm_obj;
 static CONSTEXPR const widen_binop<MULT> vfwmul_obj;
+static CONSTEXPR const widen_binop_frm<MULT> vfwmul_frm_obj;
 static CONSTEXPR const vfmacc vfmacc_obj;
+static CONSTEXPR const vfmacc_frm vfmacc_frm_obj;
 static CONSTEXPR const vfnmsac vfnmsac_obj;
+static CONSTEXPR const vfnmsac_frm vfnmsac_frm_obj;
 static CONSTEXPR const vfmadd vfmadd_obj;
+static CONSTEXPR const vfmadd_frm vfmadd_frm_obj;
 static CONSTEXPR const vfnmsub vfnmsub_obj;
+static CONSTEXPR const vfnmsub_frm vfnmsub_frm_obj;
 static CONSTEXPR const vfnmacc vfnmacc_obj;
+static CONSTEXPR const vfnmacc_frm vfnmacc_frm_obj;
 static CONSTEXPR const vfmsac vfmsac_obj;
+static CONSTEXPR const vfmsac_frm vfmsac_frm_obj;
 static CONSTEXPR const vfnmadd vfnmadd_obj;
+static CONSTEXPR const vfnmadd_frm vfnmadd_frm_obj;
 static CONSTEXPR const vfmsub vfmsub_obj;
+static CONSTEXPR const vfmsub_frm vfmsub_frm_obj;
 static CONSTEXPR const vfwmacc vfwmacc_obj;
+static CONSTEXPR const vfwmacc_frm vfwmacc_frm_obj;
 static CONSTEXPR const vfwnmacc vfwnmacc_obj;
 static CONSTEXPR const vfwmsac vfwmsac_obj;
 static CONSTEXPR const vfwnmsac vfwnmsac_obj;
@@ -2283,22 +2558,39 @@ BASE (vid)
 BASE (vfadd)
 BASE (vfadd_frm)
 BASE (vfsub)
+BASE (vfsub_frm)
 BASE (vfrsub)
+BASE (vfrsub_frm)
 BASE (vfwadd)
+BASE (vfwadd_frm)
 BASE (vfwsub)
+BASE (vfwsub_frm)
 BASE (vfmul)
+BASE (vfmul_frm)
 BASE (vfdiv)
+BASE (vfdiv_frm)
 BASE (vfrdiv)
+BASE (vfrdiv_frm)
 BASE (vfwmul)
+BASE (vfwmul_frm)
 BASE (vfmacc)
+BASE (vfmacc_frm)
 BASE (vfnmsac)
+BASE (vfnmsac_frm)
 BASE (vfmadd)
+BASE (vfmadd_frm)
 BASE (vfnmsub)
+BASE (vfnmsub_frm)
 BASE (vfnmacc)
+BASE (vfnmacc_frm)
 BASE (vfmsac)
+BASE (vfmsac_frm)
 BASE (vfnmadd)
+BASE (vfnmadd_frm)
 BASE (vfmsub)
+BASE (vfmsub_frm)
 BASE (vfwmacc)
+BASE (vfwmacc_frm)
 BASE (vfwnmacc)
 BASE (vfwmsac)
 BASE (vfwnmsac)

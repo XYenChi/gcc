@@ -16771,7 +16771,6 @@ check_data_variable (gfc_data_variable *var, locus *where)
     return false;
 
   ar = NULL;
-  mpz_init_set_si (offset, 0);
   e = var->expr;
 
   if (e->expr_type == EXPR_FUNCTION && e->value.function.isym
@@ -16838,7 +16837,23 @@ check_data_variable (gfc_data_variable *var, locus *where)
 		     "attribute", ref->u.c.component->name, &e->where);
 	  return false;
 	}
+
+      /* Reject substrings of strings of non-constant length.  */
+      if (ref->type == REF_SUBSTRING
+	  && ref->u.ss.length
+	  && ref->u.ss.length->length
+	  && !gfc_is_constant_expr (ref->u.ss.length->length))
+	goto bad_charlen;
     }
+
+  /* Reject strings with deferred length or non-constant length.  */
+  if (e->ts.type == BT_CHARACTER
+      && (e->ts.deferred
+	  || (e->ts.u.cl->length
+	      && !gfc_is_constant_expr (e->ts.u.cl->length))))
+    goto bad_charlen;
+
+  mpz_init_set_si (offset, 0);
 
   if (e->rank == 0 || has_pointer)
     {
@@ -16967,6 +16982,11 @@ check_data_variable (gfc_data_variable *var, locus *where)
   mpz_clear (offset);
 
   return t;
+
+bad_charlen:
+  gfc_error ("Non-constant character length at %L in DATA statement",
+	     &e->where);
+  return false;
 }
 
 
@@ -17946,7 +17966,10 @@ resolve_types (gfc_namespace *ns)
 
   for (n = ns->contained; n; n = n->sibling)
     {
-      if (gfc_pure (ns->proc_name) && !gfc_pure (n->proc_name))
+      /* Exclude final wrappers with the test for the artificial attribute.  */
+      if (gfc_pure (ns->proc_name)
+	  && !gfc_pure (n->proc_name)
+	  && !n->proc_name->attr.artificial)
 	gfc_error ("Contained procedure %qs at %L of a PURE procedure must "
 		   "also be PURE", n->proc_name->name,
 		   &n->proc_name->declared_at);

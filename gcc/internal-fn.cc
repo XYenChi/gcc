@@ -2931,7 +2931,8 @@ expand_partial_load_optab_fn (internal_fn ifn, gcall *stmt, convert_optab optab)
   type = TREE_TYPE (lhs);
   rhs = expand_call_mem_ref (type, stmt, 0);
 
-  if (optab == vec_mask_load_lanes_optab)
+  if (optab == vec_mask_load_lanes_optab
+      || optab == vec_mask_len_load_lanes_optab)
     icode = get_multi_vector_move (type, optab);
   else if (optab == len_load_optab)
     icode = direct_optab_handler (optab, TYPE_MODE (type));
@@ -2973,7 +2974,8 @@ expand_partial_store_optab_fn (internal_fn ifn, gcall *stmt, convert_optab optab
   type = TREE_TYPE (rhs);
   lhs = expand_call_mem_ref (type, stmt, 0);
 
-  if (optab == vec_mask_store_lanes_optab)
+  if (optab == vec_mask_store_lanes_optab
+      || optab == vec_mask_len_store_lanes_optab)
     icode = get_multi_vector_move (type, optab);
   else if (optab == len_store_optab)
     icode = direct_optab_handler (optab, TYPE_MODE (type));
@@ -4438,6 +4440,30 @@ get_conditional_internal_fn (internal_fn fn)
 #define CASE(NAME) case IFN_##NAME: return IFN_COND_##NAME;
       FOR_EACH_COND_FN_PAIR(CASE)
 #undef CASE
+    default:
+      return IFN_LAST;
+    }
+}
+
+/* If there exists an internal function like IFN that operates on vectors,
+   but with additional length and bias parameters, return the internal_fn
+   for that function, otherwise return IFN_LAST.  */
+internal_fn
+get_len_internal_fn (internal_fn fn)
+{
+  switch (fn)
+    {
+#undef DEF_INTERNAL_COND_FN
+#undef DEF_INTERNAL_SIGNED_COND_FN
+#define DEF_INTERNAL_COND_FN(NAME, ...)                                        \
+  case IFN_COND_##NAME:                                                        \
+    return IFN_COND_LEN_##NAME;
+#define DEF_INTERNAL_SIGNED_COND_FN(NAME, ...)                                 \
+  case IFN_COND_##NAME:                                                        \
+    return IFN_COND_LEN_##NAME;
+#include "internal-fn.def"
+#undef DEF_INTERNAL_COND_FN
+#undef DEF_INTERNAL_SIGNED_COND_FN
     default:
       return IFN_LAST;
     }

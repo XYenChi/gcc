@@ -469,6 +469,7 @@ USER_H = $(srcdir)/ginclude/float.h \
 	 $(srcdir)/ginclude/stdnoreturn.h \
 	 $(srcdir)/ginclude/stdalign.h \
 	 $(srcdir)/ginclude/stdatomic.h \
+	 $(srcdir)/ginclude/stdckdint.h \
 	 $(EXTRA_HEADERS)
 
 USER_H_INC_NEXT_PRE = @user_headers_inc_next_pre@
@@ -1327,6 +1328,7 @@ ANALYZER_OBJS = \
 	analyzer/store.o \
 	analyzer/supergraph.o \
 	analyzer/svalue.o \
+	analyzer/symbol.o \
 	analyzer/trimmed-graph.o \
 	analyzer/varargs.o
 
@@ -3003,8 +3005,8 @@ build/genhooks.o : genhooks.cc $(TARGET_DEF) $(C_TARGET_DEF)		\
   $(COMMON_TARGET_DEF) $(D_TARGET_DEF) $(BCONFIG_H) $(SYSTEM_H) errors.h
 build/genmddump.o : genmddump.cc $(RTL_BASE_H) $(BCONFIG_H) $(SYSTEM_H)	\
   $(CORETYPES_H) $(GTM_H) errors.h $(READ_MD_H) $(GENSUPPORT_H)
-build/genmatch.o : genmatch.cc $(BCONFIG_H) $(SYSTEM_H) \
-  $(CORETYPES_H) errors.h $(HASH_TABLE_H) hash-map.h $(GGC_H) is-a.h \
+build/genmatch.o : genmatch.cc $(BCONFIG_H) $(SYSTEM_H) $(CORETYPES_H) \
+  errors.h $(HASH_TABLE_H) hash-map.h $(GGC_H) is-a.h ordered-hash-map.h \
   tree.def builtins.def internal-fn.def case-cfn-macros.h $(CPPLIB_H)
 build/gencfn-macros.o : gencfn-macros.cc $(BCONFIG_H) $(SYSTEM_H)	\
   $(CORETYPES_H) errors.h $(HASH_TABLE_H) hash-set.h builtins.def	\

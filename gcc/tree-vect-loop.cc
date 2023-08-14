@@ -2061,8 +2061,7 @@ vect_analyze_loop_operations (loop_vec_info loop_vinfo)
 	  if (ok
 	      && STMT_VINFO_LIVE_P (stmt_info)
 	      && !PURE_SLP_STMT (stmt_info))
-	    ok = vectorizable_live_operation (loop_vinfo,
-					      stmt_info, NULL, NULL, NULL,
+	    ok = vectorizable_live_operation (loop_vinfo, stmt_info, NULL, NULL,
 					      -1, false, &cost_vec);
 
           if (!ok)
@@ -5847,7 +5846,7 @@ vect_create_epilog_for_reduction (loop_vec_info loop_vinfo,
   int ncopies;
   if (slp_node)
     {
-      vec_num = SLP_TREE_VEC_STMTS (slp_node_instance->reduc_phis).length ();
+      vec_num = SLP_TREE_VEC_DEFS (slp_node_instance->reduc_phis).length ();
       ncopies = 1;
     }
   else
@@ -6906,7 +6905,17 @@ vectorize_fold_left_reduction (loop_vec_info loop_vinfo,
 
   tree vector_identity = NULL_TREE;
   if (LOOP_VINFO_FULLY_MASKED_P (loop_vinfo))
-    vector_identity = build_zero_cst (vectype_out);
+    {
+      vector_identity = build_zero_cst (vectype_out);
+      if (!HONOR_SIGNED_ZEROS (vectype_out))
+	;
+      else
+	{
+	  gcc_assert (!HONOR_SIGN_DEPENDENT_ROUNDING (vectype_out));
+	  vector_identity = const_unop (NEGATE_EXPR, vectype_out,
+					vector_identity);
+	}
+    }
 
   tree scalar_dest_var = vect_create_destination_var (scalar_dest, NULL);
   int i;
@@ -6990,7 +6999,7 @@ vectorize_fold_left_reduction (loop_vec_info loop_vinfo,
 				     new_stmt, gsi);
 
       if (slp_node)
-	SLP_TREE_VEC_STMTS (slp_node).quick_push (new_stmt);
+	slp_node->push_vec_def (new_stmt);
       else
 	{
 	  STMT_VINFO_VEC_STMTS (stmt_info).safe_push (new_stmt);
@@ -8038,6 +8047,18 @@ vectorizable_reduction (loop_vec_info loop_vinfo,
 			     " no conditional operation is available.\n");
 	  LOOP_VINFO_CAN_USE_PARTIAL_VECTORS_P (loop_vinfo) = false;
 	}
+      else if (reduction_type == FOLD_LEFT_REDUCTION
+	       && reduc_fn == IFN_LAST
+	       && FLOAT_TYPE_P (vectype_in)
+	       && HONOR_SIGNED_ZEROS (vectype_in)
+	       && HONOR_SIGN_DEPENDENT_ROUNDING (vectype_in))
+	{
+	  if (dump_enabled_p ())
+	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
+			     "can't operate on partial vectors because"
+			     " signed zeros cannot be preserved.\n");
+	  LOOP_VINFO_CAN_USE_PARTIAL_VECTORS_P (loop_vinfo) = false;
+	}
       else
 	{
 	  internal_fn mask_reduc_fn
@@ -8292,7 +8313,7 @@ vect_transform_reduction (loop_vec_info loop_vinfo,
 	}
 
       if (slp_node)
-	SLP_TREE_VEC_STMTS (slp_node).quick_push (new_stmt);
+	slp_node->push_vec_def (new_stmt);
       else if (single_defuse_cycle
 	       && i < ncopies - 1)
 	{
@@ -8578,7 +8599,7 @@ vect_transform_cycle_phi (loop_vec_info loop_vinfo,
 	  /* The loop-latch arg is set in epilogue processing.  */
 
 	  if (slp_node)
-	    SLP_TREE_VEC_STMTS (slp_node).quick_push (new_phi);
+	    slp_node->push_vec_def (new_phi);
 	  else
 	    {
 	      if (j == 0)
@@ -8639,7 +8660,7 @@ vectorizable_lc_phi (loop_vec_info loop_vinfo,
       gphi *new_phi = create_phi_node (vec_dest, bb);
       add_phi_arg (new_phi, vec_oprnds[i], e, UNKNOWN_LOCATION);
       if (slp_node)
-	SLP_TREE_VEC_STMTS (slp_node).quick_push (new_phi);
+	slp_node->push_vec_def (new_phi);
       else
 	STMT_VINFO_VEC_STMTS (stmt_info).safe_push (new_phi);
     }
@@ -8719,7 +8740,7 @@ vectorizable_phi (vec_info *,
 
       /* Skip not yet vectorized defs.  */
       if (SLP_TREE_DEF_TYPE (child) == vect_internal_def
-	  && SLP_TREE_VEC_STMTS (child).is_empty ())
+	  && SLP_TREE_VEC_DEFS (child).is_empty ())
 	continue;
 
       auto_vec<tree> vec_oprnds;
@@ -8731,7 +8752,7 @@ vectorizable_phi (vec_info *,
 	    {
 	      /* Create the vectorized LC PHI node.  */
 	      new_phis.quick_push (create_phi_node (vec_dest, bb));
-	      SLP_TREE_VEC_STMTS (slp_node).quick_push (new_phis[j]);
+	      slp_node->push_vec_def (new_phis[j]);
 	    }
 	}
       edge e = gimple_phi_arg_edge (as_a <gphi *> (stmt_info->stmt), i);
@@ -8912,7 +8933,7 @@ vectorizable_recurr (loop_vec_info loop_vinfo, stmt_vec_info stmt_info,
       vect_finish_stmt_generation (loop_vinfo, stmt_info, vperm, &gsi2);
 
       if (slp_node)
-	SLP_TREE_VEC_STMTS (slp_node).quick_push (vperm);
+	slp_node->push_vec_def (vperm);
       else
 	STMT_VINFO_VEC_STMTS (stmt_info).safe_push (vperm);
     }
@@ -9868,7 +9889,7 @@ vectorizable_induction (loop_vec_info loop_vinfo,
 	  /* Set the arguments of the phi node:  */
 	  add_phi_arg (induction_phi, vec_init, pe, UNKNOWN_LOCATION);
 
-	  SLP_TREE_VEC_STMTS (slp_node).quick_push (induction_phi);
+	  slp_node->push_vec_def (induction_phi);
 	}
       if (!nested_in_vect_loop)
 	{
@@ -9878,8 +9899,7 @@ vectorizable_induction (loop_vec_info loop_vinfo,
 	  vec_steps.reserve (nivs-ivn);
 	  for (; ivn < nivs; ++ivn)
 	    {
-	      SLP_TREE_VEC_STMTS (slp_node)
-		.quick_push (SLP_TREE_VEC_STMTS (slp_node)[0]);
+	      slp_node->push_vec_def (SLP_TREE_VEC_DEFS (slp_node)[0]);
 	      vec_steps.quick_push (vec_steps[0]);
 	    }
 	}
@@ -9898,7 +9918,8 @@ vectorizable_induction (loop_vec_info loop_vinfo,
 				     : build_int_cstu (stept, vfp));
 	  for (; ivn < nvects; ++ivn)
 	    {
-	      gimple *iv = SLP_TREE_VEC_STMTS (slp_node)[ivn - nivs];
+	      gimple *iv
+		= SSA_NAME_DEF_STMT (SLP_TREE_VEC_DEFS (slp_node)[ivn - nivs]);
 	      tree def = gimple_get_lhs (iv);
 	      if (ivn < 2*nivs)
 		vec_steps[ivn - nivs]
@@ -9916,8 +9937,7 @@ vectorizable_induction (loop_vec_info loop_vinfo,
 		  gimple_stmt_iterator tgsi = gsi_for_stmt (iv);
 		  gsi_insert_seq_after (&tgsi, stmts, GSI_CONTINUE_LINKING);
 		}
-	      SLP_TREE_VEC_STMTS (slp_node)
-		.quick_push (SSA_NAME_DEF_STMT (def));
+	      slp_node->push_vec_def (def);
 	    }
 	}
 
@@ -10186,9 +10206,7 @@ vectorizable_induction (loop_vec_info loop_vinfo,
    it can be supported.  */
 
 bool
-vectorizable_live_operation (vec_info *vinfo,
-			     stmt_vec_info stmt_info,
-			     gimple_stmt_iterator *gsi,
+vectorizable_live_operation (vec_info *vinfo, stmt_vec_info stmt_info,
 			     slp_tree slp_node, slp_instance slp_node_instance,
 			     int slp_index, bool vec_stmt_p,
 			     stmt_vector_for_cost *cost_vec)
@@ -10343,8 +10361,8 @@ vectorizable_live_operation (vec_info *vinfo,
       gcc_assert (!loop_vinfo || !LOOP_VINFO_FULLY_MASKED_P (loop_vinfo));
 
       /* Get the correct slp vectorized stmt.  */
-      vec_stmt = SLP_TREE_VEC_STMTS (slp_node)[vec_entry];
-      vec_lhs = gimple_get_lhs (vec_stmt);
+      vec_lhs = SLP_TREE_VEC_DEFS (slp_node)[vec_entry];
+      vec_stmt = SSA_NAME_DEF_STMT (vec_lhs);
 
       /* Get entry to use.  */
       bitstart = bitsize_int (vec_index);
@@ -10394,9 +10412,12 @@ vectorizable_live_operation (vec_info *vinfo,
 	     the loop mask for the final iteration.  */
 	  gcc_assert (ncopies == 1 && !slp_node);
 	  tree scalar_type = TREE_TYPE (STMT_VINFO_VECTYPE (stmt_info));
-	  tree mask = vect_get_loop_mask (loop_vinfo, gsi,
+	  gimple_seq tem = NULL;
+	  gimple_stmt_iterator gsi = gsi_last (tem);
+	  tree mask = vect_get_loop_mask (loop_vinfo, &gsi,
 					  &LOOP_VINFO_MASKS (loop_vinfo),
 					  1, vectype, 0);
+	  gimple_seq_add_seq (&stmts, tem);
 	  tree scalar_res = gimple_build (&stmts, CFN_EXTRACT_LAST, scalar_type,
 					  mask, vec_lhs_phi);
 
@@ -11319,8 +11340,19 @@ vect_transform_loop (loop_vec_info loop_vinfo, gimple *loop_vectorized_call)
 			      &advance);
   if (LOOP_VINFO_SCALAR_LOOP (loop_vinfo)
       && LOOP_VINFO_SCALAR_LOOP_SCALING (loop_vinfo).initialized_p ())
-    scale_loop_frequencies (LOOP_VINFO_SCALAR_LOOP (loop_vinfo),
-			    LOOP_VINFO_SCALAR_LOOP_SCALING (loop_vinfo));
+    {
+      /* Ifcvt duplicates loop preheader, loop body and produces an basic
+	 block after loop exit.  We need to scale all that.  */
+      basic_block preheader
+       	= loop_preheader_edge (LOOP_VINFO_SCALAR_LOOP (loop_vinfo))->src;
+      preheader->count
+       	= preheader->count.apply_probability
+	      (LOOP_VINFO_SCALAR_LOOP_SCALING (loop_vinfo));
+      scale_loop_frequencies (LOOP_VINFO_SCALAR_LOOP (loop_vinfo),
+			      LOOP_VINFO_SCALAR_LOOP_SCALING (loop_vinfo));
+      single_exit (LOOP_VINFO_SCALAR_LOOP (loop_vinfo))->dest->count
+	= preheader->count;
+    }
 
   if (niters_vector == NULL_TREE)
     {
@@ -11742,7 +11774,7 @@ optimize_mask_stores (class loop *loop)
       e->flags = EDGE_TRUE_VALUE;
       efalse = make_edge (bb, store_bb, EDGE_FALSE_VALUE);
       /* Put STORE_BB to likely part.  */
-      efalse->probability = profile_probability::unlikely ();
+      efalse->probability = profile_probability::likely ();
       e->probability = efalse->probability.invert ();
       store_bb->count = efalse->count ();
       make_single_succ_edge (store_bb, join_bb, EDGE_FALLTHRU);

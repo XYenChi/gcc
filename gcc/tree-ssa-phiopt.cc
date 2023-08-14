@@ -63,7 +63,13 @@ single_non_singleton_phi_for_edges (gimple_seq seq, edge e0, edge e1)
   gimple_stmt_iterator i;
   gphi *phi = NULL;
   if (gimple_seq_singleton_p (seq))
-    return as_a <gphi *> (gsi_stmt (gsi_start (seq)));
+    {
+      phi = as_a <gphi *> (gsi_stmt (gsi_start (seq)));
+      /* Never return virtual phis.  */
+      if (virtual_operand_p (gimple_phi_result (phi)))
+	return NULL;
+      return phi;
+    }
   for (i = gsi_start (seq); !gsi_end_p (i); gsi_next (&i))
     {
       gphi *p = as_a <gphi *> (gsi_stmt (i));
@@ -71,6 +77,10 @@ single_non_singleton_phi_for_edges (gimple_seq seq, edge e0, edge e1)
       if (operand_equal_for_phi_arg_p (gimple_phi_arg_def (p, e0->dest_idx),
 				       gimple_phi_arg_def (p, e1->dest_idx)))
 	continue;
+
+      /* Punt on virtual phis with different arguments from the edges.  */
+      if (virtual_operand_p (gimple_phi_result (p)))
+	return NULL;
 
       /* If we already have a PHI that has the two edge arguments are
 	 different, then return it is not a singleton for these PHIs. */
@@ -767,7 +777,6 @@ match_simplify_replacement (basic_block cond_bb, basic_block middle_bb,
   tree result;
   gimple *stmt_to_move = NULL;
   gimple *stmt_to_move_alt = NULL;
-  auto_bitmap inserted_exprs;
   tree arg_true, arg_false;
 
   /* Special case A ? B : B as this will always simplify to B. */
@@ -844,6 +853,18 @@ match_simplify_replacement (basic_block cond_bb, basic_block middle_bb,
   if (!result)
     return false;
 
+  auto_bitmap exprs_maybe_dce;
+
+  /* Mark the cond statements' lhs/rhs as maybe dce.  */
+  if (TREE_CODE (gimple_cond_lhs (stmt)) == SSA_NAME
+      && !SSA_NAME_IS_DEFAULT_DEF (gimple_cond_lhs (stmt)))
+    bitmap_set_bit (exprs_maybe_dce,
+		    SSA_NAME_VERSION (gimple_cond_lhs (stmt)));
+  if (TREE_CODE (gimple_cond_rhs (stmt)) == SSA_NAME
+      && !SSA_NAME_IS_DEFAULT_DEF (gimple_cond_rhs (stmt)))
+    bitmap_set_bit (exprs_maybe_dce,
+		    SSA_NAME_VERSION (gimple_cond_rhs (stmt)));
+
   gsi = gsi_last_bb (cond_bb);
   /* Insert the sequence generated from gimple_simplify_phiopt.  */
   if (seq)
@@ -855,7 +876,7 @@ match_simplify_replacement (basic_block cond_bb, basic_block middle_bb,
 	  gimple *stmt = gsi_stmt (gsi1);
 	  tree name = gimple_get_lhs (stmt);
 	  if (name && TREE_CODE (name) == SSA_NAME)
-	    bitmap_set_bit (inserted_exprs, SSA_NAME_VERSION (name));
+	    bitmap_set_bit (exprs_maybe_dce, SSA_NAME_VERSION (name));
 	}
       if (dump_file && (dump_flags & TDF_FOLDING))
 	{
@@ -867,10 +888,10 @@ match_simplify_replacement (basic_block cond_bb, basic_block middle_bb,
 
   /* If there was a statement to move, move it to right before
      the original conditional.  */
-  move_stmt (stmt_to_move, &gsi, inserted_exprs);
-  move_stmt (stmt_to_move_alt, &gsi, inserted_exprs);
+  move_stmt (stmt_to_move, &gsi, exprs_maybe_dce);
+  move_stmt (stmt_to_move_alt, &gsi, exprs_maybe_dce);
 
-  replace_phi_edge_with_variable (cond_bb, e1, phi, result, inserted_exprs);
+  replace_phi_edge_with_variable (cond_bb, e1, phi, result, exprs_maybe_dce);
 
   /* Add Statistic here even though replace_phi_edge_with_variable already
      does it as we want to be able to count when match-simplify happens vs
