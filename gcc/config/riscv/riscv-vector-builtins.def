@@ -624,6 +624,11 @@ DEF_RVV_BASE_TYPE (eew64_index, get_vector_type (type_idx))
 DEF_RVV_BASE_TYPE (shift_vector, get_vector_type (type_idx))
 DEF_RVV_BASE_TYPE (double_trunc_vector, get_vector_type (type_idx))
 DEF_RVV_BASE_TYPE (quad_trunc_vector, get_vector_type (type_idx))
+DEF_RVV_BASE_TYPE (quad_trunc_scalar, get_scalar_type (type_idx)) /* RVV 0.7.1 */
+DEF_RVV_BASE_TYPE (quad_trunc_unsigned_scalar, get_scalar_type (type_idx)) /* RVV 0.7.1 */
+DEF_RVV_BASE_TYPE (quad_trunc_signed_scalar, get_scalar_type (type_idx)) /* RVV 0.7.1 */
+DEF_RVV_BASE_TYPE (quad_trunc_signed_vector, get_vector_type (type_idx)) /* RVV 0.7.1 */
+DEF_RVV_BASE_TYPE (quad_trunc_unsigned_vector, get_vector_type (type_idx)) /* RVV 0.7.1 */
 DEF_RVV_BASE_TYPE (oct_trunc_vector, get_vector_type (type_idx))
 DEF_RVV_BASE_TYPE (double_trunc_scalar, get_scalar_type (type_idx))
 DEF_RVV_BASE_TYPE (double_trunc_signed_vector, get_vector_type (type_idx))

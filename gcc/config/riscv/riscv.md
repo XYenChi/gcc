@@ -259,10 +259,6 @@
 	 (and (eq_attr "ext" "vector")
 	      (match_test "TARGET_VECTOR"))
 	 (const_string "yes")
-
-   (and (eq_attr "ext" "xthreadv")
-        (match_test "TARGET_XTHEADV"))
-   (const_string "yes")
 	]
 	(const_string "no")))
 

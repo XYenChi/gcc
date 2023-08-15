@@ -1089,6 +1089,23 @@ public:
   }
 };
 
+class vqmaccsu : public function_base
+{
+public:
+  bool has_merge_operand_p () const override { return false; }
+
+  rtx expand (function_expander &e) const override
+  {
+    if (e.op_info->op == OP_TYPE_vx)
+      return e.use_widen_ternop_insn (
+	code_for_pred_widen_mul_plussu_scalar (e.vector_mode ()));
+    if (e.op_info->op == OP_TYPE_vv)
+      return e.use_widen_ternop_insn (
+	code_for_pred_widen_mul_plussu (e.vector_mode ()));
+    gcc_unreachable ();
+  }
+};
+
 class vwmaccus : public function_base
 {
 public:
@@ -1233,7 +1250,7 @@ public:
 
   rtx expand (function_expander &e) const override
   {
-    return e.use_exact_insn (code_for_pred_popcount (e.vector_mode (), Pmode));
+    return e.use_exact_insn (code_for_pred_mpopcount (e.vector_mode (), Pmode));
   }
 };
 
@@ -2301,6 +2318,7 @@ static CONSTEXPR const vnmsub vnmsub_obj;
 static CONSTEXPR const vwmacc vwmacc_obj;
 static CONSTEXPR const vwmaccu vwmaccu_obj;
 static CONSTEXPR const vwmaccsu vwmaccsu_obj;
+static CONSTEXPR const vqmaccsu vqmaccsu_obj;
 static CONSTEXPR const vwmaccus vwmaccus_obj;
 static CONSTEXPR const binop<SS_PLUS> vsadd_obj;
 static CONSTEXPR const binop<SS_MINUS> vssub_obj;
@@ -2459,7 +2477,7 @@ static CONSTEXPR const seg_indexed_load<UNSPEC_UNORDERED> vluxseg_obj;
 static CONSTEXPR const seg_indexed_load<UNSPEC_ORDERED> vloxseg_obj;
 static CONSTEXPR const seg_indexed_store<UNSPEC_UNORDERED> vsuxseg_obj;
 static CONSTEXPR const seg_indexed_store<UNSPEC_ORDERED> vsoxseg_obj;
-static CONSTEXPR const seg_indexed_store<UNSPEC_VSXSEG> vsxseg_obj; /*RVV 0.7 indexed segment store*/
+static CONSTEXPR const seg_indexed_store<UNSPEC> vsxseg_obj; /*RVV 0.7 indexed segment store*/
 static CONSTEXPR const vlsegff vlsegff_obj;
 
 /* Declare the function base NAME, pointing it to an instance
@@ -2557,6 +2575,7 @@ BASE (vnmsub)
 BASE (vwmacc)
 BASE (vwmaccu)
 BASE (vwmaccsu)
+BASE (vqmaccsu)
 BASE (vwmaccus)
 BASE (vsadd)
 BASE (vssub)
@@ -2574,11 +2593,12 @@ BASE (vnclipu)
 BASE (vmand)
 BASE (vmnand)
 BASE (vmandn)
+BASE (vmandnot) /* RVV 0.7 */
 BASE (vmxor)
 BASE (vmor)
 BASE (vmnor)
 BASE (vmorn)
-BASE (vmornot)
+BASE (vmornot) /* RVV 0.7 */
 BASE (vmxnor)
 BASE (vmmv)
 BASE (vmclr)
@@ -2676,7 +2696,8 @@ BASE (vredor)
 BASE (vredxor)
 BASE (vwredsum)
 BASE (vwredsumu)
-BASE (vfredusum)
+BASE (vfredusum) /* RVV 0.7 */
+BASE (vfredsum)
 BASE (vfredosum)
 BASE (vfredmax)
 BASE (vfredmin)
@@ -2713,9 +2734,8 @@ BASE (vluxseg)
 BASE (vloxseg)
 BASE (vsuxseg)
 BASE (vsoxseg)
+// BASE (vsxei)
 BASE (vsxseg)
 BASE (vlsegff)
-BASE (vsxei)
-BASE (vsxseg)
 
 } // end namespace riscv_vector

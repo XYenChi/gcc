@@ -114,6 +114,9 @@ extern const function_base *const vnmsub;
 extern const function_base *const vwmacc;
 extern const function_base *const vwmaccu;
 extern const function_base *const vwmaccsu;
+extern const function_base *const vqmaccsu; /* RVV 0.7.1*/
+extern const function_base *const vqmaccu; /* RVV 0.7.1*/
+extern const function_base *const vqmaccus; /* RVV 0.7.1*/
 extern const function_base *const vwmaccus;
 extern const function_base *const vsadd;
 extern const function_base *const vssub;
@@ -131,10 +134,12 @@ extern const function_base *const vnclipu;
 extern const function_base *const vmand;
 extern const function_base *const vmnand;
 extern const function_base *const vmandn;
+extern const function_base *const vmandnot; /* RVV 0.7.1*/
 extern const function_base *const vmxor;
 extern const function_base *const vmor;
 extern const function_base *const vmnor;
 extern const function_base *const vmorn;
+extern const function_base *const vmornot; /* RVV 0.7.1 */
 extern const function_base *const vmxnor;
 extern const function_base *const vmmv;
 extern const function_base *const vmclr;
@@ -232,6 +237,7 @@ extern const function_base *const vredxor;
 extern const function_base *const vwredsum;
 extern const function_base *const vwredsumu;
 extern const function_base *const vfredusum;
+extern const function_base *const vfredsum; /* RVV 0.7.1 */
 extern const function_base *const vfredosum;
 extern const function_base *const vfredmax;
 extern const function_base *const vfredmin;
@@ -267,6 +273,7 @@ extern const function_base *const vssseg;
 extern const function_base *const vluxseg;
 extern const function_base *const vloxseg;
 extern const function_base *const vsuxseg;
+extern const function_base *const vsxseg; /* RVV 0.7.1*/
 extern const function_base *const vsoxseg;
 extern const function_base *const vlsegff;
 extern const function_base *const vqmacc;
