@@ -192,6 +192,7 @@ private:
   int m_not_executable_flag;
 };
 
+<<<<<<< HEAD
 // These routines provide a GIMPLE interface to the range-ops code.
 extern bool gimple_range_calc_op1 (vrange &r, const gimple *s,
 				   const vrange &lhs_range);
@@ -201,6 +202,22 @@ extern bool gimple_range_calc_op1 (vrange &r, const gimple *s,
 extern bool gimple_range_calc_op2 (vrange &r, const gimple *s,
 				   const vrange &lhs_range,
 				   const vrange &op1_range);
+=======
+// These APIs are used to query GORI if there are ranges generated on an edge.
+// GORI_ON_EDGE is used to get all the ranges at once (returned in an
+// ssa_cache structure).
+// GORI_NAME_ON_EDGE  is used to simply ask if NAME has a range on edge E
+
+// Fill ssa-cache R with any outgoing ranges on edge E, using OGR and QUERY.
+bool gori_on_edge (class ssa_cache &r, edge e,
+		   range_query *query = NULL,
+		   gimple_outgoing_range *ogr = NULL);
+
+// Query if NAME has an outgoing range on edge E, and return it in R if so.
+// Note this doesnt use ranger, its a static GORI analysis of the range in
+// block e->src and is based on any branch at the exit of that block.
+bool gori_name_on_edge (vrange &r, tree name, edge e, range_query *q = NULL);
+>>>>>>> 480648ce9eb (Add outgoing range vector calcualtion API)
 
 // For each name that is an import into BB's exports..
 #define FOR_EACH_GORI_IMPORT_NAME(gori, bb, name)			\
