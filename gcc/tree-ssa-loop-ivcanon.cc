@@ -63,6 +63,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-cfgcleanup.h"
 #include "builtins.h"
 #include "tree-ssa-sccvn.h"
+#include "tree-vectorizer.h" /* For find_loop_location */
 #include "dbgcnt.h"
 
 /* Specifies types of loops that may be unrolled.  */
@@ -1211,7 +1212,6 @@ canonicalize_loop_induction_variables (class loop *loop,
   tree niter;
   HOST_WIDE_INT maxiter;
   bool modified = false;
-  dump_user_location_t locus;
   class tree_niter_desc niter_desc;
   bool may_be_zero = false;
 
@@ -1225,9 +1225,7 @@ canonicalize_loop_induction_variables (class loop *loop,
       may_be_zero
 	= niter_desc.may_be_zero && !integer_zerop (niter_desc.may_be_zero);
     }
-  if (TREE_CODE (niter) == INTEGER_CST)
-    locus = last_stmt (exit->src);
-  else
+  if (TREE_CODE (niter) != INTEGER_CST)
     {
       /* For non-constant niter fold may_be_zero into niter again.  */
       if (may_be_zero)
@@ -1252,9 +1250,12 @@ canonicalize_loop_induction_variables (class loop *loop,
 	      || TREE_CODE (niter) != INTEGER_CST))
 	niter = find_loop_niter_by_eval (loop, &exit);
 
+<<<<<<< HEAD
       if (exit)
         locus = last_stmt (exit->src);
 
+=======
+>>>>>>> 8a6097c7425 (Use find_loop_location from unrolling)
       if (TREE_CODE (niter) != INTEGER_CST)
 	exit = NULL;
     }
@@ -1296,6 +1297,7 @@ canonicalize_loop_induction_variables (class loop *loop,
      populates the loop bounds.  */
   modified |= remove_redundant_iv_tests (loop);
 
+  dump_user_location_t locus = find_loop_location (loop);
   if (try_unroll_loop_completely (loop, exit, niter, may_be_zero, ul,
 				  maxiter, locus, allow_peel))
     return true;
