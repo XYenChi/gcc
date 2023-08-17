@@ -254,6 +254,7 @@ extern const function_base *const vfredusum;
 extern const function_base *const vfredsum; /* RVV 0.7.1 */
 extern const function_base *const vfredusum_frm;
 extern const function_base *const vfredosum;
+extern const function_base *const vfredosum_frm;
 extern const function_base *const vfredmax;
 extern const function_base *const vfredmin;
 extern const function_base *const vfwredosum;
