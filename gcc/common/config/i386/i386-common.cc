@@ -346,6 +346,64 @@ set_malign_value (const char **flag, unsigned value)
   *flag = r;
 }
 
+/* Emit a warning when using -mno-avx512{f,vl,bw,dq,cd,bf16,fp16,vbmi,vbmi2,
+   vnni,ifma,bitalg,vpopcntdq} with -mavx10.1 and above.  */
+static bool
+ix86_check_avx10 (struct gcc_options *opts)
+{
+  if (opts->x_ix86_isa_flags2 & opts->x_ix86_isa_flags2_explicit
+      & OPTION_MASK_ISA2_AVX10_1)
+    {
+      warning (0, "%<-mno-avx512{f,vl,bw,dq,cd,bf16,fp16,vbmi,vbmi2,vnni,ifma,"
+	       "bitalg,vpopcntdq}%> are ignored with %<-mavx10.1%> and above");
+      return false;
+    }
+
+  return true;
+}
+
+/* Emit a warning when using -mno-avx10.1 with -mavx512{f,vl,bw,dq,cd,bf16,
+   fp16,vbmi,vbmi2,vnni,ifma,bitalg,vpopcntdq}.  */
+static bool
+ix86_check_avx512 (struct gcc_options *opts)
+{
+  if ((opts->x_ix86_isa_flags & opts->x_ix86_isa_flags_explicit
+       & (OPTION_MASK_ISA_AVX512F | OPTION_MASK_ISA_AVX512CD
+	  | OPTION_MASK_ISA_AVX512DQ | OPTION_MASK_ISA_AVX512BW
+	  | OPTION_MASK_ISA_AVX512VL | OPTION_MASK_ISA_AVX512IFMA
+	  | OPTION_MASK_ISA_AVX512VBMI | OPTION_MASK_ISA_AVX512VBMI2
+	  | OPTION_MASK_ISA_AVX512VNNI | OPTION_MASK_ISA_AVX512VPOPCNTDQ
+	  | OPTION_MASK_ISA_AVX512BITALG))
+      || (opts->x_ix86_isa_flags2 & opts->x_ix86_isa_flags2_explicit
+	  & (OPTION_MASK_ISA2_AVX512FP16 | OPTION_MASK_ISA2_AVX512BF16)))
+    {
+      warning (0, "%<-mno-avx10.1%> is ignored when using with "
+	       "%<-mavx512{f,vl,bw,dq,cd,bf16,fp16,vbmi,vbmi2,vnni,"
+	       "ifma,bitalg,vpopcntdq}%>");
+      return false;
+    }
+
+  return true;
+}
+
+/* Emit a warning when there is a conflict vector width in AVX10 options.  */
+static void
+ix86_check_avx10_vector_width (struct gcc_options *opts, bool avx10_max_512)
+{
+  if (avx10_max_512)
+    {
+      if (((opts->x_ix86_isa_flags2 | ~OPTION_MASK_ISA2_AVX10_512BIT)
+	   == ~OPTION_MASK_ISA2_AVX10_512BIT)
+	  && (opts->x_ix86_isa_flags2_explicit & OPTION_MASK_ISA2_AVX10_512BIT))
+	warning (0, "The options used for AVX10 have conflict vector width, "
+		 "using the latter 512 as vector width");
+    }
+  else if (opts->x_ix86_isa_flags2 & opts->x_ix86_isa_flags2_explicit
+	   & OPTION_MASK_ISA2_AVX10_512BIT)
+    warning (0, "The options used for AVX10 have conflict vector width, "
+	     "using the latter 256 as vector width");
+}
+
 /* Implement TARGET_HANDLE_OPTION.  */
 
 bool
@@ -1123,6 +1181,231 @@ ix86_handle_option (struct gcc_options *opts,
 	  opts->x_ix86_isa_flags2 &= ~OPTION_MASK_ISA2_AMX_BF16_UNSET;
 	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_AMX_BF16_UNSET;
 	}
+      return true;
+
+    case OPT_mavxifma:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_AVXIFMA_SET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_AVXIFMA_SET;
+	  opts->x_ix86_isa_flags |= OPTION_MASK_ISA_AVX2_SET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_AVX2_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags2 &= ~OPTION_MASK_ISA2_AVXIFMA_UNSET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_AVXIFMA_UNSET;
+	}
+      return true;
+
+    case OPT_mavxvnniint8:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_AVXVNNIINT8_SET;
+	  opts->x_ix86_isa_flags2_explicit |=
+	    OPTION_MASK_ISA2_AVXVNNIINT8_SET;
+	  opts->x_ix86_isa_flags |= OPTION_MASK_ISA_AVX2_SET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_AVX2_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags2 &=
+	    ~OPTION_MASK_ISA2_AVXVNNIINT8_UNSET;
+	  opts->x_ix86_isa_flags2_explicit |=
+	    OPTION_MASK_ISA2_AVXVNNIINT8_UNSET;
+	}
+      return true;
+
+    case OPT_mavxneconvert:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_AVXNECONVERT_SET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_AVXNECONVERT_SET;
+	  opts->x_ix86_isa_flags |= OPTION_MASK_ISA_AVX2_SET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_AVX2_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags2 &= ~OPTION_MASK_ISA2_AVXNECONVERT_UNSET;
+	  opts->x_ix86_isa_flags2_explicit
+	    |= OPTION_MASK_ISA2_AVXNECONVERT_UNSET;
+	}
+      return true;
+
+    case OPT_mcmpccxadd:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_CMPCCXADD_SET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_CMPCCXADD_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags2 &= ~OPTION_MASK_ISA2_CMPCCXADD_UNSET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_CMPCCXADD_UNSET;
+	}
+      return true;
+
+    case OPT_mamx_fp16:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_AMX_FP16_SET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_AMX_FP16_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags2 &= ~OPTION_MASK_ISA2_AMX_FP16_UNSET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_AMX_FP16_UNSET;
+	}
+      return true;
+
+    case OPT_mprefetchi:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_PREFETCHI_SET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_PREFETCHI_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags2 &= ~OPTION_MASK_ISA2_PREFETCHI_UNSET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_PREFETCHI_UNSET;
+	}
+      return true;
+
+    case OPT_mraoint:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_RAOINT_SET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_RAOINT_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags2 &= ~OPTION_MASK_ISA2_RAOINT_UNSET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_RAOINT_UNSET;
+	}
+      return true;
+
+    case OPT_mamx_complex:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_AMX_COMPLEX_SET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_AMX_COMPLEX_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags2 &= ~OPTION_MASK_ISA2_AMX_COMPLEX_UNSET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_AMX_COMPLEX_UNSET;
+	}
+      return true;
+
+    case OPT_mavxvnniint16:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_AVXVNNIINT16_SET;
+	  opts->x_ix86_isa_flags2_explicit |=
+	    OPTION_MASK_ISA2_AVXVNNIINT16_SET;
+	  opts->x_ix86_isa_flags |= OPTION_MASK_ISA_AVX2_SET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_AVX2_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags2 &=
+	    ~OPTION_MASK_ISA2_AVXVNNIINT16_UNSET;
+	  opts->x_ix86_isa_flags2_explicit |=
+	    OPTION_MASK_ISA2_AVXVNNIINT16_UNSET;
+	}
+      return true;
+
+    case OPT_msm3:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_SM3_SET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_SM3_SET;
+	  opts->x_ix86_isa_flags |= OPTION_MASK_ISA_AVX_SET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_AVX_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags2 &= ~OPTION_MASK_ISA2_SM3_UNSET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_SM3_UNSET;
+	}
+      return true;
+
+    case OPT_msha512:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_SHA512_SET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_SHA512_SET;
+	  opts->x_ix86_isa_flags |= OPTION_MASK_ISA_AVX_SET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_AVX_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags2 &= ~OPTION_MASK_ISA2_SHA512_UNSET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_SHA512_UNSET;
+	}
+      return true;
+
+    case OPT_msm4:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_SM4_SET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_SM4_SET;
+	  opts->x_ix86_isa_flags |= OPTION_MASK_ISA_AVX_SET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_AVX_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags2 &= ~OPTION_MASK_ISA2_SM4_UNSET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_SM4_UNSET;
+	}
+      return true;
+
+    case OPT_mavx10_max_512bit:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_AVX10_512BIT_SET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_AVX10_512BIT_SET;
+	}
+      else
+	{
+	  opts->x_ix86_isa_flags2 &= ~OPTION_MASK_ISA2_AVX10_512BIT_UNSET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_AVX10_512BIT_UNSET;
+	}
+      return true;
+
+    case OPT_mavx10_1:
+      if (value)
+	{
+	  opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_AVX10_1_SET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_AVX10_1_SET;
+	  opts->x_ix86_isa_flags |= OPTION_MASK_ISA_AVX2_SET;
+	  opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_AVX2_SET;
+	}
+      else if (ix86_check_avx512 (opts))
+	{
+	  opts->x_ix86_isa_flags2 &= ~OPTION_MASK_ISA2_AVX10_1_UNSET;
+	  opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_AVX10_1_UNSET;
+	}
+      return true;
+
+    case OPT_mavx10_1_256:
+      ix86_check_avx10_vector_width (opts, false);
+      opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_AVX10_1_SET;
+      opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_AVX10_1_SET;
+      opts->x_ix86_isa_flags2 &= ~OPTION_MASK_ISA2_AVX10_512BIT_SET;
+      opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_AVX10_512BIT_SET;
+      opts->x_ix86_isa_flags |= OPTION_MASK_ISA_AVX2_SET;
+      opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_AVX2_SET;
+      return true;
+
+    case OPT_mavx10_1_512:
+      ix86_check_avx10_vector_width (opts, true);
+      opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_AVX10_1_SET;
+      opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_AVX10_1_SET;
+      opts->x_ix86_isa_flags2 |= OPTION_MASK_ISA2_AVX10_512BIT_SET;
+      opts->x_ix86_isa_flags2_explicit |= OPTION_MASK_ISA2_AVX10_512BIT_SET;
+      opts->x_ix86_isa_flags |= OPTION_MASK_ISA_AVX2_SET;
+      opts->x_ix86_isa_flags_explicit |= OPTION_MASK_ISA_AVX2_SET;
       return true;
 
     case OPT_mfma:
