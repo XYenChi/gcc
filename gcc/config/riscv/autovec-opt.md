@@ -502,3 +502,224 @@
   }
   [(set_attr "type" "vfwmuladd")
    (set_attr "mode" "<V_DOUBLE_TRUNC>")])
+
+;; -------------------------------------------------------------------------
+;; ---- [FP] VFWNMSAC
+;; -------------------------------------------------------------------------
+;; Includes:
+;; - vfwnmsac.vv
+;; -------------------------------------------------------------------------
+
+;; Combine ext + ext + fnma ===> widen fnma.
+;; Most of circumstantces, LoopVectorizer will generate the following IR:
+;; vect__8.176_40 = (vector([2,2]) double) vect__7.175_41;
+;; vect__11.180_35 = (vector([2,2]) double) vect__10.179_36;
+;; vect__13.182_33 = .FNMA (vect__11.180_35, vect__8.176_40, vect__4.172_45);
+(define_insn_and_split "*double_widen_fnma<mode>"
+  [(set (match_operand:VWEXTF 0 "register_operand")
+	(fma:VWEXTF
+	  (neg:VWEXTF
+	    (float_extend:VWEXTF
+	      (match_operand:<V_DOUBLE_TRUNC> 2 "register_operand")))
+	  (float_extend:VWEXTF
+	    (match_operand:<V_DOUBLE_TRUNC> 3 "register_operand"))
+	  (match_operand:VWEXTF 1 "register_operand")))]
+  "TARGET_VECTOR && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(const_int 0)]
+  {
+    riscv_vector::emit_vlmax_fp_ternary_insn (code_for_pred_widen_mul_neg (PLUS, <MODE>mode),
+					      riscv_vector::RVV_WIDEN_TERNOP, operands);
+    DONE;
+  }
+  [(set_attr "type" "vfwmuladd")
+   (set_attr "mode" "<V_DOUBLE_TRUNC>")])
+
+;; This helps to match ext + fnma.
+(define_insn_and_split "*single_widen_fnma<mode>"
+  [(set (match_operand:VWEXTF 0 "register_operand")
+	(fma:VWEXTF
+	  (neg:VWEXTF
+	    (float_extend:VWEXTF
+	      (match_operand:<V_DOUBLE_TRUNC> 2 "register_operand")))
+	  (match_operand:VWEXTF 3 "register_operand")
+	  (match_operand:VWEXTF 1 "register_operand")))]
+  "TARGET_VECTOR && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(const_int 0)]
+  {
+    insn_code icode = code_for_pred_extend (<MODE>mode);
+    rtx tmp = gen_reg_rtx (<MODE>mode);
+    rtx ext_ops[] = {tmp, operands[2]};
+    riscv_vector::emit_vlmax_insn (icode, riscv_vector::RVV_UNOP, ext_ops);
+
+    rtx dst = expand_ternary_op (<MODE>mode, fnma_optab, tmp, operands[3],
+				 operands[1], operands[0], 0);
+    emit_move_insn (operands[0], dst);
+    DONE;
+  }
+  [(set_attr "type" "vfwmuladd")
+   (set_attr "mode" "<V_DOUBLE_TRUNC>")])
+
+;; -------------------------------------------------------------------------
+;; ---- [FP] VFWMSAC
+;; -------------------------------------------------------------------------
+;; Includes:
+;; - vfwmsac.vv
+;; -------------------------------------------------------------------------
+
+;; Combine ext + ext + fms ===> widen fms.
+;; Most of circumstantces, LoopVectorizer will generate the following IR:
+;; vect__8.176_40 = (vector([2,2]) double) vect__7.175_41;
+;; vect__11.180_35 = (vector([2,2]) double) vect__10.179_36;
+;; vect__13.182_33 = .FMS (vect__11.180_35, vect__8.176_40, vect__4.172_45);
+(define_insn_and_split "*double_widen_fms<mode>"
+  [(set (match_operand:VWEXTF 0 "register_operand")
+	(fma:VWEXTF
+	  (float_extend:VWEXTF
+	    (match_operand:<V_DOUBLE_TRUNC> 2 "register_operand"))
+	  (float_extend:VWEXTF
+	    (match_operand:<V_DOUBLE_TRUNC> 3 "register_operand"))
+	  (neg:VWEXTF
+	    (match_operand:VWEXTF 1 "register_operand"))))]
+  "TARGET_VECTOR && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(const_int 0)]
+  {
+    riscv_vector::emit_vlmax_fp_ternary_insn (code_for_pred_widen_mul (MINUS, <MODE>mode),
+					      riscv_vector::RVV_WIDEN_TERNOP, operands);
+    DONE;
+  }
+  [(set_attr "type" "vfwmuladd")
+   (set_attr "mode" "<V_DOUBLE_TRUNC>")])
+
+;; This helps to match ext + fms.
+(define_insn_and_split "*single_widen_fms<mode>"
+  [(set (match_operand:VWEXTF 0 "register_operand")
+	(fma:VWEXTF
+	  (float_extend:VWEXTF
+	    (match_operand:<V_DOUBLE_TRUNC> 2 "register_operand"))
+	  (match_operand:VWEXTF 3 "register_operand")
+	  (neg:VWEXTF
+	    (match_operand:VWEXTF 1 "register_operand"))))]
+  "TARGET_VECTOR && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(const_int 0)]
+  {
+    insn_code icode = code_for_pred_extend (<MODE>mode);
+    rtx tmp = gen_reg_rtx (<MODE>mode);
+    rtx ext_ops[] = {tmp, operands[2]};
+    riscv_vector::emit_vlmax_insn (icode, riscv_vector::RVV_UNOP, ext_ops);
+
+    rtx dst = expand_ternary_op (<MODE>mode, fms_optab, tmp, operands[3],
+				 operands[1], operands[0], 0);
+    emit_move_insn (operands[0], dst);
+    DONE;
+  }
+  [(set_attr "type" "vfwmuladd")
+   (set_attr "mode" "<V_DOUBLE_TRUNC>")])
+
+;; -------------------------------------------------------------------------
+;; ---- [FP] VFWNMACC
+;; -------------------------------------------------------------------------
+;; Includes:
+;; - vfwnmacc.vv
+;; -------------------------------------------------------------------------
+
+;; Combine ext + ext + fnms ===> widen fnms.
+;; Most of circumstantces, LoopVectorizer will generate the following IR:
+;; vect__8.176_40 = (vector([2,2]) double) vect__7.175_41;
+;; vect__11.180_35 = (vector([2,2]) double) vect__10.179_36;
+;; vect__13.182_33 = .FNMS (vect__11.180_35, vect__8.176_40, vect__4.172_45);
+(define_insn_and_split "*double_widen_fnms<mode>"
+  [(set (match_operand:VWEXTF 0 "register_operand")
+	(fma:VWEXTF
+	  (neg:VWEXTF
+	    (float_extend:VWEXTF
+	      (match_operand:<V_DOUBLE_TRUNC> 2 "register_operand")))
+	  (float_extend:VWEXTF
+	    (match_operand:<V_DOUBLE_TRUNC> 3 "register_operand"))
+	  (neg:VWEXTF
+	    (match_operand:VWEXTF 1 "register_operand"))))]
+  "TARGET_VECTOR && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(const_int 0)]
+  {
+    riscv_vector::emit_vlmax_fp_ternary_insn (code_for_pred_widen_mul_neg (MINUS, <MODE>mode),
+					      riscv_vector::RVV_WIDEN_TERNOP, operands);
+    DONE;
+  }
+  [(set_attr "type" "vfwmuladd")
+   (set_attr "mode" "<V_DOUBLE_TRUNC>")])
+
+;; This helps to match ext + fnms.
+(define_insn_and_split "*single_widen_fnms<mode>"
+  [(set (match_operand:VWEXTF 0 "register_operand")
+	(fma:VWEXTF
+	  (neg:VWEXTF
+	    (float_extend:VWEXTF
+	      (match_operand:<V_DOUBLE_TRUNC> 2 "register_operand")))
+	  (match_operand:VWEXTF 3 "register_operand")
+	  (neg:VWEXTF
+	    (match_operand:VWEXTF 1 "register_operand"))))]
+  "TARGET_VECTOR && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(const_int 0)]
+  {
+    insn_code icode = code_for_pred_extend (<MODE>mode);
+    rtx tmp = gen_reg_rtx (<MODE>mode);
+    rtx ext_ops[] = {tmp, operands[2]};
+    riscv_vector::emit_vlmax_insn (icode, riscv_vector::RVV_UNOP, ext_ops);
+
+    rtx dst = expand_ternary_op (<MODE>mode, fnms_optab, tmp, operands[3],
+				 operands[1], operands[0], 0);
+    emit_move_insn (operands[0], dst);
+    DONE;
+  }
+  [(set_attr "type" "vfwmuladd")
+   (set_attr "mode" "<V_DOUBLE_TRUNC>")])
+
+;; Combine <op> and vcond_mask generated by midend into cond_len_<op>
+;; Currently supported operations:
+;;   abs(FP)
+(define_insn_and_split "*cond_abs<mode>"
+  [(set (match_operand:VF 0 "register_operand")
+        (if_then_else:VF
+          (match_operand:<VM> 3 "register_operand")
+          (abs:VF (match_operand:VF 1 "nonmemory_operand"))
+          (match_operand:VF 2 "register_operand")))]
+  "TARGET_VECTOR && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(const_int 0)]
+{
+  emit_insn (gen_cond_len_abs<mode> (operands[0], operands[3], operands[1],
+				     operands[2],
+				     gen_int_mode (GET_MODE_NUNITS (<MODE>mode), Pmode),
+				     const0_rtx));
+  DONE;
+})
+
+;; Combine vlmax neg and UNSPEC_VCOPYSIGN
+(define_insn_and_split "*copysign<mode>_neg"
+  [(set (match_operand:VF 0 "register_operand")
+        (neg:VF
+          (unspec:VF [
+            (match_operand:VF 1 "register_operand")
+            (match_operand:VF 2 "register_operand")
+          ] UNSPEC_VCOPYSIGN)))]
+  "TARGET_VECTOR && can_create_pseudo_p ()"
+  "#"
+  "&& 1"
+  [(const_int 0)]
+{
+  riscv_vector::emit_vlmax_insn (code_for_pred_ncopysign (<MODE>mode),
+                                 riscv_vector::RVV_BINOP, operands);
+  DONE;
+})
