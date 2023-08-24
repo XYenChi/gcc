@@ -207,6 +207,8 @@ enum insn_type
   RVV_GATHER_M_OP = 5,
   RVV_SCATTER_M_OP = 4,
   RVV_REDUCTION_OP = 3,
+  RVV_REDUCTION_TU_OP = RVV_REDUCTION_OP + 2,
+  RVV_CPOP = 2,
 };
 enum vlmul_type
 {
@@ -321,6 +323,7 @@ void expand_gather_scatter (rtx *, bool);
 void expand_cond_len_ternop (unsigned, rtx *);
 void prepare_ternary_operands (rtx *, bool = false);
 void expand_lanes_load_store (rtx *, bool);
+void expand_fold_extract_last (rtx *);
 
 /* Rounding mode bitfield for fixed point VXRM.  */
 enum fixed_point_rounding_mode
