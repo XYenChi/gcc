@@ -2281,7 +2281,7 @@
 (define_insn "riscv_pause"
   [(unspec_volatile [(const_int 0)] UNSPECV_PAUSE)]
   ""
-  "pause")
+  "* return TARGET_ZIHINTPAUSE ? \"pause\" : \".insn\t0x0100000f\";")
 
 ;;
 ;;  ....................
