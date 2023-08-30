@@ -323,6 +323,12 @@ enum riscv_entity
 #define TARGET_XTHEADSYNC    ((riscv_xthead_subext & MASK_XTHEADSYNC) != 0)
 #define TARGET_XTHEADV       ((riscv_xthead_subext & MASK_XTHEADV) != 0)
 
+#define MASK_XVENTANACONDOPS  (1 << 0)
+
+#define TARGET_XVENTANACONDOPS ((riscv_xventana_subext & MASK_XVENTANACONDOPS) != 0)
+
+#define TARGET_ZICOND_LIKE (TARGET_ZICOND || (TARGET_XVENTANACONDOPS && TARGET_64BIT))
+
 /* We only enable VLS modes for VLA vectorization since fixed length VLMAX mode
    is the highest priority choice and should not conflict with VLS modes.  */
 #define TARGET_VECTOR_VLS                                                      \

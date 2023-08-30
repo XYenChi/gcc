@@ -1495,6 +1495,8 @@ static const riscv_ext_flag_table_t riscv_ext_flag_table[] =
   {"xtheadsync",    &gcc_options::x_riscv_xthead_subext, MASK_XTHEADSYNC},
   {"xtheadv",    &gcc_options::x_riscv_xthead_subext, MASK_XTHEADV},
 
+  {"xventanacondops", &gcc_options::x_riscv_xventana_subext, MASK_XVENTANACONDOPS},
+
   {NULL, NULL, 0}
 };
 
