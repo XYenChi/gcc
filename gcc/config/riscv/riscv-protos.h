@@ -405,6 +405,16 @@ enum mask_policy
   MASK_AGNOSTIC = 1,
   MASK_ANY = 2,
 };
+
+/* Return true if VALUE is agnostic or any policy.  */
+#define IS_AGNOSTIC(VALUE) (bool) (VALUE & 0x1 || (VALUE >> 1 & 0x1))
+
+enum class reduction_type
+{
+  UNORDERED,
+  FOLD_LEFT,
+  MASK_LEN_FOLD_LEFT,
+};
 enum tail_policy get_prefer_tail_policy ();
 enum mask_policy get_prefer_mask_policy ();
 rtx get_avl_type_rtx (enum avl_type);
