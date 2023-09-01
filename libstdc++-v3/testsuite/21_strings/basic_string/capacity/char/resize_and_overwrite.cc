@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 // { dg-options "-std=gnu++23" }
 // { dg-do run { target { c++23 && cxx11_abi } } }
+=======
+// { dg-do run { target c++23 } }
+>>>>>>> 7810fb3a142 (libstdc++: Remove dg-options "-std=gnu++23" from remaining tests)
 
 #include <string>
 

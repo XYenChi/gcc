@@ -15,6 +15,7 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
+// { dg-do compile { target c++23 } }
 
 // This file tests explicit instantiation of basic_string
 
