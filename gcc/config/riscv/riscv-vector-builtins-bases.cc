@@ -1089,10 +1089,77 @@ public:
   }
 };
 
-class vqmaccsu : public function_base
+class vmaccsu : public function_base
 {
 public:
   bool has_merge_operand_p () const override { return false; }
+
+  rtx expand (function_expander &e) const override
+  {
+    if (e.op_info->op == OP_TYPE_vx)
+      return e.use_quad_ternop_insn (
+	code_for_pred_quad_mul_plussu_scalar (e.vector_mode ()));
+    if (e.op_info->op == OP_TYPE_vv)
+      return e.use_quad_ternop_insn (
+	code_for_pred_quad_mul_plussu (e.vector_mode ()));
+    gcc_unreachable ();
+  }
+};
+
+class vwmaccus : public function_base
+{
+public:
+  bool has_merge_operand_p () const override { return false; }
+
+  rtx expand (function_expander &e) const override
+  {
+    return e.use_widen_ternop_insn (
+      code_for_pred_widen_mul_plusus_scalar (e.vector_mode ()));
+  }
+};
+
+/* Implements vwsmacc<su><su>.  */
+/* RVV 0.7.1 */
+template<int UNSPEC>
+class sat_op : public function_base
+class vwsmacc : public function_base
+{
+public:
+  bool has_rounding_mode_operand_p () const override { return true; }
+
+  rtx expand (function_expander &e) const override
+  {
+    if (e.op_info->op == OP_TYPE_vx)
+      return e.use_widen_ternop_insn (
+	code_for_pred_widen_mul_plus_scalar (SIGN_EXTEND, e.vector_mode ()));
+    if (e.op_info->op == OP_TYPE_vv)
+      return e.use_widen_ternop_insn (
+	code_for_pred_widen_mul_plus (SIGN_EXTEND, e.vector_mode ()));
+    gcc_unreachable ();
+  }
+};
+
+class vwsmaccu : public function_base
+{
+public:
+  bool has_rounding_mode_operand_p () const override { return true; }
+
+  rtx expand (function_expander &e) const override
+  {
+    if (e.op_info->op == OP_TYPE_vx)
+      return e.use_widen_ternop_insn (
+	code_for_pred_widen_mul_plus_scalar (ZERO_EXTEND, e.vector_mode ()));
+    if (e.op_info->op == OP_TYPE_vv)
+      return e.use_widen_ternop_insn (
+	code_for_pred_widen_mul_plus (ZERO_EXTEND, e.vector_mode ()));
+    gcc_unreachable ();
+  }
+};
+
+class vwsmaccsu : public function_base
+{
+public:
+  bool has_rounding_mode_operand_p () const override { return true; }
 
   rtx expand (function_expander &e) const override
   {
@@ -1106,10 +1173,10 @@ public:
   }
 };
 
-class vwmaccus : public function_base
+class vwsmaccus : public function_base
 {
 public:
-  bool has_merge_operand_p () const override { return false; }
+  bool has_rounding_mode_operand_p () const override { return true; }
 
   rtx expand (function_expander &e) const override
   {
@@ -2318,12 +2385,16 @@ static CONSTEXPR const vnmsub vnmsub_obj;
 static CONSTEXPR const vwmacc vwmacc_obj;
 static CONSTEXPR const vwmaccu vwmaccu_obj;
 static CONSTEXPR const vwmaccsu vwmaccsu_obj;
-static CONSTEXPR const vqmaccsu vqmaccsu_obj;
-static CONSTEXPR const vwmaccus vwmaccus_obj;
+static CONSTEXPR const vwsmaccsu vwsmaccsu_obj;
+static CONSTEXPR const vwmaccus vwmaccus_obj;  
 static CONSTEXPR const binop<SS_PLUS> vsadd_obj;
 static CONSTEXPR const binop<SS_MINUS> vssub_obj;
 static CONSTEXPR const binop<US_PLUS> vsaddu_obj;
 static CONSTEXPR const binop<US_MINUS> vssubu_obj;
+static CONSTEXPR const sat_op<UNSPEC_VWSMACC> VWSMACC_obj;  // rvv 0.7.1
+static CONSTEXPR const sat_op<UNSPEC_VWSMACCU> VWSMACCU_obj; // rvv 0.7.1
+static CONSTEXPR const sat_op<UNSPEC_VWSMACCSU> VWSMACCSU_obj; // rvv 0.7.1
+static CONSTEXPR const sat_op<UNSPEC_VWSMACCUS> VWSMACCUS_obj; // rvv 0.7.1
 static CONSTEXPR const sat_op<UNSPEC_VAADDU> vaaddu_obj;
 static CONSTEXPR const sat_op<UNSPEC_VAADD> vaadd_obj;
 static CONSTEXPR const sat_op<UNSPEC_VASUBU> vasubu_obj;
@@ -2575,7 +2646,10 @@ BASE (vnmsub)
 BASE (vwmacc)
 BASE (vwmaccu)
 BASE (vwmaccsu)
-BASE (vqmaccsu)
+BASE (vwsmaccu) // RVV 0.7.1
+BASE (vwsmacc) // RVV 0.7.1
+BASE (vwsmaccsu) // RVV 0.7.1
+BASE (vwsmaccus) // RVV 0.7.1
 BASE (vwmaccus)
 BASE (vsadd)
 BASE (vssub)

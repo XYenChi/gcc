@@ -114,9 +114,10 @@ extern const function_base *const vnmsub;
 extern const function_base *const vwmacc;
 extern const function_base *const vwmaccu;
 extern const function_base *const vwmaccsu;
-extern const function_base *const vqmaccsu; /* RVV 0.7.1*/
-extern const function_base *const vqmaccu; /* RVV 0.7.1*/
-extern const function_base *const vqmaccus; /* RVV 0.7.1*/
+extern const function_base *const vwsmaccus; /* RVV 0.7.1*/
+extern const function_base *const vwsmacc; /* RVV 0.7.1*/
+extern const function_base *const vwsmaccu; /* RVV 0.7.1*/
+extern const function_base *const vwsmaccus; /* RVV 0.7.1*/
 extern const function_base *const vwmaccus;
 extern const function_base *const vsadd;
 extern const function_base *const vssub;

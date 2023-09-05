@@ -54,7 +54,7 @@
          (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE)
       (match_operand:V_VLS 3 "vector_move_operand"   "    m,     m,     m,    vr,    vr,    vr, viWc0, viWc0")
       (match_operand:V_VLS 2 "vector_merge_operand"  "    0,    vu,    vu,    vu,    vu,     0,    vu,     0")))]
-  "TARGET_VECTOR && (MEM_P (operands[0]) || MEM_P (operands[3])
+  "TARGET_XTHREADV && (MEM_P (operands[0]) || MEM_P (operands[3])
    || CONST_VECTOR_P (operands[1]))"
   "@
    vle<sew>.v\t%0,%3%p1
@@ -82,6 +82,29 @@
 "vlb.v\t%0, %1, %2"
 [(set_attr "type" "vlde")]
 
+(define_insn "load2")
+[(set (match_operand:HI 0 "nonimmediate_operand")
+      (load:HI (match_operand:HI 1 "vr")
+                (match_operand:HI 2 "r")))]
+"TARGET_XTHREAD"
+"vlh.v\t%0, %1, %2"
+[(set_attr "type" "vlde")]
+
+(define_insn "load2")
+[(set (match_operand:SI 0 "nonimmediate_operand")
+      (load:SI (match_operand:SI 1 "vr")
+                (match_operand:SI 2 "r")))]
+"TARGET_XTHREAD"
+"vlw.v\t%0, %1, %2"
+[(set_attr "type" "vlde")]
+
+(define_insn "load2")
+[(set (match_operand:DI 0 "nonimmediate_operand")
+      (load:QI (match_operand:DI 1 "vr")
+                (match_operand:DI 2 "r")))]
+"TARGET_XTHREAD"
+"vlb.v\t%0, %1, %2"
+[(set_attr "type" "vlde")]
 
 ;; Dedicated pattern for vse.v instruction since we can't reuse pred_mov pattern to include
 ;; memory operand as input which will produce inferior codegen.
@@ -96,7 +119,7 @@
 	     (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE)
 	  (match_operand:V 2 "register_operand"         "    vr")
 	  (match_dup 0)))]
-  "TARGET_VECTOR"
+  "TARGET_XTHREADV"
   "vse<sew>.v\t%2,%0%p1"
   [(set_attr "type" "vste")
    (set_attr "mode" "<MODE>")
@@ -108,11 +131,11 @@
 ;; =========================================================================
 
 ;; -------------------------------------------------------------------------
-;; ---- [INT] VQMACC
+;; ---- [INT] VWSMACC
 ;; -------------------------------------------------------------------------
 ;; Includes:
-;; - vqmacc.vv
-;; - vqmaccu.vv
+;; - vwsmacc.vv
+;; - vwsmaccu.vv8
 ;; -------------------------------------------------------------------------
 
 ;; Combine ext + ext + fma ===> widen fma.
@@ -129,7 +152,7 @@
 	    (any_extend:VWEXTI
 	      (match_operand:<V_DOUBLE_TRUNC> 3 "register_operand")))
 	  (match_operand:VWEXTI 1 "register_operand")))]
-  "TARGET_VECTOR && can_create_pseudo_p ()"
+  "TARGET_XTHREADV && can_create_pseudo_p ()"
   "#"
   "&& 1"
   [(const_int 0)]
@@ -150,7 +173,7 @@
 	      (match_operand:<V_DOUBLE_TRUNC> 2 "register_operand"))
 	    (match_operand:VWEXTI 3 "register_operand"))
 	  (match_operand:VWEXTI 1 "register_operand")))]
-  "TARGET_VECTOR && can_create_pseudo_p ()"
+  "TARGET_XTHREADV && can_create_pseudo_p ()"
   "#"
   "&& 1"
   [(const_int 0)]
@@ -204,7 +227,7 @@
               (match_operand:VWEXTI 2 "vector_undef_operand"))
 	    (match_operand:VWEXTI 3 "register_operand"))
           (match_dup 2)))]
-  "TARGET_VECTOR && can_create_pseudo_p ()"
+  "TARGET_XTHREADV && can_create_pseudo_p ()"
   "#"
   "&& 1"
   [(const_int 0)]
@@ -228,7 +251,7 @@
 	    (zero_extend:VWEXTI
 	      (match_operand:<V_DOUBLE_TRUNC> 3 "register_operand")))
 	  (match_operand:VWEXTI 1 "register_operand")))]
-  "TARGET_VECTOR && can_create_pseudo_p ()"
+  "TARGET_XTHREADV && can_create_pseudo_p ()"
   "#"
   "&& 1"
   [(const_int 0)]
@@ -250,7 +273,7 @@
 	    (sign_extend:VWEXTI
 	      (match_operand:<V_DOUBLE_TRUNC> 3 "register_operand")))
 	  (match_operand:VWEXTI 1 "register_operand")))]
-  "TARGET_VECTOR && can_create_pseudo_p ()"
+  "TARGET_XTHREADV && can_create_pseudo_p ()"
   "#"
   "&& 1"
   [(const_int 0)]
@@ -260,5 +283,54 @@
 					   riscv_vector::RVV_WIDEN_TERNOP, ops);
     DONE;
   }
+  [(set_attr "type" "viwmuladd")
+   (set_attr "mode" "<V_DOUBLE_TRUNC>")])
+
+(define_insn "@pred_widen_saturate_mul_plus<su><mode>"
+  [(set (match_operand:VWEXTI 0 "register_operand"                    "=&vr")
+	(if_then_else:VWEXTI
+	  (unspec:<VM>
+	    [(match_operand:<VM> 1 "vector_mask_operand"             "vmWc1")
+	     (match_operand 5 "vector_length_operand"                "   rK")
+	     (match_operand 6 "const_int_operand"                    "    i")
+	     (match_operand 7 "const_int_operand"                    "    i")
+	     (match_operand 8 "const_int_operand"                    "    i")
+	     (reg:SI VL_REGNUM)
+	     (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE)
+	  (plus:VWEXTI
+	    (mult:VWEXTI
+	      (any_extend:VWEXTI
+	        (match_operand:<V_DOUBLE_TRUNC> 3 "register_operand" "   vr"))
+	      (any_extend:VWEXTI
+	        (match_operand:<V_DOUBLE_TRUNC> 4 "register_operand" "   vr")))
+	    (match_operand:VWEXTI 2 "register_operand"               "    0"))
+	  (match_dup 2)))]
+  "TARGET_XTHREADV"
+  "vwsmacc<u>.vv\t%0,%3,%4%p1"
+  [(set_attr "type" "viwmuladd")
+   (set_attr "mode" "<V_DOUBLE_TRUNC>")])
+
+(define_insn "@pred_widen_saturate_mul_plus<su><mode>_scalar"
+  [(set (match_operand:VWEXTI 0 "register_operand"                    "=&vr")
+	(if_then_else:VWEXTI
+	  (unspec:<VM>
+	    [(match_operand:<VM> 1 "vector_mask_operand"             "vmWc1")
+	     (match_operand 5 "vector_length_operand"                "   rK")
+	     (match_operand 6 "const_int_operand"                    "    i")
+	     (match_operand 7 "const_int_operand"                    "    i")
+	     (match_operand 8 "const_int_operand"                    "    i")
+	     (reg:SI VL_REGNUM)
+	     (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE)
+	  (plus:VWEXTI
+	    (mult:VWEXTI
+	      (any_extend:VWEXTI
+	        (vec_duplicate:<V_DOUBLE_TRUNC>
+	          (match_operand:<VSUBEL> 3 "register_operand"       "    r")))
+	      (any_extend:VWEXTI
+	        (match_operand:<V_DOUBLE_TRUNC> 4 "register_operand" "   vr")))
+	    (match_operand:VWEXTI 2 "register_operand"               "    0"))
+	  (match_dup 2)))]
+  "TARGET_XTHREADV"
+  "vwsmacc<u>.vx\t%0,%3,%4%p1"
   [(set_attr "type" "viwmuladd")
    (set_attr "mode" "<V_DOUBLE_TRUNC>")])

@@ -79,6 +79,10 @@
 	 (const_string "true")]
 	(const_string "false")))
 
+(define_attr "ediv" "0,2,4,8"
+  (cond [(eq_attr "type" )])
+)
+
 ;; The default SEW of RVV instruction. This attribute doesn't mean the instruction
 ;; is necessary to require SEW check for example vlm.v which require ratio to
 ;; check. However, we need default value of SEW for vsetvl instruction since there
@@ -328,7 +332,6 @@
 	 (eq_attr "mode" "RVVM4x2DF") (symbol_ref "riscv_vector::LMUL_4")
 	 (eq_attr "mode" "RVVM2x2DF") (symbol_ref "riscv_vector::LMUL_2")
 	 (eq_attr "mode" "RVVM1x2DF") (symbol_ref "riscv_vector::LMUL_1")
-
 	 ;; VLS modes.
 	 (eq_attr "mode" "V1QI") (symbol_ref "riscv_vector::get_vlmul(E_V1QImode)")
 	 (eq_attr "mode" "V2QI") (symbol_ref "riscv_vector::get_vlmul(E_V2QImode)")
@@ -410,6 +413,116 @@
 	 (eq_attr "mode" "V256DF") (symbol_ref "riscv_vector::get_vlmul(E_V256DFmode)")
 	 (eq_attr "mode" "V512DF") (symbol_ref "riscv_vector::get_vlmul(E_V512DFmode)")]
 	(const_int INVALID_ATTRIBUTE)))
+
+;; Ditto to LMUL.
+(define_attr "vlmul" ""
+  (cond [(eq_attr "mode" "RVVM8QI,RVVM1BI") (symbol_ref "riscv_vector::LMUL_8")
+	 (eq_attr "mode" "RVVM4QI,RVVMF2BI") (symbol_ref "riscv_vector::LMUL_4")
+	 (eq_attr "mode" "RVVM2QI,RVVMF4BI") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1QI,RVVMF8BI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM8HI") (symbol_ref "riscv_vector::LMUL_8")
+	 (eq_attr "mode" "RVVM4HI") (symbol_ref "riscv_vector::LMUL_4")
+	 (eq_attr "mode" "RVVM2HI") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1HI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM8HF") (symbol_ref "riscv_vector::LMUL_8")
+	 (eq_attr "mode" "RVVM4HF") (symbol_ref "riscv_vector::LMUL_4")
+	 (eq_attr "mode" "RVVM2HF") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1HF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM8SI") (symbol_ref "riscv_vector::LMUL_8")
+	 (eq_attr "mode" "RVVM4SI") (symbol_ref "riscv_vector::LMUL_4")
+	 (eq_attr "mode" "RVVM2SI") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1SI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM8SF") (symbol_ref "riscv_vector::LMUL_8")
+	 (eq_attr "mode" "RVVM4SF") (symbol_ref "riscv_vector::LMUL_4")
+	 (eq_attr "mode" "RVVM2SF") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1SF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM8DI") (symbol_ref "riscv_vector::LMUL_8")
+	 (eq_attr "mode" "RVVM4DI") (symbol_ref "riscv_vector::LMUL_4")
+	 (eq_attr "mode" "RVVM2DI") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1DI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM8DF") (symbol_ref "riscv_vector::LMUL_8")
+	 (eq_attr "mode" "RVVM4DF") (symbol_ref "riscv_vector::LMUL_4")
+	 (eq_attr "mode" "RVVM2DF") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1DF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x8QI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x7QI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x6QI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x5QI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM2x4QI") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x4QI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM2x3QI") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x3QI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM4x2QI") (symbol_ref "riscv_vector::LMUL_4")
+	 (eq_attr "mode" "RVVM2x2QI") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x2QI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x8HI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x7HI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x6HI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x5HI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM2x4HI") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x4HI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM2x3HI") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x3HI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM4x2HI") (symbol_ref "riscv_vector::LMUL_4")
+	 (eq_attr "mode" "RVVM2x2HI") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x2HI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x8HF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x7HF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x6HF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x5HF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM2x4HF") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x4HF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM2x3HF") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x3HF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM4x2HF") (symbol_ref "riscv_vector::LMUL_4")
+	 (eq_attr "mode" "RVVM2x2HF") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x2HF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x8SI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x7SI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x6SI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x5SI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM2x4SI") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x4SI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM2x3SI") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x3SI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM4x2SI") (symbol_ref "riscv_vector::LMUL_4")
+	 (eq_attr "mode" "RVVM2x2SI") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x2SI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x8SF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x7SF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x6SF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x5SF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM2x4SF") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x4SF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM2x3SF") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x3SF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM4x2SF") (symbol_ref "riscv_vector::LMUL_4")
+	 (eq_attr "mode" "RVVM2x2SF") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x2SF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x8DI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x7DI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x6DI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x5DI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM2x4DI") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x4DI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM2x3DI") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x3DI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM4x2DI") (symbol_ref "riscv_vector::LMUL_4")
+	 (eq_attr "mode" "RVVM2x2DI") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x2DI") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x8DF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x7DF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x6DF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM1x5DF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM2x4DF") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x4DF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM2x3DF") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x3DF") (symbol_ref "riscv_vector::LMUL_1")
+	 (eq_attr "mode" "RVVM4x2DF") (symbol_ref "riscv_vector::LMUL_4")
+	 (eq_attr "mode" "RVVM2x2DF") (symbol_ref "riscv_vector::LMUL_2")
+	 (eq_attr "mode" "RVVM1x2DF") (symbol_ref "riscv_vector::LMUL_1")
+     "TARGET_VECTOR"
+  ]))
 
 ;; It is valid for instruction that require sew/lmul ratio.
 (define_attr "ratio" ""
@@ -845,6 +958,8 @@
 	   (symbol_ref "INTVAL (operands[4])")]
 	(const_int INVALID_ATTRIBUTE)))
 
+
+
 ;; Defines rounding mode of an fixed-point operation.
 
 (define_attr "vxrm_mode" "rnu,rne,rdn,rod,none"
@@ -941,7 +1056,7 @@
 (define_insn "vxrmsi"
   [(set (reg:SI VXRM_REGNUM)
 	(match_operand:SI 0 "const_int_operand" "i"))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR || TARGET_XTHREADV"
   "csrwi\tvxrm,%0"
   [(set_attr "type" "wrvxrm")
    (set_attr "mode" "SI")])
@@ -1350,6 +1465,30 @@
    (set (attr "vlmul") (symbol_ref "INTVAL (operands[3])"))
    (set (attr "ta") (symbol_ref "INTVAL (operands[4])"))
    (set (attr "ma") (symbol_ref "INTVAL (operands[5])"))])
+
+
+;; RVV 0.7.1
+(define_insn "@vsetvl<mode>"
+  [(set (match_operand:P 0 "register_operand" "=r")
+	(unspec:P [(match_operand:P 1 "csr_operand" "rK")
+		   (match_operand 2 "const_int_operand" "i")
+		   (match_operand 3 "const_int_operand" "i")
+		   (match_operand 4 "const_int_operand" "i")] UNSPEC_VSETVL))
+   (set (reg:SI VL_REGNUM)
+	(unspec:SI [(match_dup 1)
+		    (match_dup 2)
+		    (match_dup 3)] UNSPEC_VSETVL))
+   (set (reg:SI VTYPE_REGNUM)
+	(unspec:SI [(match_dup 2)
+		    (match_dup 3)
+		    (match_dup 4)] UNSPEC_VSETVL))]
+  "TARGET_XTHREADV"
+  "vset%i1vli\t%0,%1,e%2,%m3,d%4"
+  [(set_attr "type" "vsetvl")
+   (set_attr "mode" "<MODE>")
+   (set (attr "sew") (symbol_ref "INTVAL (operands[2])"))
+   (set (attr "vlmul") (symbol_ref "INTVAL (operands[3])"))
+   (set (attr "ediv") (symbol_ref "INTVAL (operands[4])"))])
 
 ;; vsetvl zero,zero,vtype instruction.
 ;; This pattern has no side effects and does not set X0 register.
@@ -5900,7 +6039,7 @@
   [(set_attr "type" "vmpop")
    (set_attr "mode" "<VB:MODE>")])
 
-(define_insn "@pred_popcount<VB:mode><P:mode>"
+(define_insn "@pred_mpopcount<VB:mode><P:mode>"
   [(set (match_operand:P 0 "register_operand"               "=r")
 	(popcount:P
 	  (unspec:VB
@@ -5911,7 +6050,7 @@
 	     (match_operand 4 "const_int_operand"        "    i")
 	     (reg:SI VL_REGNUM)
 	     (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE)))]
-  "TARGET_VECTOR_07"
+  "TARGET_XTHEADV"
   "vmcpop.m\t%0,%2%p1"
   [(set_attr "type" "vmpop")
    (set_attr "mode" "<VB:MODE>")])

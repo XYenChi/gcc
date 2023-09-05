@@ -230,7 +230,7 @@
 
 ;; True if the main data type is twice the size of a word.
 (define_attr "dword_mode" "no,yes"
-  (cond [(and (eq_attr "mode" "DI,DF")
+  (cond [(and (eq_attr "mode" "DI,DF")``
 	      (eq (symbol_ref "TARGET_64BIT") (const_int 0)))
 	 (const_string "yes")
 
@@ -402,6 +402,11 @@
 ;; vgather      vector register gather instructions
 ;; vcompress    vector compress instruction
 ;; vmov         whole vector register move
+;; Classification of RVV 0.7.1 for XTHREADV instructions which will be added to each RVV .md pattern and used by scheduler.
+;; 12. Vector integer arithmetic instructions
+;; 19. Vector dot product instructions
+;; vidot        vector integer dot product instruction
+;; vfdot        floating-point signed dot-product 
 (define_attr "type"
   "unknown,branch,jump,call,load,fpload,store,fpstore,
    mtc,mfc,const,arith,logical,shift,slt,imul,idiv,move,fmove,fadd,fmul,
