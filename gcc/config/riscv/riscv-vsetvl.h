@@ -52,6 +52,7 @@ enum demand_type
   DEMAND_GE_SEW,
   DEMAND_TAIL_POLICY,
   DEMAND_MASK_POLICY,
+  DEMAND_EDIV, // RVV 0.7.1
   NUM_DEMAND
 };
 
@@ -196,17 +197,19 @@ protected:
   uint8_t m_ratio;
   bool m_ta;
   bool m_ma;
+  uint8_t m_ediv;
 
 public:
   void set_sew (uint8_t sew) { m_sew = sew; }
   void set_vlmul (riscv_vector::vlmul_type vlmul) { m_vlmul = vlmul; }
   void set_ratio (uint8_t ratio) { m_ratio = ratio; }
+  void set_ediv (uint8_t ediv) { m_ediv = ediv; }  // rvv 0.7.1
   void set_ta (bool ta) { m_ta = ta; }
   void set_ma (bool ma) { m_ma = ma; }
 
   vl_vtype_info ()
     : m_avl (avl_info ()), m_sew (0), m_vlmul (riscv_vector::LMUL_RESERVED),
-      m_ratio (0), m_ta (0), m_ma (0)
+      m_ratio (0), m_ta (0), m_ma (0), m_ediv (1)
   {}
   vl_vtype_info (const vl_vtype_info &) = default;
   vl_vtype_info &operator= (const vl_vtype_info &) = default;
