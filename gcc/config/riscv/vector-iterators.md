@@ -1889,6 +1889,11 @@
 			 	(UNSPEC_VSSRA "vsshift") (UNSPEC_VNCLIP "vnclip")
 				(UNSPEC_VNCLIPU "vnclip")])
 
+(define_int_attr widen_sat_op [(UNSPEC_VWSMACCU "wsmaccu") (UNSPEC_VWSMACC "wsmacc")
+        (UNSPEC_VWSMACCSU "wsmaccsu") (UNSPEC_VWSMACCUS "wsmaccus")])
+(define_int_attr widen_sat_insn_type [(UNSPEC_VWSMACCU "vwsmaccu") (UNSPEC_VWSMACC "vwsmacc")
+        (UNSPEC_VWSMACCSU "vwsmaccsu") (UNSPEC_VWSMACCUS "vwsmaccus")])
+
 (define_int_attr misc_op [(UNSPEC_VMSBF "sbf") (UNSPEC_VMSIF "sif") (UNSPEC_VMSOF "sof")
 			  (UNSPEC_VFRSQRT7 "rsqrt7") (UNSPEC_VFREC7 "rec7")])
 
