@@ -262,6 +262,7 @@ machine_mode get_subpart_mode (machine_mode);
 int get_ta (rtx);
 int get_ma (rtx);
 int get_avl_type (rtx);
+int get_ediv (rtx); //rvv 0.7.1
 unsigned int calculate_ratio (unsigned int, enum vlmul_type);
 enum tail_policy
 {
@@ -283,6 +284,16 @@ enum class reduction_type
   FOLD_LEFT,
   MASK_LEN_FOLD_LEFT,
 };
+
+// RVV 0.7.1 vtype register 6:5
+enum ediv_value
+{
+  EDIV_00 = 1,
+  EDIV_01 = 2,
+  EDIV_10 = 4,
+  EDIV_11 = 8,
+};
+
 enum tail_policy get_prefer_tail_policy ();
 enum mask_policy get_prefer_mask_policy ();
 rtx get_avl_type_rtx (enum avl_type);
