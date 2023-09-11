@@ -2234,6 +2234,7 @@
   "TARGET_HARD_FLOAT && !TARGET_64BIT && TARGET_ZFA"
   "fmv.x.w\t%0,%1"
   [(set_attr "move_type" "fmove")
+   (set_attr "type" "fmove")
    (set_attr "mode" "DF")])
 
 
@@ -2246,6 +2247,7 @@
   "TARGET_HARD_FLOAT && !TARGET_64BIT && TARGET_ZFA"
   "fmvh.x.d\t%0,%1"
   [(set_attr "move_type" "fmove")
+   (set_attr "type" "fmove")
    (set_attr "mode" "DF")])
 
 (define_insn "movdfsisi3_rv32"
@@ -2258,6 +2260,7 @@
   "TARGET_HARD_FLOAT && !TARGET_64BIT && TARGET_ZFA"
   "fmvp.d.x\t%0,%2,%1"
   [(set_attr "move_type" "fmove")
+   (set_attr "type" "fmove")
    (set_attr "mode" "DF")])
 
 (define_split
