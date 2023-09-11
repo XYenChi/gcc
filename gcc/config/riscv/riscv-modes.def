@@ -32,7 +32,7 @@ FLOAT_MODE (TF, 16, ieee_quad_format);
 
   n = SEW/LMUL
 
-  |Modes| n = 1 | n = 2 | n = 4 | n = 8 | n = 16 | n = 32 | n = 64 |
+  |Modes|  n = 1 | n = 2   | n = 4   |  n = 8  |  n = 16  |  n = 32  |  n = 64  |
   |BI   |RVVM1BI |RVVMF2BI |RVVMF4BI |RVVMF8BI |RVVMF16BI |RVVMF32BI |RVVMF64BI |  */
 
 /* For RVV modes, each boolean value occupies 1-bit.
@@ -99,6 +99,80 @@ There are the following data types for ELEN = 32.
    |QI   |RVVM1QI|RVVM2QI|RVVM4QI|RVVM8QI|RVVMF2QI|RVVMF4QI|N/A     |
    |SF   |RVVM1SF|RVVM2SF|RVVM4SF|RVVM8SF|N/A     |N/A     |N/A     |
    |HF   |RVVM1HF|RVVM2HF|RVVM4HF|RVVM8HF|RVVMF2HF|N/A     |N/A     |  */
+
+/* RVV 0.7.1 */
+/* Encode SEW, LMUL and EDIV into data types.
+   We enforce the constraint LMUL ≥ SEW/ELEN in the implementation.
+   There are the following data types for ELEN = 64.
+
+   |Modes|LMUL=1 |LMUL=2 |LMUL=4 |LMUL=8 |
+   |DI   |RVVM1DI|RVVM2DI|RVVM4DI|RVVM8DI|
+   |SI   |RVVM1SI|RVVM2SI|RVVM4SI|RVVM8SI|
+   |HI   |RVVM1HI|RVVM2HI|RVVM4HI|RVVM8HI|
+   |QI   |RVVM1QI|RVVM2QI|RVVM4QI|RVVM8QI|
+   |DF   |RVVM1DF|RVVM2DF|RVVM4DF|RVVM8DF|
+   |SF   |RVVM1SF|RVVM2SF|RVVM4SF|RVVM8SF|
+   |HF   |RVVM1HF|RVVM2HF|RVVM4HF|RVVM8HF|
+
+      There are the following data types for DI 64bit.
+         |Modes|LMUL=1   |LMUL=2   |LMUL=4   |LMUL=8   |
+         |D1   |RVVM1D1DI|RVVM2D1DI|RVVM4D1DI|RVVM8D1DI|
+         |D2   |RVVM1D2DI|RVVM2D2DI|RVVM4D2DI|RVVM8D2DI|
+         |D4   |RVVM1D4DI|RVVM2D4DI|RVVM4D4DI|RVVM8D4DI|
+         |D8   |RVVM1D8DI|RVVM2D8DI|RVVM4D8DI|RVVM8D8DI|
+
+      There are the following data types for SI 32bit.
+         |Modes|LMUL=1   |LMUL=2   |LMUL=4   |LMUL=8   |
+         |D1   |RVVM1D1SI|RVVM2D1SI|RVVM4D1SI|RVVM8D1SI|
+         |D2   |RVVM1D2SI|RVVM2D2SI|RVVM4D2SI|RVVM8D2SI|
+         |D4   |RVVM1D4SI|RVVM2D4SI|RVVM4D4SI|RVVM8D4SI|
+         |D8   |RVVM1D8SI|RVVM2D8SI|RVVM4D8SI|RVVM8D8SI|
+
+      There are the following data types for HI 16bit      
+         |Modes|LMUL=1   |LMUL=2   |LMUL=4   |LMUL=8   |
+         |D1   |RVVM1D1HI|RVVM2D1HI|RVVM4D1HI|RVVM8D1HI|
+         |D2   |RVVM1D2HI|RVVM2D2HI|RVVM4D2HI|RVVM8D2HI|
+         |D4   |RVVM1D4HI|RVVM2D4HI|RVVM4D4HI|RVVM8D4HI|      
+      
+      There are the following data types for QI 8bit
+         |Modes|LMUL=1   |LMUL=2   |LMUL=4   |LMUL=8   |
+         |D1   |RVVM1D1QI|RVVM2D1QI|RVVM4D1QI|RVVM8D1QI|
+         |D2   |RVVM1D2QI|RVVM2D2QI|RVVM4D2QI|RVVM8D2QI|
+
+There are the following data types for ELEN = 32.
+
+   |Modes|LMUL=1 |LMUL=2 |LMUL=4 |LMUL=8 |LMUL=1/2|LMUL=1/4|LMUL=1/8|
+   |SI   |RVVM1SI|RVVM2SI|RVVM4SI|RVVM8SI|N/A     |N/A     |N/A     |
+   |HI   |RVVM1HI|RVVM2HI|RVVM4HI|RVVM8HI|RVVMF2HI|N/A     |N/A     |
+   |QI   |RVVM1QI|RVVM2QI|RVVM4QI|RVVM8QI|RVVMF2QI|RVVMF4QI|N/A     |
+   |SF   |RVVM1SF|RVVM2SF|RVVM4SF|RVVM8SF|N/A     |N/A     |N/A     |
+   |HF   |RVVM1HF|RVVM2HF|RVVM4HF|RVVM8HF|RVVMF2HF|N/A     |N/A     |  
+
+      There are the following data types for DI 64bit.
+         |Modes|LMUL=1   |LMUL=2   |LMUL=4   |LMUL=8   |
+         |D1   |RVVM1D1DI|RVVM2D1DI|RVVM4D1DI|RVVM8D1DI|
+         |D2   |RVVM1D2DI|RVVM2D2DI|RVVM4D2DI|RVVM8D2DI|
+         |D4   |RVVM1D4DI|RVVM2D4DI|RVVM4D4DI|RVVM8D4DI|
+         |D8   |RVVM1D8DI|RVVM2D8DI|RVVM4D8DI|RVVM8D8DI|
+
+      There are the following data types for SI 32bit.
+         |Modes|LMUL=1   |LMUL=2   |LMUL=4   |LMUL=8   |
+         |D1   |RVVM1D1SI|RVVM2D1SI|RVVM4D1SI|RVVM8D1SI|
+         |D2   |RVVM1D2SI|RVVM2D2SI|RVVM4D2SI|RVVM8D2SI|
+         |D4   |RVVM1D4SI|RVVM2D4SI|RVVM4D4SI|RVVM8D4SI|
+         |D8   |RVVM1D8SI|RVVM2D8SI|RVVM4D8SI|RVVM8D8SI|
+
+      There are the following data types for HI 16bit      
+         |Modes|LMUL=1   |LMUL=2   |LMUL=4   |LMUL=8   |
+         |D1   |RVVM1D1HI|RVVM2D1HI|RVVM4D1HI|RVVM8D1HI|
+         |D2   |RVVM1D2HI|RVVM2D2HI|RVVM4D2HI|RVVM8D2HI|
+         |D4   |RVVM1D4HI|RVVM2D4HI|RVVM4D4HI|RVVM8D4HI|      
+      
+      There are the following data types for QI 8bit
+         |Modes|LMUL=1   |LMUL=2   |LMUL=4   |LMUL=8   |
+         |D1   |RVVM1D1QI|RVVM2D1QI|RVVM4D1QI|RVVM8D1QI|
+         |D2   |RVVM1D2QI|RVVM2D2QI|RVVM4D2QI|RVVM8D2QI| 
+*/
 
 #define RVV_WHOLE_MODES(LMUL)                                                  \
   VECTOR_MODE_WITH_PREFIX (RVVM, INT, QI, LMUL, 0);                            \

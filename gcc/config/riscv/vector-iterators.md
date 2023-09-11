@@ -445,8 +445,8 @@
   (V512DI "TARGET_VECTOR_VLS && TARGET_VECTOR_ELEN_64 && TARGET_MIN_VLEN >= 4096")
 ])
 
-(define_mode_iterator V_XTHREAD [
-  (RVVM8QID1)
+(define_mode_iterator V_XTHREAD_DIV_EXT [
+  (RVVM8QID1 "TARGET_VECTOR_ELEN_64 && " )
 ])
 
 (define_mode_iterator VF_ZVFHMIN [

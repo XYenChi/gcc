@@ -79,8 +79,10 @@
 	 (const_string "true")]
 	(const_string "false")))
 
+
+;; RVV 0.7.1 Divided Element Extension
 (define_attr "ediv" "0,2,4,8"
-  (cond [(eq_attr "type" )])
+  (cond [(eq_attr "type" "vialu,viwalu")])
 )
 
 ;; The default SEW of RVV instruction. This attribute doesn't mean the instruction
