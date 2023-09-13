@@ -1654,8 +1654,7 @@ public:
 
   rtx expand (function_expander &e) const override
   {
-    return e.use_exact_insn (
-      code_for_pred_reduc (CODE, e.vector_mode (), e.ret_mode ()));
+    return e.use_exact_insn (code_for_pred_reduc (CODE, e.vector_mode ()));
   }
 };
 
@@ -1668,9 +1667,8 @@ public:
 
   rtx expand (function_expander &e) const override
   {
-    return e.use_exact_insn (code_for_pred_widen_reduc_plus (UNSPEC,
-							     e.vector_mode (),
-							     e.ret_mode ()));
+    return e.use_exact_insn (
+      code_for_pred_widen_reduc_plus (UNSPEC, e.vector_mode ()));
   }
 };
 
@@ -1689,7 +1687,7 @@ public:
   rtx expand (function_expander &e) const override
   {
     return e.use_exact_insn (
-      code_for_pred_reduc_plus (UNSPEC, e.vector_mode (), e.ret_mode ()));
+      code_for_pred_reduc_plus (UNSPEC, e.vector_mode ()));
   }
 };
 
@@ -1707,9 +1705,8 @@ public:
 
   rtx expand (function_expander &e) const override
   {
-    return e.use_exact_insn (code_for_pred_widen_reduc_plus (UNSPEC,
-							     e.vector_mode (),
-							     e.ret_mode ()));
+    return e.use_exact_insn (
+      code_for_pred_widen_reduc_plus (UNSPEC, e.vector_mode ()));
   }
 };
 
