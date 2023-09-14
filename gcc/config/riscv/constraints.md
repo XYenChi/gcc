@@ -49,6 +49,11 @@
   "A 5-bit unsigned immediate for CSR access instructions."
   (and (match_code "const_int")
        (match_test "IN_RANGE (ival, 0, 31)")))
+      
+(define_constraint "L"
+  "A 5-bit signed immediate for CSR access instructions."
+  (and (match_code "const_int")
+       (match_test "IN_RANGE (ival, -16, 15)")))
 
 (define_constraint "L"
   "A U-type 20-bit signed immediate."
