@@ -61,11 +61,10 @@ public:
 class back_threader_profitability
 {
 public:
-  back_threader_profitability (bool speed_p)
-    : m_speed_p (speed_p)
-  { }
-  bool profitable_path_p (const vec<basic_block> &, tree name, edge taken,
-			  bool *irreducible_loop = NULL);
+  back_threader_profitability (bool speed_p, gimple *stmt);
+  bool possibly_profitable_path_p (const vec<basic_block> &, bool *);
+  bool profitable_path_p (const vec<basic_block> &,
+			  edge taken, bool *irreducible_loop);
 private:
   const bool m_speed_p;
 };
@@ -111,9 +110,6 @@ private:
   auto_bitmap m_imports;
   // The last statement in the path.
   gimple *m_last_stmt;
-  // This is a bit of a wart.  It's used to pass the LHS SSA name to
-  // the profitability engine.
-  tree m_name;
   // Marker to differentiate unreachable edges.
   static const edge UNREACHABLE_EDGE;
   // Set to TRUE if unknown SSA names along a path should be resolved
@@ -415,8 +411,21 @@ back_threader::find_paths_to_names (basic_block bb, bitmap interesting)
 
   // Try to resolve the path without looking back.
   if (m_path.length () > 1
-      && (!m_profit.profitable_path_p (m_path, m_name, NULL)
-	  || maybe_register_path ()))
+      && (!profit.possibly_profitable_path_p (m_path, &large_non_fsm)
+	  || (!large_non_fsm
+	      && maybe_register_path (profit))))
+    ;
+
+  // The backwards thread copier cannot copy blocks that do not belong
+  // to the same loop, so when the new source of the path entry no
+  // longer belongs to it we don't need to search further.
+  else if (m_path[0]->loop_father != bb->loop_father)
+    ;
+
+  // Continue looking for ways to extend the path but limit the
+  // search space along a branch
+  else if ((overall_paths = overall_paths * EDGE_COUNT (bb->preds))
+	   <= (unsigned)param_max_jump_thread_paths)
     {
       m_path.pop ();
       m_visited_bbs.remove (bb);
@@ -528,17 +537,34 @@ back_threader::maybe_thread_block (basic_block bb)
     return;
 
   enum gimple_code code = gimple_code (stmt);
-  tree name;
-  if (code == GIMPLE_SWITCH)
-    name = gimple_switch_index (as_a <gswitch *> (stmt));
-  else if (code == GIMPLE_COND)
-    name = gimple_cond_lhs (stmt);
-  else if (code == GIMPLE_GOTO)
-    name = gimple_goto_dest (stmt);
-  else
-    name = NULL;
+  if (code != GIMPLE_SWITCH
+      && code != GIMPLE_COND)
+    return;
 
-  find_paths (bb, name);
+  m_last_stmt = stmt;
+  m_visited_bbs.empty ();
+  m_path.truncate (0);
+
+  // We compute imports of the path during discovery starting
+  // just with names used in the conditional.
+  bitmap_clear (m_imports);
+  ssa_op_iter iter;
+  tree name;
+  FOR_EACH_SSA_TREE_OPERAND (name, stmt, iter, SSA_OP_USE)
+    {
+      if (!gimple_range_ssa_p (name))
+	return;
+      bitmap_set_bit (m_imports, SSA_NAME_VERSION (name));
+    }
+
+  // Interesting is the set of imports we still not have see
+  // the definition of.  So while imports only grow, the
+  // set of interesting defs dwindles and once empty we can
+  // stop searching.
+  auto_bitmap interesting;
+  bitmap_copy (interesting, m_imports);
+  back_threader_profitability profit (m_flags & BT_SPEED, stmt);
+  find_paths_to_names (bb, interesting, 1, profit);
 }
 
 DEBUG_FUNCTION void
@@ -575,23 +601,13 @@ back_threader::debug ()
 /* Examine jump threading path PATH and return TRUE if it is profitable to
    thread it, otherwise return FALSE.
 
-   NAME is the SSA_NAME of the variable we found to have a constant
-   value on PATH.  If unknown, SSA_NAME is NULL.
-
-   If the taken edge out of the path is known ahead of time it is passed in
-   TAKEN_EDGE, otherwise it is NULL.
-
-   CREATES_IRREDUCIBLE_LOOP, if non-null is set to TRUE if threading this path
-   would create an irreducible loop.
-
    ?? It seems we should be able to loosen some of the restrictions in
    this function after loop optimizations have run.  */
 
 bool
-back_threader_profitability::profitable_path_p (const vec<basic_block> &m_path,
-						tree name,
-						edge taken_edge,
-						bool *creates_irreducible_loop)
+back_threader_profitability::possibly_profitable_path_p
+				  (const vec<basic_block> &m_path,
+				   bool *large_non_fsm)
 {
   gcc_checking_assert (!m_path.is_empty ());
 
@@ -645,47 +661,9 @@ back_threader_profitability::profitable_path_p (const vec<basic_block> &m_path,
 	 it ends in a multiway branch.  */
       if (j < m_path.length () - 1)
 	{
-	  int orig_n_insns = n_insns;
-	  /* PHIs in the path will create degenerate PHIS in the
-	     copied path which will then get propagated away, so
-	     looking at just the duplicate path the PHIs would
-	     seem unimportant.
-
-	     But those PHIs, because they're assignments to objects
-	     typically with lives that exist outside the thread path,
-	     will tend to generate PHIs (or at least new PHI arguments)
-	     at points where we leave the thread path and rejoin
-	     the original blocks.  So we do want to account for them.
-
-	     We ignore virtual PHIs.  We also ignore cases where BB
-	     has a single incoming edge.  That's the most common
-	     degenerate PHI we'll see here.  Finally we ignore PHIs
-	     that are associated with the value we're tracking as
-	     that object likely dies.  */
-	  if (EDGE_COUNT (bb->succs) > 1 && EDGE_COUNT (bb->preds) > 1)
-	    {
-	      for (gphi_iterator gsip = gsi_start_phis (bb);
-		   !gsi_end_p (gsip);
-		   gsi_next (&gsip))
-		{
-		  gphi *phi = gsip.phi ();
-		  tree dst = gimple_phi_result (phi);
-
-		  /* Note that if both NAME and DST are anonymous
-		     SSA_NAMEs, then we do not have enough information
-		     to consider them associated.  */
-		  if (dst != name
-		      && name
-		      && TREE_CODE (name) == SSA_NAME
-		      && (SSA_NAME_VAR (dst) != SSA_NAME_VAR (name)
-			  || !SSA_NAME_VAR (dst))
-		      && !virtual_operand_p (dst))
-		    ++n_insns;
-		}
-	    }
-
-	  if (!contains_hot_bb && m_speed_p)
-	    contains_hot_bb |= optimize_bb_for_speed_p (bb);
+	  int orig_n_insns = m_n_insns;
+	  if (!m_contains_hot_bb && m_speed_p)
+	    m_contains_hot_bb |= optimize_bb_for_speed_p (bb);
 	  for (gsi = gsi_after_labels (bb);
 	       !gsi_end_p (gsi);
 	       gsi_next_nondebug (&gsi))
