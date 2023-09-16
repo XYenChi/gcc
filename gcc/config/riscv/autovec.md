@@ -2100,7 +2100,7 @@
 (define_insn_and_split "reduc_plus_scal_<mode>"
   [(set (match_operand:<VEL> 0 "register_operand")
         (unspec:<VEL> [
-             (match_operand:VI 1 "register_operand")
+             (match_operand:V_VLSI 1 "register_operand")
         ] UNSPEC_REDUC_SUM))]
   "TARGET_VECTOR && can_create_pseudo_p ()"
   "#"
@@ -2115,7 +2115,7 @@
 
 (define_expand "reduc_smax_scal_<mode>"
   [(match_operand:<VEL> 0 "register_operand")
-   (match_operand:VI 1 "register_operand")]
+   (match_operand:V_VLSI 1 "register_operand")]
   "TARGET_VECTOR"
 {
   int prec = GET_MODE_PRECISION (<VEL>mode);
@@ -2127,7 +2127,7 @@
 
 (define_expand "reduc_umax_scal_<mode>"
   [(match_operand:<VEL> 0 "register_operand")
-   (match_operand:VI 1 "register_operand")]
+   (match_operand:V_VLSI 1 "register_operand")]
   "TARGET_VECTOR"
 {
   riscv_vector::expand_reduction (UNSPEC_REDUC_MAXU, riscv_vector::REDUCE_OP,
@@ -2137,7 +2137,7 @@
 
 (define_expand "reduc_smin_scal_<mode>"
   [(match_operand:<VEL> 0 "register_operand")
-   (match_operand:VI 1 "register_operand")]
+   (match_operand:V_VLSI 1 "register_operand")]
   "TARGET_VECTOR"
 {
   int prec = GET_MODE_PRECISION (<VEL>mode);
@@ -2149,7 +2149,7 @@
 
 (define_expand "reduc_umin_scal_<mode>"
   [(match_operand:<VEL> 0 "register_operand")
-   (match_operand:VI 1 "register_operand")]
+   (match_operand:V_VLSI 1 "register_operand")]
   "TARGET_VECTOR"
 {
   int prec = GET_MODE_PRECISION (<VEL>mode);
@@ -2161,7 +2161,7 @@
 
 (define_expand "reduc_and_scal_<mode>"
   [(match_operand:<VEL> 0 "register_operand")
-   (match_operand:VI 1 "register_operand")]
+   (match_operand:V_VLSI 1 "register_operand")]
   "TARGET_VECTOR"
 {
   riscv_vector::expand_reduction (UNSPEC_REDUC_AND, riscv_vector::REDUCE_OP,
@@ -2171,7 +2171,7 @@
 
 (define_expand "reduc_ior_scal_<mode>"
   [(match_operand:<VEL> 0 "register_operand")
-   (match_operand:VI 1 "register_operand")]
+   (match_operand:V_VLSI 1 "register_operand")]
   "TARGET_VECTOR"
 {
   riscv_vector::expand_reduction (UNSPEC_REDUC_OR, riscv_vector::REDUCE_OP,
@@ -2181,7 +2181,7 @@
 
 (define_expand "reduc_xor_scal_<mode>"
   [(match_operand:<VEL> 0 "register_operand")
-   (match_operand:VI 1 "register_operand")]
+   (match_operand:V_VLSI 1 "register_operand")]
   "TARGET_VECTOR"
 {
   riscv_vector::expand_reduction (UNSPEC_REDUC_XOR, riscv_vector::REDUCE_OP,
@@ -2201,7 +2201,7 @@
 (define_insn_and_split "reduc_plus_scal_<mode>"
   [(set (match_operand:<VEL> 0 "register_operand")
         (unspec:<VEL> [
-             (match_operand:VF 1 "register_operand")
+             (match_operand:V_VLSF 1 "register_operand")
         ] UNSPEC_REDUC_SUM_UNORDERED))]
   "TARGET_VECTOR && can_create_pseudo_p ()"
   "#"
@@ -2217,7 +2217,7 @@
 
 (define_expand "reduc_smax_scal_<mode>"
   [(match_operand:<VEL> 0 "register_operand")
-   (match_operand:VF 1 "register_operand")]
+   (match_operand:V_VLSF 1 "register_operand")]
   "TARGET_VECTOR"
 {
   REAL_VALUE_TYPE rv;
@@ -2230,7 +2230,7 @@
 
 (define_expand "reduc_smin_scal_<mode>"
   [(match_operand:<VEL> 0 "register_operand")
-   (match_operand:VF 1 "register_operand")]
+   (match_operand:V_VLSF 1 "register_operand")]
   "TARGET_VECTOR"
 {
   REAL_VALUE_TYPE rv;
