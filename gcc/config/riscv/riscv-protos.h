@@ -476,7 +476,7 @@ void expand_select_vl (rtx *);
 void expand_load_store (rtx *, bool);
 void expand_gather_scatter (rtx *, bool);
 void expand_cond_len_ternop (unsigned, rtx *);
-void prepare_ternary_operands (rtx *, bool = false);
+void prepare_ternary_operands (rtx *);
 void expand_lanes_load_store (rtx *, bool);
 void expand_fold_extract_last (rtx *);
 
