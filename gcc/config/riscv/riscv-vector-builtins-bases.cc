@@ -19,6 +19,7 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include "config.h"
+#include "riscv-protos.h"
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
@@ -133,6 +134,9 @@ public:
     /* LMUL.  */
     e.add_input_operand (Pmode, gen_int_mode (get_vlmul (mode), Pmode));
 
+    /* EDIV. v0p7*/
+    e.add_input_operand(Pmode, gen_int_mode (get_ediv(mode), Pmode));
+    
     /* TA.  */
     e.add_input_operand (Pmode, gen_int_mode (1, Pmode));
 

@@ -1,3 +1,6 @@
+(include "vector-iterators.md")
+(include "iterators.md")
+
 ;; Includes:
 ;; - 7.4. Vector Unit-Stride Instructions
 ;; - todo: 11.15 Vector Integer Merge Instructions
@@ -21,6 +24,17 @@
 ;;                (const_int:QI N)]), -15 <= N < 16.
 ;;    2. (const_vector:RVVMF2SF repeat [
 ;;                (const_double:SF 0.0 [0x0.0p+0])]).
+
+(define_insn "*mov<mode>_whole"
+  [(set (match_operand:V_WHOLE 0 "reg_or_mem_operand" "=vr, m,vr")
+	(match_operand:V_WHOLE 1 "reg_or_mem_operand" "  m,vr,vr"))]
+  "TARGET_XTHREADV"
+  "@
+   v<load>.v\t%0,%1
+   v<store>.v\t%1,%0
+   vmv%m1r.v\t%0,%1"
+  [(set_attr "type" "vldr,vstr,vmov")
+   (set_attr "mode" "<MODE>")])
 
 ;; We add "MEM_P (operands[0]) || MEM_P (operands[3]) || CONST_VECTOR_P (operands[1])" here to
 ;; make sure we don't want CSE to generate the following pattern:
@@ -57,10 +71,10 @@
   "TARGET_XTHREADV && (MEM_P (operands[0]) || MEM_P (operands[3])
    || CONST_VECTOR_P (operands[1]))"
   "@
-   vle<sew>.v\t%0,%3%p1
-   vle<sew>.v\t%0,%3
-   vle<sew>.v\t%0,%3,%1.t
-   vse<sew>.v\t%3,%0%p1
+   v<load>.v\t%0,%3%p1
+   v<load>.v\t%0,%3
+   v<load>.v\t%0,%3,%1.t
+   v<store>.v\t%3,%0%p1
    vmv.v.v\t%0,%3
    vmv.v.v\t%0,%3
    vmv.v.i\t%0,%v3
@@ -74,37 +88,37 @@
   [(set_attr "type" "vlde,vlde,vlde,vste,vimov,vimov,vimov,vimov")
    (set_attr "mode" "<MODE>")])
 
-(define_insn "load2")
-[(set (match_operand:QI 0 "nonimmediate_operand")
-      (load:QI (match_operand:QI 1 "vr")
+(define_insn "load2"
+  [(set (match_operand:QI         0 "nonimmediate_operand")
+      (load:QI  (match_operand:QI 1 "vr")
                 (match_operand:QI 2 "r")))]
 "TARGET_XTHREAD"
 "vlb.v\t%0, %1, %2"
-[(set_attr "type" "vlde")]
+[(set_attr "type" "vlde")])
 
-(define_insn "load2")
+(define_insn "load2"
 [(set (match_operand:HI 0 "nonimmediate_operand")
       (load:HI (match_operand:HI 1 "vr")
                 (match_operand:HI 2 "r")))]
 "TARGET_XTHREAD"
 "vlh.v\t%0, %1, %2"
-[(set_attr "type" "vlde")]
+[(set_attr "type" "vlde")])
 
-(define_insn "load2")
+(define_insn "load2"
 [(set (match_operand:SI 0 "nonimmediate_operand")
       (load:SI (match_operand:SI 1 "vr")
                 (match_operand:SI 2 "r")))]
 "TARGET_XTHREAD"
 "vlw.v\t%0, %1, %2"
-[(set_attr "type" "vlde")]
+[(set_attr "type" "vlde")])
 
-(define_insn "load2")
+(define_insn "load2"
 [(set (match_operand:DI 0 "nonimmediate_operand")
       (load:QI (match_operand:DI 1 "vr")
                 (match_operand:DI 2 "r")))]
 "TARGET_XTHREAD"
 "vlb.v\t%0, %1, %2"
-[(set_attr "type" "vlde")]
+[(set_attr "type" "vlde")])
 
 ;; Dedicated pattern for vse.v instruction since we can't reuse pred_mov pattern to include
 ;; memory operand as input which will produce inferior codegen.
@@ -120,9 +134,10 @@
 	  (match_operand:V 2 "register_operand"         "    vr")
 	  (match_dup 0)))]
   "TARGET_XTHREADV"
-  "vse<sew>.v\t%2,%0%p1"
+  "v<store>.v\t%2,%0%p1"
   [(set_attr "type" "vste")
    (set_attr "mode" "<MODE>")
+   (set_attr "")
    (set (attr "avl_type") (symbol_ref "INTVAL (operands[4])"))
    (set_attr "vl_op_idx" "3")])
 
@@ -334,3 +349,23 @@
   "vwsmacc<u>.vx\t%0,%3,%4%p1"
   [(set_attr "type" "viwmuladd")
    (set_attr "mode" "<V_DOUBLE_TRUNC>")])
+
+   (define_insn "@pred_gather<mode>_scalar"
+  [(set (match_operand:V 0 "register_operand"               "=&vr,  &vr")
+	(if_then_else:V
+	  (unspec:<VM>
+	    [(match_operand:<VM> 1 "vector_mask_operand"   "vmWc1,vmWc1")
+	     (match_operand 5 "vector_length_operand"      "   rK,   rK")
+	     (match_operand 6 "const_int_operand"          "    i,    i")
+	     (match_operand 7 "const_int_operand"          "    i,    i")
+	     (match_operand 8 "const_int_operand"          "    i,    i")
+	     (reg:SI VL_REGNUM)
+	     (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE)
+	  (unspec:V
+	    [(match_operand:V 3 "register_operand"         "   vr,   vr")
+	     (match_operand 4 "pmode_reg_or_imm5_operand" "   rL,   rL")] UNSPEC_VRGATHER)
+	  (match_operand:V 2 "vector_merge_operand"        "   vu,    0")))]
+  "TARGET_XTHREADV"
+  "vrgather.v%o4\t%0,%3,%4%p1"
+  [(set_attr "type" "vgather")
+   (set_attr "mode" "<MODE>")])

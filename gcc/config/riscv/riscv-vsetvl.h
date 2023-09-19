@@ -197,7 +197,7 @@ protected:
   uint8_t m_ratio;
   bool m_ta;
   bool m_ma;
-  uint8_t m_ediv;
+  uint8_t m_ediv;  /* RVV 0.7.1*/
 
 public:
   void set_sew (uint8_t sew) { m_sew = sew; }
@@ -209,7 +209,7 @@ public:
 
   vl_vtype_info ()
     : m_avl (avl_info ()), m_sew (0), m_vlmul (riscv_vector::LMUL_RESERVED),
-      m_ratio (0), m_ta (0), m_ma (0), m_ediv (1)
+      m_ratio (0), m_ta (0), m_ma (0), m_ediv (0)
   {}
   vl_vtype_info (const vl_vtype_info &) = default;
   vl_vtype_info &operator= (const vl_vtype_info &) = default;
@@ -231,6 +231,7 @@ public:
   void set_avl_info (const avl_info &avl) { m_avl = avl; }
   uint8_t get_sew () const { return m_sew; }
   riscv_vector::vlmul_type get_vlmul () const { return m_vlmul; }
+  uint8_t get_ediv () const { return m_ediv; } /* RVV 0.7.1 */
   uint8_t get_ratio () const { return m_ratio; }
   bool get_ta () const { return m_ta; }
   bool get_ma () const { return m_ma; }

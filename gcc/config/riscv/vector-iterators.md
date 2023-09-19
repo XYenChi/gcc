@@ -446,7 +446,7 @@
 ])
 
 (define_mode_iterator V_XTHREAD_DIV_EXT [
-  (RVVM8QID1 "TARGET_VECTOR_ELEN_64 && " )
+  (RVVM8QID1 "TARGET_VECTOR_ELEN_64 && VEDIV" )
 ])
 
 (define_mode_iterator VF_ZVFHMIN [

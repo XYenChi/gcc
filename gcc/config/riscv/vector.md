@@ -523,7 +523,7 @@
 	 (eq_attr "mode" "RVVM4x2DF") (symbol_ref "riscv_vector::LMUL_4")
 	 (eq_attr "mode" "RVVM2x2DF") (symbol_ref "riscv_vector::LMUL_2")
 	 (eq_attr "mode" "RVVM1x2DF") (symbol_ref "riscv_vector::LMUL_1")
-     "TARGET_VECTOR"
+     "TARGET_VECTOR || TARGET_XTHREADV"
   ]))
 
 ;; It is valid for instruction that require sew/lmul ratio.
@@ -8240,7 +8240,7 @@
 	       (match_operand:VI_D 1 "register_operand" "vr")
 	       (parallel [(const_int 0)]))
 	     (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE)))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR || TARGET_XTHREAD"
   "vmv.x.s\t%0,%1"
   [(set_attr "type" "vimovvx")
    (set_attr "mode" "<MODE>")])
@@ -8252,7 +8252,7 @@
 	     (match_operand:VF 1 "reg_or_mem_operand")
 	     (parallel [(const_int 0)]))
 	   (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR || TARGET_XTHREADV"
 {
   if (MEM_P (operands[1]))
     {
@@ -8269,7 +8269,7 @@
 	     (match_operand:VF 1 "register_operand" "vr")
 	     (parallel [(const_int 0)]))
 	   (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR || TARGET_XTHREADV"
   "vfmv.f.s\t%0,%1"
   [(set_attr "type" "vfmovvf")
    (set_attr "mode" "<MODE>")])
@@ -8289,7 +8289,7 @@
 	   (match_operand:V 2 "vector_merge_operand"      " vu,  0, vu,  0")
 	   (match_operand:V 3 "register_operand"          " vr, vr, vr, vr")
 	   (match_operand 4 "pmode_reg_or_uimm5_operand"  " rK, rK, rK, rK")] VSLIDES))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR || TARGET_XTHREADV"
   "vslide<ud>.v%o4\t%0,%3,%4%p1"
   [(set_attr "type" "vslide<ud>")
    (set_attr "mode" "<MODE>")])
@@ -8309,7 +8309,7 @@
 	   (match_operand:VI_QHS 2 "vector_merge_operand" " vu,  0, vu,  0")
 	   (match_operand:VI_QHS 3 "register_operand"     " vr, vr, vr, vr")
 	   (match_operand:<VEL> 4 "reg_or_0_operand"      " rJ, rJ, rJ, rJ")] VSLIDES1))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR || TARGET_XTHREADV"
   "vslide<ud>.vx\t%0,%3,%z4%p1"
   [(set_attr "type" "vislide<ud>")
    (set_attr "mode" "<MODE>")])
@@ -8328,7 +8328,7 @@
 	   (match_operand:VI_D 2 "vector_merge_operand")
 	   (match_operand:VI_D 3 "register_operand")
 	   (match_operand:<VEL> 4 "reg_or_int_operand")] VSLIDES1))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR || TARGET_XTHREAD"
 {
   if (riscv_vector::slide1_sew64_helper (<UNSPEC>, <MODE>mode,
 					 <VDEMOTE>mode, <VMDEMOTE>mode,
