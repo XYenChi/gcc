@@ -9444,8 +9444,8 @@ in_immediate_context ()
 /* Return true if a call to FN with number of arguments NARGS
    is an immediate invocation.  */
 
-static bool
-immediate_invocation_p (tree fn, int nargs)
+bool
+immediate_invocation_p (tree fn)
 {
   return (TREE_CODE (fn) == FUNCTION_DECL
 	  && DECL_IMMEDIATE_FUNCTION_P (fn)

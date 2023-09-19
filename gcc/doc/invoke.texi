@@ -211,64 +211,67 @@ in the following sections.
 
 @item C++ Language Options
 @xref{C++ Dialect Options,,Options Controlling C++ Dialect}.
-@gccoptlist{-fabi-version=@var{n}  -fno-access-control @gol
--faligned-new=@var{n}  -fargs-in-order=@var{n}  -fchar8_t  -fcheck-new @gol
--fconstexpr-depth=@var{n}  -fconstexpr-cache-depth=@var{n} @gol
--fconstexpr-loop-limit=@var{n}  -fconstexpr-ops-limit=@var{n} @gol
--fno-elide-constructors @gol
--fno-enforce-eh-specs @gol
--fno-gnu-keywords @gol
--fno-implicit-templates @gol
--fno-implicit-inline-templates @gol
--fno-implement-inlines  @gol
--fmodule-header@r{[}=@var{kind}@r{]} -fmodule-only -fmodules-ts @gol
--fmodule-implicit-inline @gol
--fno-module-lazy @gol
--fmodule-mapper=@var{specification} @gol
--fmodule-version-ignore @gol
--fms-extensions @gol
--fnew-inheriting-ctors @gol
--fnew-ttp-matching @gol
--fno-nonansi-builtins  -fnothrow-opt  -fno-operator-names @gol
--fno-optional-diags  -fpermissive @gol
--fno-pretty-templates @gol
--fno-rtti  -fsized-deallocation @gol
--ftemplate-backtrace-limit=@var{n} @gol
--ftemplate-depth=@var{n} @gol
--fno-threadsafe-statics  -fuse-cxa-atexit @gol
--fno-weak  -nostdinc++ @gol
--fvisibility-inlines-hidden @gol
--fvisibility-ms-compat @gol
--fext-numeric-literals @gol
--flang-info-include-translate@r{[}=@var{header}@r{]} @gol
--flang-info-include-translate-not @gol
--flang-info-module-cmi@r{[}=@var{module}@r{]} @gol
--stdlib=@var{libstdc++,libc++} @gol
--Wabi-tag  -Wcatch-value  -Wcatch-value=@var{n} @gol
--Wno-class-conversion  -Wclass-memaccess @gol
--Wcomma-subscript  -Wconditionally-supported @gol
--Wno-conversion-null  -Wctad-maybe-unsupported @gol
--Wctor-dtor-privacy  -Wno-delete-incomplete @gol
--Wdelete-non-virtual-dtor  -Wno-deprecated-array-compare @gol
--Wdeprecated-copy -Wdeprecated-copy-dtor @gol
--Wno-deprecated-enum-enum-conversion -Wno-deprecated-enum-float-conversion @gol
--Weffc++  -Wno-exceptions -Wextra-semi  -Wno-inaccessible-base @gol
--Wno-inherited-variadic-ctor  -Wno-init-list-lifetime @gol
--Winvalid-imported-macros @gol
--Wno-invalid-offsetof  -Wno-literal-suffix @gol
--Wmismatched-new-delete -Wmismatched-tags @gol
--Wmultiple-inheritance  -Wnamespaces  -Wnarrowing @gol
--Wnoexcept  -Wnoexcept-type  -Wnon-virtual-dtor @gol
--Wpessimizing-move  -Wno-placement-new  -Wplacement-new=@var{n} @gol
--Wrange-loop-construct -Wredundant-move -Wredundant-tags @gol
--Wreorder  -Wregister @gol
--Wstrict-null-sentinel  -Wno-subobject-linkage  -Wtemplates @gol
--Wno-non-template-friend  -Wold-style-cast @gol
--Woverloaded-virtual  -Wno-pmf-conversions -Wsign-promo @gol
--Wsized-deallocation  -Wsuggest-final-methods @gol
--Wsuggest-final-types  -Wsuggest-override  @gol
--Wno-terminate  -Wuseless-cast  -Wno-vexing-parse  @gol
--Wvirtual-inheritance  @gol
+@gccoptlist{-fabi-version=@var{n}  -fno-access-control
+-faligned-new=@var{n}  -fargs-in-order=@var{n}  -fchar8_t  -fcheck-new
+-fconstexpr-depth=@var{n}  -fconstexpr-cache-depth=@var{n}
+-fconstexpr-loop-limit=@var{n}  -fconstexpr-ops-limit=@var{n}
+-fno-elide-constructors
+-fno-enforce-eh-specs
+-fno-gnu-keywords
+-fno-immediate-escalation
+-fno-implicit-templates
+-fno-implicit-inline-templates
+-fno-implement-inlines
+-fmodule-header@r{[}=@var{kind}@r{]} -fmodule-only -fmodules-ts
+-fmodule-implicit-inline
+-fno-module-lazy
+-fmodule-mapper=@var{specification}
+-fmodule-version-ignore
+-fms-extensions
+-fnew-inheriting-ctors
+-fnew-ttp-matching
+-fno-nonansi-builtins  -fnothrow-opt  -fno-operator-names
+-fno-optional-diags
+-fno-pretty-templates
+-fno-rtti  -fsized-deallocation
+-ftemplate-backtrace-limit=@var{n}
+-ftemplate-depth=@var{n}
+-fno-threadsafe-statics  -fuse-cxa-atexit
+-fno-weak  -nostdinc++
+-fvisibility-inlines-hidden
+-fvisibility-ms-compat
+-fext-numeric-literals
+-flang-info-include-translate@r{[}=@var{header}@r{]}
+-flang-info-include-translate-not
+-flang-info-module-cmi@r{[}=@var{module}@r{]}
+-stdlib=@var{libstdc++,libc++}
+-Wabi-tag  -Wcatch-value  -Wcatch-value=@var{n}
+-Wno-class-conversion  -Wclass-memaccess
+-Wcomma-subscript  -Wconditionally-supported
+-Wno-conversion-null  -Wctad-maybe-unsupported
+-Wctor-dtor-privacy  -Wdangling-reference
+-Wno-delete-incomplete
+-Wdelete-non-virtual-dtor  -Wno-deprecated-array-compare
+-Wdeprecated-copy -Wdeprecated-copy-dtor
+-Wno-deprecated-enum-enum-conversion -Wno-deprecated-enum-float-conversion
+-Weffc++ -Wno-elaborated-enum-base
+-Wno-exceptions -Wextra-semi  -Wno-inaccessible-base
+-Wno-inherited-variadic-ctor  -Wno-init-list-lifetime
+-Winvalid-constexpr -Winvalid-imported-macros
+-Wno-invalid-offsetof  -Wno-literal-suffix
+-Wmismatched-new-delete -Wmismatched-tags
+-Wmultiple-inheritance  -Wnamespaces  -Wnarrowing
+-Wnoexcept  -Wnoexcept-type  -Wnon-virtual-dtor
+-Wpessimizing-move  -Wno-placement-new  -Wplacement-new=@var{n}
+-Wrange-loop-construct -Wredundant-move -Wredundant-tags
+-Wreorder  -Wregister
+-Wstrict-null-sentinel  -Wno-subobject-linkage  -Wtemplates
+-Wno-non-template-friend  -Wold-style-cast
+-Woverloaded-virtual  -Wno-pmf-conversions -Wself-move -Wsign-promo
+-Wsized-deallocation  -Wsuggest-final-methods
+-Wsuggest-final-types  -Wsuggest-override
+-Wno-terminate  -Wuseless-cast  -Wno-vexing-parse
+-Wvirtual-inheritance
 -Wno-virtual-move-assign  -Wvolatile  -Wzero-as-null-pointer-constant}
 
 @item Objective-C and Objective-C++ Language Options
@@ -3152,6 +3155,40 @@ word as an identifier.  You can use the keyword @code{__typeof__} instead.
 This option is implied by the strict ISO C++ dialects: @option{-ansi},
 @option{-std=c++98}, @option{-std=c++11}, etc.
 
+@opindex fno-immediate-escalation
+@opindex fimmediate-escalation
+@item -fno-immediate-escalation
+Do not enable immediate function escalation whereby certain functions
+can be promoted to consteval, as specified in P2564R3.  For example:
+
+@example
+consteval int id(int i) @{ return i; @}
+
+constexpr int f(auto t)
+@{
+  return t + id(t); // id causes f<int> to be promoted to consteval
+@}
+
+void g(int i)
+@{
+  f (3);
+@}
+@end example
+
+compiles in C++20: @code{f} is an immediate-escalating function (due to
+the @code{auto} it is a function template and is declared @code{constexpr})
+and @code{id(t)} is an immediate-escalating expression, so @code{f} is
+promoted to @code{consteval}.  Consequently, the call to @code{id(t)}
+is in an immediate context, so doesn't have to produce a constant (that
+is the mechanism allowing consteval function composition).  However,
+with @option{-fno-immediate-escalation}, @code{f} is not promoted to
+@code{consteval}, and since the call to consteval function @code{id(t)}
+is not a constant expression, the compiler rejects the code.
+
+This option is turned on by default; it is only effective in C++20 mode
+or later.
+
+@opindex fimplicit-constexpr
 @item -fimplicit-constexpr
 @opindex fimplicit-constexpr
 Make inline functions implicitly constexpr, if they satisfy the
