@@ -40,9 +40,6 @@
 #include <bits/functional_hash.h>
 #include <bits/stl_function.h> // equal_to, _Identity, _Select1st
 
-#define __glibcxx_want_generic_unordered_lookup
-#include <bits/version.h>
-
 namespace std _GLIBCXX_VISIBILITY(default)
 {
 _GLIBCXX_BEGIN_NAMESPACE_VERSION
@@ -756,7 +753,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       std::pair<const_iterator, const_iterator>
       equal_range(const key_type& __k) const;
 
-#ifdef __cpp_lib_generic_unordered_lookup // C++ >= 20 && HOSTED
+#ifdef __glibcxx_generic_unordered_lookup // C++ >= 20 && HOSTED
       template<typename _Kt,
 	       typename = __has_is_transparent_t<_Hash, _Kt>,
 	       typename = __has_is_transparent_t<_Equal, _Kt>>
@@ -786,7 +783,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	       typename = __has_is_transparent_t<_Equal, _Kt>>
 	pair<const_iterator, const_iterator>
 	_M_equal_range_tr(const _Kt& __k) const;
-#endif // __cpp_lib_generic_unordered_lookup
+#endif // __glibcxx_generic_unordered_lookup
 
     private:
       // Bucket index computation helpers.

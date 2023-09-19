@@ -76,9 +76,6 @@
 # include <compare>
 #endif
 
-#define __glibcxx_want_robust_nonmodifying_seq_ops
-#include <bits/version.h>
-
 namespace std _GLIBCXX_VISIBILITY(default)
 {
 _GLIBCXX_BEGIN_NAMESPACE_VERSION
@@ -1373,7 +1370,7 @@ _GLIBCXX_END_NAMESPACE_CONTAINER
 	(__is_memcmp_ordered_with<_ValueType1, _ValueType2>::__value
 	 && __is_pointer<_II1>::__value
 	 && __is_pointer<_II2>::__value
-#if __cplusplus > 201703L && __cpp_lib_concepts
+#if __cplusplus > 201703L && __glibcxx_concepts
 	 // For C++20 iterator_traits<volatile T*>::value_type is non-volatile
 	 // so __is_byte<T> could be true, but we can't use memcmp with
 	 // volatile data.
@@ -1646,7 +1643,7 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
     }
 #endif // C++11
 
-#ifdef __cpp_lib_robust_nonmodifying_seq_ops // C++ >= 14
+#ifdef __glibcxx_robust_nonmodifying_seq_ops // C++ >= 14
   /**
    *  @brief Tests a range for element-wise equality.
    *  @ingroup non_mutating_algorithms
@@ -1708,7 +1705,7 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       return _GLIBCXX_STD_A::__equal4(__first1, __last1, __first2, __last2,
 				      __binary_pred);
     }
-#endif // __cpp_lib_robust_nonmodifying_seq_ops
+#endif // __glibcxx_robust_nonmodifying_seq_ops
 
   /**
    *  @brief Performs @b dictionary comparison on ranges.
@@ -1950,7 +1947,7 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	__gnu_cxx::__ops::__iter_comp_iter(__binary_pred));
     }
 
-#if __cpp_lib_robust_nonmodifying_seq_ops // C++ >= 14
+#if __glibcxx_robust_nonmodifying_seq_ops // C++ >= 14
   template<typename _InputIterator1, typename _InputIterator2,
 	   typename _BinaryPredicate>
     _GLIBCXX20_CONSTEXPR
