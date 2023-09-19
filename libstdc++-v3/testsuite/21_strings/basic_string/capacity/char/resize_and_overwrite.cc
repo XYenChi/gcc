@@ -1,9 +1,5 @@
-<<<<<<< HEAD
-// { dg-options "-std=gnu++23" }
-// { dg-do run { target { c++23 && cxx11_abi } } }
-=======
 // { dg-do run { target c++23 } }
->>>>>>> 7810fb3a142 (libstdc++: Remove dg-options "-std=gnu++23" from remaining tests)
+// { dg-add-options no_pch }
 
 #include <string>
 
@@ -12,7 +8,6 @@
 #elif __cpp_lib_string_resize_and_overwrite != 202110L
 # error "Feature test macro for resize_and_overwrite has wrong value in <string>"
 #endif
-
 
 #include <cstring>
 #include <testsuite_hooks.h>

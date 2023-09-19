@@ -18,6 +18,7 @@
 // { dg-options "-std=gnu++2a" }
 // { dg-do compile { target c++2a } }
 // { dg-require-effective-target cxx11_abi }
+// { dg-add-options no_pch }
 
 #include <syncstream>
 

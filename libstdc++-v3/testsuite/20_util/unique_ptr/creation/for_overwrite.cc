@@ -2,6 +2,7 @@
 // { dg-do run { target c++2a } }
 // { dg-xfail-run-if "AIX operator new" { powerpc-ibm-aix* } }
 // { dg-require-effective-target hosted }
+// { dg-add-options no_pch }
 
 // Copyright (C) 2020-2022 Free Software Foundation, Inc.
 //

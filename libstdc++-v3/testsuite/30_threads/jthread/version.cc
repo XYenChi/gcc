@@ -19,6 +19,7 @@
 // { dg-do compile { target c++2a } }
 // { dg-require-gthreads "" }
 // { dg-require-effective-target hosted }
+// { dg-add-options no_pch }
 
 #include <version>
 

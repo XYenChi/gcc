@@ -2,6 +2,7 @@
 // { dg-do compile { target c++2a } }
 // FIXME [!HOSTED]: avoidable std::allocator usage
 // { dg-require-effective-target hosted }
+// { dg-add-options no_pch }
 //
 // Copyright (C) 2019-2022 Free Software Foundation, Inc.
 //

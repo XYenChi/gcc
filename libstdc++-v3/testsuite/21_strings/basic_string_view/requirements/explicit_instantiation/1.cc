@@ -16,6 +16,7 @@
 // <http://www.gnu.org/licenses/>.
 
 // { dg-do compile { target c++23 } }
+// { dg-add-options no_pch }
 
 // This file tests explicit instantiation of basic_string
 

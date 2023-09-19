@@ -1,5 +1,5 @@
-// { dg-options "-std=gnu++2a" }
-// { dg-do run { target c++2a } }
+// { dg-do run { target c++20 } }
+// { dg-add-options no_pch }
 
 // Copyright (C) 2018-2022 Free Software Foundation, Inc.
 //
@@ -19,13 +19,14 @@
 // <http://www.gnu.org/licenses/>.
 
 #include <string>
-#include <testsuite_hooks.h>
 
 #ifndef __cpp_lib_erase_if
 # error "Feature-test macro for erase_if missing in <string>"
 #elif __cpp_lib_erase_if < 202002
 # error "Feature-test macro for erase_if has wrong value in <string>"
 #endif
+
+#include <testsuite_hooks.h>
 
 void
 test01()

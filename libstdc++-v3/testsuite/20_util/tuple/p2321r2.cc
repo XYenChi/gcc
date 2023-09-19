@@ -2,8 +2,14 @@
 // { dg-do run { target c++23 } }
 // FIXME [!HOSTED]: avoidable std::allocator usage
 // { dg-require-effective-target hosted }
+// { dg-add-options no_pch }
 
 #include <tuple>
+
+#if __cpp_lib_ranges_zip != 202110L
+# error "Feature-test macro __cpp_lib_ranges_zip has wrong value in <tuple>"
+#endif
+
 #include <memory>
 #include <testsuite_hooks.h>
 
