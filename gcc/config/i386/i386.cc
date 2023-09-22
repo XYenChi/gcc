@@ -15664,6 +15664,8 @@ ix86_build_const_vector (machine_mode mode, bool vect, rtx value)
     case E_V2DImode:
       gcc_assert (vect);
       /* FALLTHRU */
+    case E_V2HFmode:
+    case E_V4HFmode:
     case E_V8HFmode:
     case E_V16HFmode:
     case E_V32HFmode:
@@ -15705,6 +15707,8 @@ ix86_build_signbit_mask (machine_mode mode, bool vect, bool invert)
 
   switch (mode)
     {
+    case E_V2HFmode:
+    case E_V4HFmode:
     case E_V8HFmode:
     case E_V16HFmode:
     case E_V32HFmode:
