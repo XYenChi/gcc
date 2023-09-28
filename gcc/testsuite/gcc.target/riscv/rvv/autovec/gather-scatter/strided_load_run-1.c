@@ -1,4 +1,9 @@
+<<<<<<< HEAD
 /* { dg-do run { target { riscv_vector } } } */
+=======
+/* { dg-do run { target { riscv_v } } } */
+/* { dg-additional-options "-mcmodel=medany" } */
+>>>>>>> 0fb176ef048 (Replace riscv_vector with riscv_v in target selector clauses.)
 
 #include "strided_load-1.c"
 #include <assert.h>
