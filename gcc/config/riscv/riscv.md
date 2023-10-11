@@ -3666,3 +3666,4 @@
 (include "vector.md")
 (include "zicond.md")
 (include "zc.md")
+(include "corev.md")
