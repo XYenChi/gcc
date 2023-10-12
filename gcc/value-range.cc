@@ -30,8 +30,916 @@ along with GCC; see the file COPYING3.  If not see
 #include "fold-const.h"
 #include "gimple-range.h"
 
-// Here we copy between any two irange's.  The ranges can be legacy or
-// multi-ranges, and copying between any combination works correctly.
+void
+irange::accept (const vrange_visitor &v) const
+{
+  v.visit (*this);
+}
+
+void
+unsupported_range::accept (const vrange_visitor &v) const
+{
+  v.visit (*this);
+}
+
+// Convenience function only available for integers and pointers.
+
+wide_int
+Value_Range::lower_bound () const
+{
+  if (is_a <irange> (*m_vrange))
+    return as_a <irange> (*m_vrange).lower_bound ();
+  gcc_unreachable ();
+}
+
+// Convenience function only available for integers and pointers.
+
+wide_int
+Value_Range::upper_bound () const
+{
+  if (is_a <irange> (*m_vrange))
+    return as_a <irange> (*m_vrange).upper_bound ();
+  gcc_unreachable ();
+}
+
+void
+Value_Range::dump (FILE *out) const
+{
+  if (m_vrange)
+    m_vrange->dump (out);
+  else
+    fprintf (out, "NULL");
+}
+
+DEBUG_FUNCTION void
+debug (const Value_Range &r)
+{
+  r.dump (stderr);
+  fprintf (stderr, "\n");
+}
+
+DEBUG_FUNCTION void
+debug (const irange_bitmask &bm)
+{
+  bm.dump (stderr);
+  fprintf (stderr, "\n");
+}
+
+// Default vrange definitions.
+
+bool
+vrange::contains_p (tree) const
+{
+  return varying_p ();
+}
+
+bool
+vrange::singleton_p (tree *) const
+{
+  return false;
+}
+
+void
+vrange::set (tree min, tree, value_range_kind)
+{
+  set_varying (TREE_TYPE (min));
+}
+
+tree
+vrange::type () const
+{
+  return void_type_node;
+}
+
+bool
+vrange::supports_type_p (const_tree) const
+{
+  return false;
+}
+
+void
+vrange::set_undefined ()
+{
+  m_kind = VR_UNDEFINED;
+}
+
+void
+vrange::set_varying (tree)
+{
+  m_kind = VR_VARYING;
+}
+
+bool
+vrange::union_ (const vrange &r)
+{
+  if (r.undefined_p () || varying_p ())
+    return false;
+  if (undefined_p () || r.varying_p ())
+    {
+      operator= (r);
+      return true;
+    }
+  gcc_unreachable ();
+  return false;
+}
+
+bool
+vrange::intersect (const vrange &r)
+{
+  if (undefined_p () || r.varying_p ())
+    return false;
+  if (r.undefined_p ())
+    {
+      set_undefined ();
+      return true;
+    }
+  if (varying_p ())
+    {
+      operator= (r);
+      return true;
+    }
+  gcc_unreachable ();
+  return false;
+}
+
+bool
+vrange::zero_p () const
+{
+  return false;
+}
+
+bool
+vrange::nonzero_p () const
+{
+  return false;
+}
+
+void
+vrange::set_nonzero (tree type)
+{
+  set_varying (type);
+}
+
+void
+vrange::set_zero (tree type)
+{
+  set_varying (type);
+}
+
+void
+vrange::set_nonnegative (tree type)
+{
+  set_varying (type);
+}
+
+bool
+vrange::fits_p (const vrange &) const
+{
+  return true;
+}
+
+// Assignment operator for generic ranges.  Copying incompatible types
+// is not allowed.
+
+vrange &
+vrange::operator= (const vrange &src)
+{
+  if (is_a <irange> (src))
+    as_a <irange> (*this) = as_a <irange> (src);
+  else if (is_a <frange> (src))
+    as_a <frange> (*this) = as_a <frange> (src);
+  else
+    {
+      gcc_checking_assert (is_a <unsupported_range> (src));
+      m_kind = src.m_kind;
+    }
+  return *this;
+}
+
+// Equality operator for generic ranges.
+
+bool
+vrange::operator== (const vrange &src) const
+{
+  if (is_a <irange> (src))
+    return as_a <irange> (*this) == as_a <irange> (src);
+  if (is_a <frange> (src))
+    return as_a <frange> (*this) == as_a <frange> (src);
+  gcc_unreachable ();
+}
+
+// Wrapper for vrange_printer to dump a range to a file.
+
+void
+vrange::dump (FILE *file) const
+{
+  pretty_printer buffer;
+  pp_needs_newline (&buffer) = true;
+  buffer.buffer->stream = file;
+  vrange_printer vrange_pp (&buffer);
+  this->accept (vrange_pp);
+  pp_flush (&buffer);
+}
+
+void
+irange_bitmask::dump (FILE *file) const
+{
+  char buf[WIDE_INT_PRINT_BUFFER_SIZE], *p;
+  pretty_printer buffer;
+
+  pp_needs_newline (&buffer) = true;
+  buffer.buffer->stream = file;
+  pp_string (&buffer, "MASK ");
+  unsigned len_mask = m_mask.get_len ();
+  unsigned len_val = m_value.get_len ();
+  unsigned len = MAX (len_mask, len_val);
+  if (len > WIDE_INT_MAX_INL_ELTS)
+    p = XALLOCAVEC (char, len * HOST_BITS_PER_WIDE_INT / 4 + 4);
+  else
+    p = buf;
+  print_hex (m_mask, p);
+  pp_string (&buffer, p);
+  pp_string (&buffer, " VALUE ");
+  print_hex (m_value, p);
+  pp_string (&buffer, p);
+  pp_flush (&buffer);
+}
+
+namespace inchash
+{
+
+void
+add_vrange (const vrange &v, inchash::hash &hstate,
+	     unsigned int)
+{
+  if (v.undefined_p ())
+    {
+      hstate.add_int (VR_UNDEFINED);
+      return;
+    }
+  // Types are ignored throughout to inhibit two ranges being equal
+  // but having different hash values.  This can happen when two
+  // ranges are equal and their types are different (but
+  // types_compatible_p is true).
+  if (is_a <irange> (v))
+    {
+      const irange &r = as_a <irange> (v);
+      if (r.varying_p ())
+	hstate.add_int (VR_VARYING);
+      else
+	hstate.add_int (VR_RANGE);
+      for (unsigned i = 0; i < r.num_pairs (); ++i)
+	{
+	  hstate.add_wide_int (r.lower_bound (i));
+	  hstate.add_wide_int (r.upper_bound (i));
+	}
+      irange_bitmask bm = r.get_bitmask ();
+      hstate.add_wide_int (bm.value ());
+      hstate.add_wide_int (bm.mask ());
+      return;
+    }
+  if (is_a <frange> (v))
+    {
+      const frange &r = as_a <frange> (v);
+      if (r.known_isnan ())
+	hstate.add_int (VR_NAN);
+      else
+	{
+	  hstate.add_int (r.varying_p () ? VR_VARYING : VR_RANGE);
+	  hstate.add_real_value (r.lower_bound ());
+	  hstate.add_real_value (r.upper_bound ());
+	}
+      nan_state nan = r.get_nan_state ();
+      hstate.add_int (nan.pos_p ());
+      hstate.add_int (nan.neg_p ());
+      return;
+    }
+  gcc_unreachable ();
+}
+
+} //namespace inchash
+
+bool
+irange::nonnegative_p () const
+{
+  return wi::ge_p (lower_bound (), 0, TYPE_SIGN (type ()));
+}
+
+bool
+irange::nonpositive_p () const
+{
+  return wi::le_p (upper_bound (), 0, TYPE_SIGN (type ()));
+}
+
+bool
+irange::supports_type_p (const_tree type) const
+{
+  return supports_p (type);
+}
+
+// Return TRUE if R fits in THIS.
+
+bool
+irange::fits_p (const vrange &r) const
+{
+  return m_max_ranges >= as_a <irange> (r).num_pairs ();
+}
+
+void
+irange::set_nonnegative (tree type)
+{
+  set (type,
+       wi::zero (TYPE_PRECISION (type)),
+       wi::to_wide (TYPE_MAX_VALUE (type)));
+}
+
+void
+frange::accept (const vrange_visitor &v) const
+{
+  v.visit (*this);
+}
+
+// Flush denormal endpoints to the appropriate 0.0.
+
+void
+frange::flush_denormals_to_zero ()
+{
+  if (undefined_p () || known_isnan ())
+    return;
+
+  machine_mode mode = TYPE_MODE (type ());
+  // Flush [x, -DENORMAL] to [x, -0.0].
+  if (real_isdenormal (&m_max, mode) && real_isneg (&m_max))
+    {
+      if (HONOR_SIGNED_ZEROS (m_type))
+	m_max = dconstm0;
+      else
+	m_max = dconst0;
+    }
+  // Flush [+DENORMAL, x] to [+0.0, x].
+  if (real_isdenormal (&m_min, mode) && !real_isneg (&m_min))
+    m_min = dconst0;
+}
+
+// Setter for franges.
+
+void
+frange::set (tree type,
+	     const REAL_VALUE_TYPE &min, const REAL_VALUE_TYPE &max,
+	     const nan_state &nan, value_range_kind kind)
+{
+  switch (kind)
+    {
+    case VR_UNDEFINED:
+      set_undefined ();
+      return;
+    case VR_VARYING:
+    case VR_ANTI_RANGE:
+      set_varying (type);
+      return;
+    case VR_RANGE:
+      break;
+    default:
+      gcc_unreachable ();
+    }
+
+  gcc_checking_assert (!real_isnan (&min) && !real_isnan (&max));
+
+  m_kind = kind;
+  m_type = type;
+  m_min = min;
+  m_max = max;
+  if (HONOR_NANS (m_type))
+    {
+      m_pos_nan = nan.pos_p ();
+      m_neg_nan = nan.neg_p ();
+    }
+  else
+    {
+      m_pos_nan = false;
+      m_neg_nan = false;
+    }
+
+  if (!MODE_HAS_SIGNED_ZEROS (TYPE_MODE (m_type)))
+    {
+      if (real_iszero (&m_min, 1))
+	m_min.sign = 0;
+      if (real_iszero (&m_max, 1))
+	m_max.sign = 0;
+    }
+  else if (!HONOR_SIGNED_ZEROS (m_type))
+    {
+      if (real_iszero (&m_max, 1))
+	m_max.sign = 0;
+      if (real_iszero (&m_min, 0))
+	m_min.sign = 1;
+    }
+
+  // For -ffinite-math-only we can drop ranges outside the
+  // representable numbers to min/max for the type.
+  if (!HONOR_INFINITIES (m_type))
+    {
+      REAL_VALUE_TYPE min_repr = frange_val_min (m_type);
+      REAL_VALUE_TYPE max_repr = frange_val_max (m_type);
+      if (real_less (&m_min, &min_repr))
+	m_min = min_repr;
+      else if (real_less (&max_repr, &m_min))
+	m_min = max_repr;
+      if (real_less (&max_repr, &m_max))
+	m_max = max_repr;
+      else if (real_less (&m_max, &min_repr))
+	m_max = min_repr;
+    }
+
+  // Check for swapped ranges.
+  gcc_checking_assert (real_compare (LE_EXPR, &min, &max));
+
+  normalize_kind ();
+}
+
+// Setter for an frange defaulting the NAN possibility to +-NAN when
+// HONOR_NANS.
+
+void
+frange::set (tree type,
+	     const REAL_VALUE_TYPE &min, const REAL_VALUE_TYPE &max,
+	     value_range_kind kind)
+{
+  set (type, min, max, nan_state (true), kind);
+}
+
+void
+frange::set (tree min, tree max, value_range_kind kind)
+{
+  set (TREE_TYPE (min),
+       *TREE_REAL_CST_PTR (min), *TREE_REAL_CST_PTR (max), kind);
+}
+
+// Normalize range to VARYING or UNDEFINED, or vice versa.  Return
+// TRUE if anything changed.
+//
+// A range with no known properties can be dropped to VARYING.
+// Similarly, a VARYING with any properties should be dropped to a
+// VR_RANGE.  Normalizing ranges upon changing them ensures there is
+// only one representation for a given range.
+
+bool
+frange::normalize_kind ()
+{
+  if (m_kind == VR_RANGE
+      && frange_val_is_min (m_min, m_type)
+      && frange_val_is_max (m_max, m_type))
+    {
+      if (!HONOR_NANS (m_type) || (m_pos_nan && m_neg_nan))
+	{
+	  set_varying (m_type);
+	  return true;
+	}
+    }
+  else if (m_kind == VR_VARYING)
+    {
+      if (HONOR_NANS (m_type) && (!m_pos_nan || !m_neg_nan))
+	{
+	  m_kind = VR_RANGE;
+	  m_min = frange_val_min (m_type);
+	  m_max = frange_val_max (m_type);
+	  if (flag_checking)
+	    verify_range ();
+	  return true;
+	}
+    }
+  else if (m_kind == VR_NAN && !m_pos_nan && !m_neg_nan)
+    set_undefined ();
+  return false;
+}
+
+// Union or intersect the zero endpoints of two ranges.  For example:
+//   [-0,  x] U [+0,  x] => [-0,  x]
+//   [ x, -0] U [ x, +0] => [ x, +0]
+//   [-0,  x] ^ [+0,  x] => [+0,  x]
+//   [ x, -0] ^ [ x, +0] => [ x, -0]
+//
+// UNION_P is true when performing a union, or false when intersecting.
+
+bool
+frange::combine_zeros (const frange &r, bool union_p)
+{
+  gcc_checking_assert (!undefined_p () && !known_isnan ());
+
+  bool changed = false;
+  if (real_iszero (&m_min) && real_iszero (&r.m_min)
+      && real_isneg (&m_min) != real_isneg (&r.m_min))
+    {
+      m_min.sign = union_p;
+      changed = true;
+    }
+  if (real_iszero (&m_max) && real_iszero (&r.m_max)
+      && real_isneg (&m_max) != real_isneg (&r.m_max))
+    {
+      m_max.sign = !union_p;
+      changed = true;
+    }
+  // If the signs are swapped, the resulting range is empty.
+  if (m_min.sign == 0 && m_max.sign == 1)
+    {
+      if (maybe_isnan ())
+	m_kind = VR_NAN;
+      else
+	set_undefined ();
+      changed = true;
+    }
+  return changed;
+}
+
+// Union two ranges when one is known to be a NAN.
+
+bool
+frange::union_nans (const frange &r)
+{
+  gcc_checking_assert (known_isnan () || r.known_isnan ());
+
+  bool changed = false;
+  if (known_isnan () && m_kind != r.m_kind)
+    {
+      m_kind = r.m_kind;
+      m_min = r.m_min;
+      m_max = r.m_max;
+      changed = true;
+    }
+  if (m_pos_nan != r.m_pos_nan || m_neg_nan != r.m_neg_nan)
+    {
+      m_pos_nan |= r.m_pos_nan;
+      m_neg_nan |= r.m_neg_nan;
+      changed = true;
+    }
+  if (changed)
+    {
+      normalize_kind ();
+      return true;
+    }
+  return false;
+}
+
+bool
+frange::union_ (const vrange &v)
+{
+  const frange &r = as_a <frange> (v);
+
+  if (r.undefined_p () || varying_p ())
+    return false;
+  if (undefined_p () || r.varying_p ())
+    {
+      *this = r;
+      return true;
+    }
+
+  // Combine NAN info.
+  if (known_isnan () || r.known_isnan ())
+    return union_nans (r);
+  bool changed = false;
+  if (m_pos_nan != r.m_pos_nan || m_neg_nan != r.m_neg_nan)
+    {
+      m_pos_nan |= r.m_pos_nan;
+      m_neg_nan |= r.m_neg_nan;
+      changed = true;
+    }
+
+  // Combine endpoints.
+  if (real_less (&r.m_min, &m_min))
+    {
+      m_min = r.m_min;
+      changed = true;
+    }
+  if (real_less (&m_max, &r.m_max))
+    {
+      m_max = r.m_max;
+      changed = true;
+    }
+
+  if (HONOR_SIGNED_ZEROS (m_type))
+    changed |= combine_zeros (r, true);
+
+  changed |= normalize_kind ();
+  return changed;
+}
+
+// Intersect two ranges when one is known to be a NAN.
+
+bool
+frange::intersect_nans (const frange &r)
+{
+  gcc_checking_assert (known_isnan () || r.known_isnan ());
+
+  m_pos_nan &= r.m_pos_nan;
+  m_neg_nan &= r.m_neg_nan;
+  if (maybe_isnan ())
+    m_kind = VR_NAN;
+  else
+    set_undefined ();
+  if (flag_checking)
+    verify_range ();
+  return true;
+}
+
+bool
+frange::intersect (const vrange &v)
+{
+  const frange &r = as_a <frange> (v);
+
+  if (undefined_p () || r.varying_p ())
+    return false;
+  if (r.undefined_p ())
+    {
+      set_undefined ();
+      return true;
+    }
+  if (varying_p ())
+    {
+      *this = r;
+      return true;
+    }
+
+  // Combine NAN info.
+  if (known_isnan () || r.known_isnan ())
+    return intersect_nans (r);
+  bool changed = false;
+  if (m_pos_nan != r.m_pos_nan || m_neg_nan != r.m_neg_nan)
+    {
+      m_pos_nan &= r.m_pos_nan;
+      m_neg_nan &= r.m_neg_nan;
+      changed = true;
+    }
+
+  // Combine endpoints.
+  if (real_less (&m_min, &r.m_min))
+    {
+      m_min = r.m_min;
+      changed = true;
+    }
+  if (real_less (&r.m_max, &m_max))
+    {
+      m_max = r.m_max;
+      changed = true;
+    }
+  // If the endpoints are swapped, the resulting range is empty.
+  if (real_less (&m_max, &m_min))
+    {
+      if (maybe_isnan ())
+	m_kind = VR_NAN;
+      else
+	set_undefined ();
+      if (flag_checking)
+	verify_range ();
+      return true;
+    }
+
+  if (HONOR_SIGNED_ZEROS (m_type))
+    changed |= combine_zeros (r, false);
+
+  changed |= normalize_kind ();
+  return changed;
+}
+
+frange &
+frange::operator= (const frange &src)
+{
+  m_kind = src.m_kind;
+  m_type = src.m_type;
+  m_min = src.m_min;
+  m_max = src.m_max;
+  m_pos_nan = src.m_pos_nan;
+  m_neg_nan = src.m_neg_nan;
+
+  if (flag_checking)
+    verify_range ();
+  return *this;
+}
+
+bool
+frange::operator== (const frange &src) const
+{
+  if (m_kind == src.m_kind)
+    {
+      if (undefined_p ())
+	return true;
+
+      if (varying_p ())
+	return types_compatible_p (m_type, src.m_type);
+
+      bool nan1 = known_isnan ();
+      bool nan2 = src.known_isnan ();
+      if (nan1 || nan2)
+	{
+	  if (nan1 && nan2)
+	    return (m_pos_nan == src.m_pos_nan
+		    && m_neg_nan == src.m_neg_nan);
+	  return false;
+	}
+
+      return (real_identical (&m_min, &src.m_min)
+	      && real_identical (&m_max, &src.m_max)
+	      && m_pos_nan == src.m_pos_nan
+	      && m_neg_nan == src.m_neg_nan
+	      && types_compatible_p (m_type, src.m_type));
+    }
+  return false;
+}
+
+// Return TRUE if range contains R.
+
+bool
+frange::contains_p (const REAL_VALUE_TYPE &r) const
+{
+  gcc_checking_assert (m_kind != VR_ANTI_RANGE);
+
+  if (undefined_p ())
+    return false;
+
+  if (varying_p ())
+    return true;
+
+  if (real_isnan (&r))
+    {
+      // No NAN in range.
+      if (!m_pos_nan && !m_neg_nan)
+	return false;
+      // Both +NAN and -NAN are present.
+      if (m_pos_nan && m_neg_nan)
+	return true;
+      return m_neg_nan == r.sign;
+    }
+  if (known_isnan ())
+    return false;
+
+  if (real_compare (GE_EXPR, &r, &m_min) && real_compare (LE_EXPR, &r, &m_max))
+    {
+      // Make sure the signs are equal for signed zeros.
+      if (HONOR_SIGNED_ZEROS (m_type) && real_iszero (&r))
+	return r.sign == m_min.sign || r.sign == m_max.sign;
+      return true;
+    }
+  return false;
+}
+
+// If range is a singleton, place it in RESULT and return TRUE.  If
+// RESULT is NULL, just return TRUE.
+//
+// A NAN can never be a singleton.
+
+bool
+frange::internal_singleton_p (REAL_VALUE_TYPE *result) const
+{
+  if (m_kind == VR_RANGE && real_identical (&m_min, &m_max))
+    {
+      // Return false for any singleton that may be a NAN.
+      if (HONOR_NANS (m_type) && maybe_isnan ())
+	return false;
+
+      if (MODE_COMPOSITE_P (TYPE_MODE (m_type)))
+	{
+	  // For IBM long doubles, if the value is +-Inf or is exactly
+	  // representable in double, the other double could be +0.0
+	  // or -0.0.  Since this means there is more than one way to
+	  // represent a value, return false to avoid propagating it.
+	  // See libgcc/config/rs6000/ibm-ldouble-format for details.
+	  if (real_isinf (&m_min))
+	    return false;
+	  REAL_VALUE_TYPE r;
+	  real_convert (&r, DFmode, &m_min);
+	  if (real_identical (&r, &m_min))
+	    return false;
+	}
+
+      if (result)
+	*result = m_min;
+      return true;
+    }
+  return false;
+}
+
+bool
+frange::singleton_p (tree *result) const
+{
+  if (internal_singleton_p ())
+    {
+      if (result)
+	*result = build_real (m_type, m_min);
+      return true;
+    }
+  return false;
+}
+
+bool
+frange::singleton_p (REAL_VALUE_TYPE &r) const
+{
+  return internal_singleton_p (&r);
+}
+
+bool
+frange::supports_type_p (const_tree type) const
+{
+  return supports_p (type);
+}
+
+void
+frange::verify_range ()
+{
+  if (!undefined_p ())
+    gcc_checking_assert (HONOR_NANS (m_type) || !maybe_isnan ());
+  switch (m_kind)
+    {
+    case VR_UNDEFINED:
+      gcc_checking_assert (!m_type);
+      return;
+    case VR_VARYING:
+      gcc_checking_assert (m_type);
+      gcc_checking_assert (frange_val_is_min (m_min, m_type));
+      gcc_checking_assert (frange_val_is_max (m_max, m_type));
+      if (HONOR_NANS (m_type))
+	gcc_checking_assert (m_pos_nan && m_neg_nan);
+      else
+	gcc_checking_assert (!m_pos_nan && !m_neg_nan);
+      return;
+    case VR_RANGE:
+      gcc_checking_assert (m_type);
+      break;
+    case VR_NAN:
+      gcc_checking_assert (m_type);
+      gcc_checking_assert (m_pos_nan || m_neg_nan);
+      return;
+    default:
+      gcc_unreachable ();
+    }
+
+  // NANs cannot appear in the endpoints of a range.
+  gcc_checking_assert (!real_isnan (&m_min) && !real_isnan (&m_max));
+
+  // Make sure we don't have swapped ranges.
+  gcc_checking_assert (!real_less (&m_max, &m_min));
+
+  // [ +0.0, -0.0 ] is nonsensical.
+  gcc_checking_assert (!(real_iszero (&m_min, 0) && real_iszero (&m_max, 1)));
+
+  // If all the properties are clear, we better not span the entire
+  // domain, because that would make us varying.
+  if (m_pos_nan && m_neg_nan)
+    gcc_checking_assert (!frange_val_is_min (m_min, m_type)
+			 || !frange_val_is_max (m_max, m_type));
+}
+
+// We can't do much with nonzeros yet.
+void
+frange::set_nonzero (tree type)
+{
+  set_varying (type);
+}
+
+// We can't do much with nonzeros yet.
+bool
+frange::nonzero_p () const
+{
+  return false;
+}
+
+// Set range to [+0.0, +0.0] if honoring signed zeros, or [0.0, 0.0]
+// otherwise.
+
+void
+frange::set_zero (tree type)
+{
+  if (HONOR_SIGNED_ZEROS (type))
+    {
+      set (type, dconstm0, dconst0);
+      clear_nan ();
+    }
+  else
+    set (type, dconst0, dconst0);
+}
+
+// Return TRUE for any zero regardless of sign.
+
+bool
+frange::zero_p () const
+{
+  return (m_kind == VR_RANGE
+	  && real_iszero (&m_min)
+	  && real_iszero (&m_max));
+}
+
+// Set the range to non-negative numbers, that is [+0.0, +INF].
+//
+// The NAN in the resulting range (if HONOR_NANS) has a varying sign
+// as there are no guarantees in IEEE 754 wrt to the sign of a NAN,
+// except for copy, abs, and copysign.  It is the responsibility of
+// the caller to set the NAN's sign if desired.
+
+void
+frange::set_nonnegative (tree type)
+{
+  set (type, dconst0, frange_val_max (type));
+}
+
+// Here we copy between any two irange's.
 
 irange &
 irange::operator= (const irange &src)
