@@ -1289,6 +1289,44 @@ tail_recurse:
       return t_false;
     }
 }
+
+
+/* This section selects the loops that will be good candidates for the
+   scalar evolution analysis.  For the moment, greedily select all the
+   loop nests we could analyze.  */
+
+/* For a loop with a single exit edge, return the COND_EXPR that
+   guards the exit edge.  If the expression is too difficult to
+   analyze, then give up.  */
+
+gcond *
+get_loop_exit_condition (const class loop *loop)
+{
+  return get_loop_exit_condition (single_exit (loop));
+}
+
+/* If the statement just before the EXIT_EDGE contains a condition then
+   return the condition, otherwise NULL. */
+
+gcond *
+get_loop_exit_condition (const_edge exit_edge)
+{
+  gcond *res = NULL;
+
+  if (dump_file && (dump_flags & TDF_SCEV))
+    fprintf (dump_file, "(get_loop_exit_condition \n  ");
+
+  if (exit_edge)
+    res = safe_dyn_cast <gcond *> (*gsi_last_bb (exit_edge->src));
+
+  if (dump_file && (dump_flags & TDF_SCEV))
+    {
+      print_gimple_stmt (dump_file, res, 0);
+      fprintf (dump_file, ")\n");
+    }
+
+  return res;
+}
 
 
 /* Simplify PEELED_CHREC represented by (init_cond, arg) in LOOP.
