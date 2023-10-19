@@ -51,14 +51,208 @@ along with GCC; see the file COPYING3.  If not see
 #include "stringpool.h"
 #include "attribs.h"
 #include "omp-simd-clone.h"
+#include "omp-low.h"
+#include "omp-general.h"
 
-/* Return the number of elements in vector type VECTYPE, which is associated
-   with a SIMD clone.  At present these always have a constant length.  */
-
-static unsigned HOST_WIDE_INT
-simd_clone_subparts (tree vectype)
+/* Print debug info for ok_for_auto_simd_clone to the dump file, logging
+   failure reason EXCUSE for function DECL.  Always returns false.  */
+static bool
+auto_simd_fail (tree decl, const char *excuse)
 {
-  return TYPE_VECTOR_SUBPARTS (vectype).to_constant ();
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    fprintf (dump_file, "\nNot auto-cloning %s because %s\n",
+	     IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)),
+	     excuse);
+  return false;
+}
+
+/* Helper function for ok_for_auto_simd_clone; return false if the statement
+   violates restrictions for an "omp declare simd" function.  Specifically,
+   the function must not
+   - throw or call setjmp/longjmp
+   - write memory that could alias parallel calls
+   - read volatile memory
+   - include openmp directives or calls
+   - call functions that might do those things */
+
+static bool
+auto_simd_check_stmt (gimple *stmt, tree outer)
+{
+  tree decl;
+
+  switch (gimple_code (stmt))
+    {
+    case GIMPLE_CALL:
+
+      /* Calls to functions that are CONST or PURE are ok, even if they
+	 are internal functions without a decl.  Reject other internal
+	 functions.  */
+      if (gimple_call_flags (stmt) & (ECF_CONST | ECF_PURE))
+	break;
+      if (gimple_call_internal_p (stmt))
+	return auto_simd_fail (outer,
+			       "body contains internal function call");
+
+      decl = gimple_call_fndecl (stmt);
+
+      /* We can't know whether indirect calls are safe.  */
+      if (decl == NULL_TREE)
+	return auto_simd_fail (outer, "body contains indirect call");
+
+      /* Calls to functions that are already marked "omp declare simd" are
+	 OK.  */
+      if (lookup_attribute ("omp declare simd", DECL_ATTRIBUTES (decl)))
+	break;
+
+      /* Let recursive calls to the current function through.  */
+      if (decl == outer)
+	break;
+
+      /* Other function calls are not permitted.  This covers all calls to
+	 the libgomp API and setjmp/longjmp, too, as well as things like
+	 __cxa_throw_ related to exception handling.  */
+      return auto_simd_fail (outer, "body contains unsafe function call");
+
+      /* Reject EH-related constructs.  Most of the EH gimple codes are
+	already lowered by the time this pass runs during IPA.
+	 GIMPLE_EH_DISPATCH and GIMPLE_RESX remain and are lowered by
+	 pass_lower_eh_dispatch and pass_lower_resx, respectively; those
+	 passes run later.  */
+    case GIMPLE_EH_DISPATCH:
+    case GIMPLE_RESX:
+      return auto_simd_fail (outer, "body contains EH constructs");
+
+      /* Asms are not permitted since we don't know what they do.  */
+    case GIMPLE_ASM:
+      return auto_simd_fail (outer, "body contains inline asm");
+
+    default:
+      break;
+    }
+
+  /* Memory writes are not permitted.
+     FIXME: this could be relaxed a little to permit writes to
+     function-local variables that could not alias other instances
+     of the function running in parallel.  */
+  if (gimple_store_p (stmt))
+    return auto_simd_fail (outer, "body includes memory write");
+
+  /* Volatile reads are not permitted.  */
+  if (gimple_has_volatile_ops (stmt))
+    return auto_simd_fail (outer, "body includes volatile op");
+
+  /* Otherwise OK.  */
+  return true;
+}
+
+/* Helper function for ok_for_auto_simd_clone:  return true if type T is
+   plausible for a cloneable function argument or return type.  */
+static bool
+plausible_type_for_simd_clone (tree t)
+{
+  if (VOID_TYPE_P (t))
+    return true;
+  else if (RECORD_OR_UNION_TYPE_P (t) || !is_a <scalar_mode> (TYPE_MODE (t)))
+    /* Small record/union types may fit into a scalar mode, but are
+       still not suitable.  */
+    return false;
+  else if (TYPE_ATOMIC (t))
+    /* Atomic types trigger warnings in simd_clone_clauses_extract.  */
+    return false;
+  else
+    return true;
+}
+
+/* Check if the function NODE appears suitable for auto-annotation
+   with "declare simd".  */
+
+static bool
+ok_for_auto_simd_clone (struct cgraph_node *node)
+{
+  tree decl = node->decl;
+  tree t;
+  basic_block bb;
+
+  /* Nothing to do if the function isn't a definition or doesn't
+     have a body.  */
+  if (!node->definition || !node->has_gimple_body_p ())
+    return auto_simd_fail (decl, "no definition or body");
+
+  /* No point in trying to generate implicit clones if the function
+     isn't used in the compilation unit.  */
+  if (!node->callers)
+    return auto_simd_fail (decl, "function is not used");
+
+  /* Nothing to do if the function already has the "omp declare simd"
+     attribute, is marked noclone, or is not "omp declare target".  */
+  if (lookup_attribute ("omp declare simd", DECL_ATTRIBUTES (decl))
+      || lookup_attribute ("noclone", DECL_ATTRIBUTES (decl))
+      || !lookup_attribute ("omp declare target", DECL_ATTRIBUTES (decl)))
+    return auto_simd_fail (decl, "incompatible attributes");
+
+  /* Check whether the function is restricted host/nohost via the
+     "omp declare target device_type" clause, and that doesn't match
+     what we're compiling for.  Internally, these translate into
+     "omp declare target [no]host" attributes on the decl; "any"
+     translates into both attributes, but the default (which is supposed
+     to be equivalent to "any") is neither.  */
+  tree host = lookup_attribute ("omp declare target host",
+				DECL_ATTRIBUTES (decl));
+  tree nohost = lookup_attribute ("omp declare target nohost",
+				  DECL_ATTRIBUTES (decl));
+#ifdef ACCEL_COMPILER
+  if (host && !nohost)
+    return auto_simd_fail (decl, "device doesn't match for accel compiler");
+#else
+  if (nohost && !host)
+    return auto_simd_fail (decl, "device doesn't match for host compiler");
+#endif
+
+  /* Backends will check for vectorizable arguments/return types in a
+     target-specific way, but we can immediately filter out functions
+     that have implausible argument/return types.  */
+  t = TREE_TYPE (TREE_TYPE (decl));
+  if (!plausible_type_for_simd_clone (t))
+    return auto_simd_fail (decl, "return type fails sniff test");
+
+  if (TYPE_ARG_TYPES (TREE_TYPE (decl)))
+    {
+      for (tree temp = TYPE_ARG_TYPES (TREE_TYPE (decl));
+	   temp; temp = TREE_CHAIN (temp))
+	{
+	  t = TREE_VALUE (temp);
+	  if (!plausible_type_for_simd_clone (t))
+	    return auto_simd_fail (decl, "argument type fails sniff test");
+	}
+    }
+  else if (DECL_ARGUMENTS (decl))
+    {
+      for (tree temp = DECL_ARGUMENTS (decl); temp; temp = DECL_CHAIN (temp))
+	{
+	  t = TREE_TYPE (temp);
+	  if (!plausible_type_for_simd_clone (t))
+	    return auto_simd_fail (decl, "argument type fails sniff test");
+	}
+    }
+  else
+    return auto_simd_fail (decl, "function has no arguments");
+
+  /* Scan the function body to see if it is suitable for SIMD-ization.  */
+  node->get_body ();
+
+  FOR_EACH_BB_FN (bb, DECL_STRUCT_FUNCTION (decl))
+    {
+      for (gimple_stmt_iterator gsi = gsi_start_bb (bb); !gsi_end_p (gsi);
+	   gsi_next (&gsi))
+	if (!auto_simd_check_stmt (gsi_stmt (gsi), decl))
+	  return false;
+    }
+
+  /* All is good.  */
+  if (dump_file)
+    fprintf (dump_file, "\nMarking %s for auto-cloning\n",
+	     IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)));
+  return true;
 }
 
 /* Allocate a fresh `simd_clone' and return it.  NARGS is the number
@@ -807,7 +1001,7 @@ simd_clone_init_simd_arrays (struct cgraph_node *node,
 	    }
 	  continue;
 	}
-      if (known_eq (simd_clone_subparts (TREE_TYPE (arg)),
+      if (known_eq (TYPE_VECTOR_SUBPARTS (TREE_TYPE (arg)),
 		    node->simdclone->simdlen))
 	{
 	  tree ptype = build_pointer_type (TREE_TYPE (TREE_TYPE (array)));
@@ -819,7 +1013,7 @@ simd_clone_init_simd_arrays (struct cgraph_node *node,
 	}
       else
 	{
-	  unsigned int simdlen = simd_clone_subparts (TREE_TYPE (arg));
+	  poly_uint64 simdlen = TYPE_VECTOR_SUBPARTS (TREE_TYPE (arg));
 	  unsigned int times = vector_unroll_factor (node->simdclone->simdlen,
 						     simdlen);
 	  tree ptype = build_pointer_type (TREE_TYPE (TREE_TYPE (array)));
@@ -1005,9 +1199,9 @@ ipa_simd_modify_function_body (struct cgraph_node *node,
 		  iter, NULL_TREE, NULL_TREE);
       adjustments->register_replacement (&(*adjustments->m_adj_params)[j], r);
 
-      if (multiple_p (node->simdclone->simdlen, simd_clone_subparts (vectype)))
+      if (multiple_p (node->simdclone->simdlen, TYPE_VECTOR_SUBPARTS (vectype)))
 	j += vector_unroll_factor (node->simdclone->simdlen,
-				   simd_clone_subparts (vectype)) - 1;
+				   TYPE_VECTOR_SUBPARTS (vectype)) - 1;
     }
   adjustments->sort_replacements ();
 
