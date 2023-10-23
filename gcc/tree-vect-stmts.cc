@@ -8793,6 +8793,9 @@ vectorizable_store (vec_info *vinfo,
       alias_off = build_int_cst (ref_type, 0);
       stmt_vec_info next_stmt_info = first_stmt_info;
       auto_vec<tree> vec_oprnds (ncopies);
+      /* For costing some adjacent vector stores, we'd like to cost with
+	 the total number of them once instead of cost each one by one. */
+      unsigned int n_adjacent_stores = 0;
       for (g = 0; g < group_size; g++)
 	{
 	  running_off = offvar;
@@ -8850,10 +8853,7 @@ vectorizable_store (vec_info *vinfo,
 			 store to avoid ICE like 110776.  */
 		      if (VECTOR_TYPE_P (ltype)
 			  && known_ne (TYPE_VECTOR_SUBPARTS (ltype), 1U))
-			vect_get_store_cost (vinfo, stmt_info, 1,
-					     alignment_support_scheme,
-					     misalignment, &inside_cost,
-					     cost_vec);
+			n_adjacent_stores++;
 		      else
 			inside_cost
 			  += record_stmt_cost (cost_vec, 1, scalar_store,
@@ -8910,11 +8910,18 @@ vectorizable_store (vec_info *vinfo,
 	    break;
 	}
 
-      if (costing_p && dump_enabled_p ())
-	dump_printf_loc (MSG_NOTE, vect_location,
-			 "vect_model_store_cost: inside_cost = %d, "
-			 "prologue_cost = %d .\n",
-			 inside_cost, prologue_cost);
+      if (costing_p)
+	{
+	  if (n_adjacent_stores > 0)
+	    vect_get_store_cost (vinfo, stmt_info, n_adjacent_stores,
+				 alignment_support_scheme, misalignment,
+				 &inside_cost, cost_vec);
+	  if (dump_enabled_p ())
+	    dump_printf_loc (MSG_NOTE, vect_location,
+			     "vect_model_store_cost: inside_cost = %d, "
+			     "prologue_cost = %d .\n",
+			     inside_cost, prologue_cost);
+	}
 
       return true;
     }
@@ -9023,6 +9030,9 @@ vectorizable_store (vec_info *vinfo,
     {
       gcc_assert (!slp && grouped_store);
       unsigned inside_cost = 0, prologue_cost = 0;
+      /* For costing some adjacent vector stores, we'd like to cost with
+	 the total number of them once instead of cost each one by one. */
+      unsigned int n_adjacent_stores = 0;
       for (j = 0; j < ncopies; j++)
 	{
           if (slp)
@@ -9124,10 +9134,7 @@ vectorizable_store (vec_info *vinfo,
 
 	  if (costing_p)
 	    {
-	      for (i = 0; i < vec_num; i++)
-		vect_get_store_cost (vinfo, stmt_info, 1,
-				     alignment_support_scheme, misalignment,
-				     &inside_cost, cost_vec);
+	      n_adjacent_stores += vec_num;
 	      continue;
 	    }
 
@@ -9215,11 +9222,18 @@ vectorizable_store (vec_info *vinfo,
 	  vect_clobber_variable (vinfo, stmt_info, gsi, vec_array);
 	}
 
-      if (costing_p && dump_enabled_p ())
-	dump_printf_loc (MSG_NOTE, vect_location,
-			 "vect_model_store_cost: inside_cost = %d, "
-			 "prologue_cost = %d .\n",
-			 inside_cost, prologue_cost);
+      if (costing_p)
+	{
+	  if (n_adjacent_stores > 0)
+	    vect_get_store_cost (vinfo, stmt_info, n_adjacent_stores,
+				 alignment_support_scheme, misalignment,
+				 &inside_cost, cost_vec);
+	  if (dump_enabled_p ())
+	    dump_printf_loc (MSG_NOTE, vect_location,
+			     "vect_model_store_cost: inside_cost = %d, "
+			     "prologue_cost = %d .\n",
+			     inside_cost, prologue_cost);
+	}
 
       return true;
     }
@@ -9550,6 +9564,9 @@ vectorizable_store (vec_info *vinfo,
 	      || memory_access_type == VMAT_CONTIGUOUS_REVERSE);
 
   unsigned inside_cost = 0, prologue_cost = 0;
+  /* For costing some adjacent vector stores, we'd like to cost with
+     the total number of them once instead of cost each one by one. */
+  unsigned int n_adjacent_stores = 0;
   auto_vec<tree> result_chain (group_size);
   auto_vec<tree, 1> vec_oprnds;
   for (j = 0; j < ncopies; j++)
@@ -9711,9 +9728,7 @@ vectorizable_store (vec_info *vinfo,
 
 	  if (costing_p)
 	    {
-	      vect_get_store_cost (vinfo, stmt_info, 1,
-				   alignment_support_scheme, misalignment,
-				   &inside_cost, cost_vec);
+	      n_adjacent_stores++;
 
 	      if (!slp)
 		{
@@ -9883,6 +9898,11 @@ vectorizable_store (vec_info *vinfo,
 
   if (costing_p)
     {
+      if (n_adjacent_stores > 0)
+	vect_get_store_cost (vinfo, stmt_info, n_adjacent_stores,
+			     alignment_support_scheme, misalignment,
+			     &inside_cost, cost_vec);
+
       /* When vectorizing a store into the function result assign
 	 a penalty if the function returns in a multi-register location.
 	 In this case we assume we'll end up with having to spill the
@@ -10596,6 +10616,9 @@ vectorizable_load (vec_info *vinfo,
       unsigned HOST_WIDE_INT
 	elsz = tree_to_uhwi (TYPE_SIZE_UNIT (TREE_TYPE (vectype)));
       unsigned int n_groups = 0;
+      /* For costing some adjacent vector loads, we'd like to cost with
+	 the total number of them once instead of cost each one by one. */
+      unsigned int n_adjacent_loads = 0;
       for (j = 0; j < ncopies; j++)
 	{
 	  if (nloads > 1 && !costing_p)
@@ -10609,10 +10632,7 @@ vectorizable_load (vec_info *vinfo,
 		     avoid ICE, see PR110776.  */
 		  if (VECTOR_TYPE_P (ltype)
 		      && memory_access_type != VMAT_ELEMENTWISE)
-		    vect_get_load_cost (vinfo, stmt_info, 1,
-					alignment_support_scheme, misalignment,
-					false, &inside_cost, nullptr, cost_vec,
-					cost_vec, true);
+		    n_adjacent_loads++;
 		  else
 		    inside_cost += record_stmt_cost (cost_vec, 1, scalar_load,
 						     stmt_info, 0, vect_body);
@@ -10706,11 +10726,19 @@ vectorizable_load (vec_info *vinfo,
 					  false, &n_perms);
 	}
 
-      if (costing_p && dump_enabled_p ())
-	dump_printf_loc (MSG_NOTE, vect_location,
-			 "vect_model_load_cost: inside_cost = %u, "
-			 "prologue_cost = 0 .\n",
-			 inside_cost);
+      if (costing_p)
+	{
+	  if (n_adjacent_loads > 0)
+	    vect_get_load_cost (vinfo, stmt_info, n_adjacent_loads,
+				alignment_support_scheme, misalignment, false,
+				&inside_cost, nullptr, cost_vec, cost_vec,
+				true);
+	  if (dump_enabled_p ())
+	    dump_printf_loc (MSG_NOTE, vect_location,
+			     "vect_model_load_cost: inside_cost = %u, "
+			     "prologue_cost = 0 .\n",
+			     inside_cost);
+	}
 
       return true;
     }
@@ -11014,6 +11042,9 @@ vectorizable_load (vec_info *vinfo,
       gcc_assert (grouped_load && !slp);
 
       unsigned int inside_cost = 0, prologue_cost = 0;
+      /* For costing some adjacent vector loads, we'd like to cost with
+	 the total number of them once instead of cost each one by one. */
+      unsigned int n_adjacent_loads = 0;
       for (j = 0; j < ncopies; j++)
 	{
 	  if (costing_p)
@@ -11045,9 +11076,7 @@ vectorizable_load (vec_info *vinfo,
 					  true);
 		    }
 		}
-	      vect_get_load_cost (vinfo, stmt_info, 1, alignment_support_scheme,
-				  misalignment, false, &inside_cost,
-				  &prologue_cost, cost_vec, cost_vec, true);
+	      n_adjacent_loads++;
 	      continue;
 	    }
 
@@ -11149,17 +11178,28 @@ vectorizable_load (vec_info *vinfo,
 	  *vec_stmt = STMT_VINFO_VEC_STMTS (stmt_info)[0];
 	}
 
-      if (costing_p && dump_enabled_p ())
-	dump_printf_loc (MSG_NOTE, vect_location,
-			 "vect_model_load_cost: inside_cost = %u, "
-			 "prologue_cost = %u .\n",
-			 inside_cost, prologue_cost);
+      if (costing_p)
+	{
+	  if (n_adjacent_loads > 0)
+	    vect_get_load_cost (vinfo, stmt_info, n_adjacent_loads,
+				alignment_support_scheme, misalignment, false,
+				&inside_cost, &prologue_cost, cost_vec,
+				cost_vec, true);
+	  if (dump_enabled_p ())
+	    dump_printf_loc (MSG_NOTE, vect_location,
+			     "vect_model_load_cost: inside_cost = %u, "
+			     "prologue_cost = %u .\n",
+			     inside_cost, prologue_cost);
+	}
 
       return true;
     }
 
   poly_uint64 group_elt = 0;
   unsigned int inside_cost = 0, prologue_cost = 0;
+  /* For costing some adjacent vector loads, we'd like to cost with
+     the total number of them once instead of cost each one by one. */
+  unsigned int n_adjacent_loads = 0;
   for (j = 0; j < ncopies; j++)
     {
       /* 1. Create the vector or array pointer update chain.  */
@@ -11243,61 +11283,30 @@ vectorizable_load (vec_info *vinfo,
 	{
 	  if (costing_p)
 	    {
-	      /* An IFN_LOAD_LANES will load all its vector results,
-		 regardless of which ones we actually need.  Account
-		 for the cost of unused results.  */
-	      if (grouped_load && first_stmt_info == stmt_info)
+	      /* For VMAT_CONTIGUOUS_PERMUTE if it's grouped load, we
+		 only need to take care of the first stmt, whose
+		 stmt_info is first_stmt_info, vec_num iterating on it
+		 will cover the cost for the remaining, it's consistent
+		 with transforming.  For the prologue cost for realign,
+		 we only need to count it once for the whole group.  */
+	      bool first_stmt_info_p = first_stmt_info == stmt_info;
+	      bool add_realign_cost = first_stmt_info_p && i == 0;
+	      if (memory_access_type == VMAT_CONTIGUOUS
+		  || memory_access_type == VMAT_CONTIGUOUS_REVERSE
+		  || (memory_access_type == VMAT_CONTIGUOUS_PERMUTE
+		      && (!grouped_load || first_stmt_info_p)))
 		{
-		  unsigned int gaps = DR_GROUP_SIZE (first_stmt_info);
-		  stmt_vec_info next_stmt_info = first_stmt_info;
-		  do
-		    {
-		      gaps -= 1;
-		      next_stmt_info = DR_GROUP_NEXT_ELEMENT (next_stmt_info);
-		    }
-		  while (next_stmt_info);
-		  if (gaps)
-		    {
-		      if (dump_enabled_p ())
-			dump_printf_loc (MSG_NOTE, vect_location,
-					 "vect_model_load_cost: %d "
-					 "unused vectors.\n",
-					 gaps);
-		      vect_get_load_cost (vinfo, stmt_info, gaps,
-					  alignment_support_scheme,
-					  misalignment, false, &inside_cost,
-					  &prologue_cost, cost_vec, cost_vec,
-					  true);
-		    }
+		  /* Leave realign cases alone to keep them simple.  */
+		  if (alignment_support_scheme == dr_explicit_realign_optimized
+		      || alignment_support_scheme == dr_explicit_realign)
+		    vect_get_load_cost (vinfo, stmt_info, 1,
+					alignment_support_scheme, misalignment,
+					add_realign_cost, &inside_cost,
+					&prologue_cost, cost_vec, cost_vec,
+					true);
+		  else
+		    n_adjacent_loads++;
 		}
-	      vect_get_load_cost (vinfo, stmt_info, 1, alignment_support_scheme,
-				  misalignment, false, &inside_cost,
-				  &prologue_cost, cost_vec, cost_vec, true);
-	      continue;
-	    }
-	  tree vec_array;
-
-	  vec_array = create_vector_array (vectype, vec_num);
-
-	  tree final_mask = NULL_TREE;
-	  if (loop_masks)
-	    final_mask = vect_get_loop_mask (gsi, loop_masks, ncopies,
-					     vectype, j);
-	  if (vec_mask)
-	    final_mask = prepare_vec_mask (loop_vinfo, mask_vectype,
-					   final_mask, vec_mask, gsi);
-
-	  gcall *call;
-	  if (final_mask)
-	    {
-	      /* Emit:
-		   VEC_ARRAY = MASK_LOAD_LANES (DATAREF_PTR, ALIAS_PTR,
-		                                VEC_MASK).  */
-	      unsigned int align = TYPE_ALIGN (TREE_TYPE (vectype));
-	      tree alias_ptr = build_int_cst (ref_type, align);
-	      call = gimple_build_call_internal (IFN_MASK_LOAD_LANES, 3,
-						 dataref_ptr, alias_ptr,
-						 final_mask);
 	    }
 	  else
 	    {
@@ -11989,9 +11998,14 @@ vectorizable_load (vec_info *vinfo,
 
   if (costing_p)
     {
-      gcc_assert (memory_access_type != VMAT_INVARIANT
-		  && memory_access_type != VMAT_ELEMENTWISE
-		  && memory_access_type != VMAT_STRIDED_SLP);
+      gcc_assert (memory_access_type == VMAT_CONTIGUOUS
+		  || memory_access_type == VMAT_CONTIGUOUS_REVERSE
+		  || memory_access_type == VMAT_CONTIGUOUS_PERMUTE);
+      if (n_adjacent_loads > 0)
+	vect_get_load_cost (vinfo, stmt_info, n_adjacent_loads,
+			    alignment_support_scheme, misalignment, false,
+			    &inside_cost, &prologue_cost, cost_vec, cost_vec,
+			    true);
       if (dump_enabled_p ())
 	dump_printf_loc (MSG_NOTE, vect_location,
 			 "vect_model_load_cost: inside_cost = %u, "
