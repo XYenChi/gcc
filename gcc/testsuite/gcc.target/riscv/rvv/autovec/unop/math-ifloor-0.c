@@ -5,7 +5,7 @@
 #include "test-math.h"
 
 /*
-** test_double_long___builtin_lfloor:
+** test_float_int___builtin_ifloorf:
 **   frrm\s+[atx][0-9]+
 **   ...
 **   fsrmi\s+2
@@ -15,4 +15,4 @@
 **   fsrm\s+[atx][0-9]+
 **   ret
 */
-TEST_UNARY_CALL_CVT (double, long, __builtin_lfloor)
+TEST_UNARY_CALL_CVT (float, int, __builtin_ifloorf)
