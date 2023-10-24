@@ -1853,6 +1853,8 @@ public:
 
   rtx expand (function_expander &e) const override
   {
+    if (!e.target)
+      return NULL_RTX;
     rtx dest = expand_normal (CALL_EXPR_ARG (e.exp, 0));
     gcc_assert (riscv_v_ext_vector_mode_p (GET_MODE (dest)));
     rtx index = expand_normal (CALL_EXPR_ARG (e.exp, 1));
@@ -1890,6 +1892,8 @@ public:
 
   rtx expand (function_expander &e) const override
   {
+    if (!e.target)
+      return NULL_RTX;
     rtx src = expand_normal (CALL_EXPR_ARG (e.exp, 0));
     gcc_assert (riscv_v_ext_vector_mode_p (GET_MODE (src)));
     rtx index = expand_normal (CALL_EXPR_ARG (e.exp, 1));
