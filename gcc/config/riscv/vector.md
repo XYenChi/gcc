@@ -1898,7 +1898,8 @@
 	  emit_insn (gen_pred_merge<mode> (operands[0], operands[1],
 	       operands[2], boardcast_scalar, operands[4], operands[5],
 	       operands[6], operands[7]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[7])))
     DONE;
 })
 
@@ -2661,7 +2662,8 @@
 	  emit_insn (gen_pred_<optab><mode> (operands[0], operands[1],
 	       operands[2], operands[3], boardcast_scalar, operands[5],
 	       operands[6], operands[7], operands[8]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[8])))
     DONE;
 })
 
@@ -2736,7 +2738,8 @@
 	  emit_insn (gen_pred_<optab><mode> (operands[0], operands[1],
 	       operands[2], operands[3], boardcast_scalar, operands[5],
 	       operands[6], operands[7], operands[8]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[8])))
     DONE;
 })
 
@@ -2811,7 +2814,8 @@
 	  emit_insn (gen_pred_sub<mode> (operands[0], operands[1],
 	       operands[2], boardcast_scalar, operands[3], operands[5],
 	       operands[6], operands[7], operands[8]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[8])))
     DONE;
 })
 
@@ -2928,7 +2932,8 @@
 	  emit_insn (gen_pred_mulh<v_su><mode> (operands[0], operands[1],
 	       operands[2], operands[3], boardcast_scalar, operands[5],
 	       operands[6], operands[7], operands[8]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[8])))
     DONE;
 })
 
@@ -3102,7 +3107,8 @@
 	  emit_insn (gen_pred_adc<mode> (operands[0], operands[1],
 	       operands[2], boardcast_scalar, operands[4], operands[5],
 	       operands[6], operands[7]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[7])))
     DONE;
 })
 
@@ -3185,7 +3191,8 @@
 	  emit_insn (gen_pred_sbc<mode> (operands[0], operands[1],
 	       operands[2], boardcast_scalar, operands[4], operands[5],
 	       operands[6], operands[7]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[7])))
     DONE;
 })
 
@@ -3342,7 +3349,8 @@
 	[] (rtx *operands, rtx boardcast_scalar) {
 	  emit_insn (gen_pred_madc<mode> (operands[0], operands[1],
 	       boardcast_scalar, operands[3], operands[4], operands[5]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[5])))
     DONE;
 })
 
@@ -3411,7 +3419,8 @@
 	[] (rtx *operands, rtx boardcast_scalar) {
 	  emit_insn (gen_pred_msbc<mode> (operands[0], operands[1],
 	       boardcast_scalar, operands[3], operands[4], operands[5]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[5])))
     DONE;
 })
 
@@ -3553,7 +3562,8 @@
 	[] (rtx *operands, rtx boardcast_scalar) {
 	  emit_insn (gen_pred_madc<mode>_overflow (operands[0], operands[1],
 	       boardcast_scalar, operands[3], operands[4]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[4])))
     DONE;
 })
 
@@ -3619,7 +3629,8 @@
 	[] (rtx *operands, rtx boardcast_scalar) {
 	  emit_insn (gen_pred_msbc<mode>_overflow (operands[0], operands[1],
 	       boardcast_scalar, operands[3], operands[4]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[4])))
     DONE;
 })
 
@@ -4130,7 +4141,8 @@
 	  emit_insn (gen_pred_<optab><mode> (operands[0], operands[1],
 	       operands[2], operands[3], boardcast_scalar, operands[5],
 	       operands[6], operands[7], operands[8]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[8])))
     DONE;
 })
 
@@ -4205,7 +4217,8 @@
 	  emit_insn (gen_pred_<optab><mode> (operands[0], operands[1],
 	       operands[2], operands[3], boardcast_scalar, operands[5],
 	       operands[6], operands[7], operands[8]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[8])))
     DONE;
 })
 
@@ -4350,7 +4363,8 @@
 	  emit_insn (gen_pred_<sat_op><mode> (operands[0], operands[1],
 	       operands[2], operands[3], boardcast_scalar, operands[5],
 	       operands[6], operands[7], operands[8], operands[9]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[8])))
     DONE;
 })
 
@@ -4816,7 +4830,8 @@
 	    emit_insn (gen_pred_cmp<mode> (operands[0], operands[1],
 	    	operands[2], operands[3], operands[4], boardcast_scalar,
 	  	operands[6], operands[7], operands[8]));
-          }))
+          },
+	(riscv_vector::avl_type) INTVAL (operands[8])))
     DONE;
 })
 
@@ -4848,7 +4863,8 @@
 	  emit_insn (gen_pred_cmp<mode> (operands[0], operands[1],
 	  	operands[2], operands[3], operands[4], boardcast_scalar,
 		operands[6], operands[7], operands[8]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[8])))
     DONE;
 })
 
@@ -5471,7 +5487,8 @@
 	  emit_insn (gen_pred_mul_plus<mode> (operands[0], operands[1],
 	       boardcast_scalar, operands[3], operands[4], operands[5],
 	       operands[6], operands[7], operands[8], operands[9]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[9])))
     DONE;
 })
 
@@ -5768,7 +5785,8 @@
 	  emit_insn (gen_pred_minus_mul<mode> (operands[0], operands[1],
 	       boardcast_scalar, operands[3], operands[4], operands[5],
 	       operands[6], operands[7], operands[8], operands[9]));
-        }))
+        },
+	(riscv_vector::avl_type) INTVAL (operands[9])))
     DONE;
 })
 
