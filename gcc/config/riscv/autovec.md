@@ -2518,8 +2518,7 @@
    (match_operand:V_VLS_F_CONVERT_SI 1 "register_operand")]
   "TARGET_VECTOR && !flag_trapping_math && !flag_rounding_math"
   {
-    riscv_vector::expand_vec_lrint (operands[0], operands[1], <MODE>mode,
-				    <V_F2SI_CONVERT>mode, VOIDmode);
+    riscv_vector::expand_vec_lrint (operands[0], operands[1], <MODE>mode, <V_F2SI_CONVERT>mode);
     DONE;
   }
 )
@@ -2529,9 +2528,7 @@
    (match_operand:V_VLS_F_CONVERT_DI 1 "register_operand")]
   "TARGET_VECTOR && !flag_trapping_math && !flag_rounding_math"
   {
-    riscv_vector::expand_vec_lrint (operands[0], operands[1], <MODE>mode,
-				    <V_F2DI_CONVERT>mode,
-				    <V_F2DI_CONVERT_BRIDGE>mode);
+    riscv_vector::expand_vec_lrint (operands[0], operands[1], <MODE>mode, <V_F2DI_CONVERT>mode);
     DONE;
   }
 )
@@ -2541,8 +2538,7 @@
    (match_operand:V_VLS_F_CONVERT_SI 1 "register_operand")]
   "TARGET_VECTOR && !flag_trapping_math && !flag_rounding_math"
   {
-    riscv_vector::expand_vec_lround (operands[0], operands[1], <MODE>mode,
-				     <V_F2SI_CONVERT>mode, VOIDmode);
+    riscv_vector::expand_vec_lround (operands[0], operands[1], <MODE>mode, <V_F2SI_CONVERT>mode);
     DONE;
   }
 )
@@ -2552,10 +2548,7 @@
    (match_operand:V_VLS_F_CONVERT_DI 1 "register_operand")]
   "TARGET_VECTOR && !flag_trapping_math && !flag_rounding_math"
   {
-    riscv_vector::expand_vec_lround (operands[0], operands[1], <MODE>mode,
-				     <V_F2DI_CONVERT>mode,
-				     <V_F2DI_CONVERT_BRIDGE>mode);
-
+    riscv_vector::expand_vec_lround (operands[0], operands[1], <MODE>mode, <V_F2DI_CONVERT>mode);
     DONE;
   }
 )
