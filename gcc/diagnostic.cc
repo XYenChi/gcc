@@ -40,6 +40,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "selftest-diagnostic.h"
 #include "opts.h"
 #include "cpplib.h"
+#include "text-art/theme.h"
+#include "pretty-print-urlifier.h"
 
 #ifdef HAVE_TERMIOS_H
 # include <termios.h>
@@ -188,40 +190,42 @@ diagnostic_initialize (diagnostic_context *context, int n_opts)
   context->show_caret = false;
   diagnostic_set_caret_max_width (context, pp_line_cutoff (context->printer));
   for (i = 0; i < rich_location::STATICALLY_ALLOCATED_RANGES; i++)
-    context->caret_chars[i] = '^';
-  context->show_cwe = false;
-  context->path_format = DPF_NONE;
-  context->show_path_depths = false;
-  context->show_option_requested = false;
-  context->abort_on_error = false;
-  context->show_column = false;
-  context->pedantic_errors = false;
-  context->permissive = false;
-  context->opt_permissive = 0;
-  context->fatal_errors = false;
-  context->dc_inhibit_warnings = false;
-  context->dc_warn_system_headers = false;
-  context->max_errors = 0;
-  context->internal_error = NULL;
-  diagnostic_starter (context) = default_diagnostic_starter;
-  context->start_span = default_diagnostic_start_span_fn;
-  diagnostic_finalizer (context) = default_diagnostic_finalizer;
-  context->option_enabled = NULL;
-  context->option_state = NULL;
-  context->option_name = NULL;
-  context->get_option_url = NULL;
-  context->last_location = UNKNOWN_LOCATION;
-  context->last_module = 0;
-  context->x_data = NULL;
-  context->lock = 0;
-  context->inhibit_notes_p = false;
-  context->colorize_source_p = false;
-  context->show_labels_p = false;
-  context->show_line_numbers_p = false;
-  context->min_margin_width = 0;
-  context->show_ruler_p = false;
-  context->report_bug = false;
-
+    m_source_printing.caret_chars[i] = '^';
+  m_show_cwe = false;
+  m_show_rules = false;
+  m_path_format = DPF_NONE;
+  m_show_path_depths = false;
+  m_show_option_requested = false;
+  m_abort_on_error = false;
+  m_show_column = false;
+  m_pedantic_errors = false;
+  m_permissive = false;
+  m_opt_permissive = 0;
+  m_fatal_errors = false;
+  m_inhibit_warnings = false;
+  m_warn_system_headers = false;
+  m_max_errors = 0;
+  m_internal_error = nullptr;
+  m_text_callbacks.begin_diagnostic = default_diagnostic_starter;
+  m_text_callbacks.start_span = default_diagnostic_start_span_fn;
+  m_text_callbacks.end_diagnostic = default_diagnostic_finalizer;
+  m_option_enabled = nullptr;
+  m_option_state = nullptr;
+  m_option_name = nullptr;
+  m_get_option_url = nullptr;
+  m_urlifier = nullptr;
+  m_last_location = UNKNOWN_LOCATION;
+  m_last_module = nullptr;
+  m_client_aux_data = nullptr;
+  m_lock = 0;
+  m_inhibit_notes_p = false;
+  m_source_printing.colorize_source_p = false;
+  m_source_printing.show_labels_p = false;
+  m_source_printing.show_line_numbers_p = false;
+  m_source_printing.min_margin_width = 0;
+  m_source_printing.show_ruler_p = false;
+  m_report_bug = false;
+  m_extra_output_kind = EXTRA_DIAGNOSTIC_OUTPUT_none;
   if (const char *var = getenv ("GCC_EXTRA_DIAGNOSTIC_OUTPUT"))
     {
       if (!strcmp (var, "fixits-v1"))
@@ -339,6 +343,38 @@ diagnostic_finish (diagnostic_context *context)
       delete context->includes_seen;
       context->includes_seen = nullptr;
     }
+
+  if (m_client_data_hooks)
+    {
+      delete m_client_data_hooks;
+      m_client_data_hooks = nullptr;
+    }
+
+  delete m_urlifier;
+  m_urlifier = nullptr;
+}
+
+void
+diagnostic_context::set_output_format (diagnostic_output_format *output_format)
+{
+  /* Ideally we'd use a std::unique_ptr here.  */
+  delete m_output_format;
+  m_output_format = output_format;
+}
+
+void
+diagnostic_context::set_client_data_hooks (diagnostic_client_data_hooks *hooks)
+{
+  /* Ideally we'd use a std::unique_ptr here.  */
+  delete m_client_data_hooks;
+  m_client_data_hooks = hooks;
+}
+
+void
+diagnostic_context::create_edit_context ()
+{
+  delete m_edit_context_ptr;
+  m_edit_context_ptr = new edit_context ();
 }
 
 /* Initialize DIAGNOSTIC, where the message MSG has already been
@@ -1383,8 +1419,8 @@ diagnostic_report_diagnostic (diagnostic_context *context,
   context->diagnostic_group_emission_count++;
 
   pp_format (this->printer, &diagnostic->message, m_urlifier);
-  m_output_format->on_begin_diagnostic (*diagnostic);
-  pp_output_formatted_text (this->printer, m_urlifier);
+  m_output_format->on_begin_diagnostic (diagnostic);
+  pp_output_formatted_text (this->printer);
   if (m_show_cwe)
     print_any_cwe (*diagnostic);
   if (m_show_rules)

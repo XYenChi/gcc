@@ -90,6 +90,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "ipa-modref.h"
 #include "ipa-param-manipulation.h"
 #include "dbgcnt.h"
+#include "gcc-urlifier.h"
 
 #include "selftest.h"
 
@@ -1042,11 +1043,12 @@ general_init (const char *argv0, bool init_signals)
     = global_options_init.x_diagnostics_minimum_margin_width;
   global_dc->show_column
     = global_options_init.x_flag_show_column;
-  global_dc->internal_error = internal_error_function;
-  global_dc->option_enabled = option_enabled;
-  global_dc->option_state = &global_options;
-  global_dc->option_name = option_name;
-  global_dc->get_option_url = get_option_url;
+  global_dc->m_internal_error = internal_error_function;
+  global_dc->m_option_enabled = option_enabled;
+  global_dc->m_option_state = &global_options;
+  global_dc->m_option_name = option_name;
+  global_dc->m_get_option_url = get_option_url;
+  global_dc->m_urlifier = make_gcc_urlifier ();
 
   if (init_signals)
     {

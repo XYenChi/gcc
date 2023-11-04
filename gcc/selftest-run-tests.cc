@@ -118,6 +118,9 @@ selftest::run_tests ()
   /* Run any lang-specific selftests.  */
   lang_hooks.run_lang_selftests ();
 
+  text_art_tests ();
+  gcc_urlifier_cc_tests ();
+
   /* Run the analyzer selftests (if enabled).  */
   ana::selftest::run_analyzer_selftests ();
 

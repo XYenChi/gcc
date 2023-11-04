@@ -24,6 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "intl.h"
 #include "pretty-print.h"
+#include "pretty-print-urlifier.h"
 #include "diagnostic-color.h"
 #include "diagnostic-event-id.h"
 #include "selftest.h"
@@ -1031,16 +1032,7 @@ obstack_append_string (obstack *ostack, const char *str)
   obstack_grow (ostack, str, strlen (str));
 }
 
-/* Append STR to OSTACK, without a null-terminator.  */
-
-static void
-obstack_append_string (obstack *ostack, const char *str, size_t len)
-{
-  obstack_grow (ostack, str, len);
-}
-
-/* Given quoted text within the buffer OBSTACK
-   at the half-open interval [QUOTED_TEXT_START_IDX, QUOTED_TEXT_END_IDX),
+/* Given quoted text starting at QUOTED_TEXT_START_IDX within PP's buffer,
    potentially use URLIFIER (if non-null) to see if there's a URL for the
    quoted text.
 
@@ -1048,45 +1040,47 @@ obstack_append_string (obstack *ostack, const char *str, size_t len)
    version of the text, using PP's settings.
 
    For example, given this is the buffer:
-     "this is a test `hello worldTRAILING-CONTENT"
+     "this is a test `hello world"
      .................^~~~~~~~~~~
    with the quoted text starting at the 'h' of "hello world", the buffer
    becomes:
-     "this is a test `BEGIN_URL(URL)hello worldEND(URL)TRAILING-CONTENT"
+     "this is a test `BEGIN_URL(URL)hello worldEND(URL)"
      .................^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      .................-----------replacement-----------
+*/
 
-   Return the new offset into the buffer of the quoted text endpoint i.e.
-   the offset of "TRAILING-CONTENT" in the above.  */
-
-static size_t
+static void
 urlify_quoted_string (pretty_printer *pp,
-		      obstack *obstack,
 		      const urlifier *urlifier,
-		      size_t quoted_text_start_idx,
-		      size_t quoted_text_end_idx)
+		      size_t quoted_text_start_idx)
 {
   if (pp->url_format == URL_FORMAT_NONE)
-    return quoted_text_end_idx;
+    return;
   if (!urlifier)
-    return quoted_text_end_idx;
+    return;
 
-  const size_t quoted_len = quoted_text_end_idx - quoted_text_start_idx;
-  if (quoted_len == 0)
+  output_buffer * const buffer = pp_buffer (pp);
+
+  /* Get end of quoted string.  */
+  const size_t close_quote_idx
+    = obstack_object_size (&buffer->chunk_obstack);
+  gcc_assert (close_quote_idx >= quoted_text_start_idx);
+  if (close_quote_idx == quoted_text_start_idx)
     /* Empty quoted string; do nothing.  */
-    return quoted_text_end_idx;
-  const char *start = (obstack->object_base + quoted_text_start_idx);
-  char *url = urlifier->get_url_for_quoted_text (start, quoted_len);
+    return;
+  const size_t len = close_quote_idx - quoted_text_start_idx;
+  const char *start = (buffer->chunk_obstack.object_base
+		       + quoted_text_start_idx);
+  char *url = urlifier->get_url_for_quoted_text (start, len);
   if (!url)
     /* No URL for this quoted text; do nothing.  */
-    return quoted_text_end_idx;
+    return;
 
-  /* Stash a copy of the remainder of the chunk.  */
-  char *text = xstrndup (start,
-			 obstack_object_size (obstack) - quoted_text_start_idx);
+  /* Stash a copy of the quoted text.  */
+  char *text = xstrndup (start, len);
 
   /* Replace quoted text...  */
-  obstack->next_free = obstack->object_base + quoted_text_start_idx;
+  buffer->chunk_obstack.next_free -= len;
 
   /*  ...with URLified version of the text.  */
   /* Begin URL.  */
@@ -1096,136 +1090,27 @@ urlify_quoted_string (pretty_printer *pp,
     case URL_FORMAT_NONE:
       gcc_unreachable ();
     case URL_FORMAT_ST:
-      obstack_append_string (obstack, "\33]8;;");
-      obstack_append_string (obstack, url);
-      obstack_append_string (obstack, "\33\\");
+      obstack_append_string (&buffer->chunk_obstack,
+			     "\33]8;;");
+      obstack_append_string (&buffer->chunk_obstack, url);
+      obstack_append_string (&buffer->chunk_obstack,
+			     "\33\\");
       break;
     case URL_FORMAT_BEL:
-      obstack_append_string (obstack, "\33]8;;");
-      obstack_append_string (obstack, url);
-      obstack_append_string (obstack, "\a");
+      obstack_append_string (&buffer->chunk_obstack,
+			     "\33]8;;");
+      obstack_append_string (&buffer->chunk_obstack, url);
+      obstack_append_string (&buffer->chunk_obstack,
+			     "\a");
       break;
     }
-  /* Add back the quoted part of the text.  */
-  obstack_append_string (obstack, text, quoted_len);
+  /* Add the text back.  */
+  obstack_append_string (&buffer->chunk_obstack, text);
   /* End URL.  */
-  obstack_append_string (obstack,
+  obstack_append_string (&buffer->chunk_obstack,
 			 get_end_url_string (pp));
-
-  size_t new_end_idx = obstack_object_size (obstack);
-
-  /* Add back the remainder of the text after the quoted part.  */
-  obstack_append_string (obstack, text + quoted_len);
   free (text);
   free (url);
-  return new_end_idx;
-}
-
-/* A class for tracking quoted text within a buffer for
-   use by a urlifier.  */
-
-class quoting_info
-{
-public:
-  /* Called when quoted text is begun in phase 1 or 2.  */
-  void on_begin_quote (const output_buffer &buf,
-		       unsigned chunk_idx)
-  {
-    /* Stash location of start of quoted string.  */
-    size_t byte_offset = obstack_object_size (&buf.chunk_obstack);
-    m_loc_last_open_quote = location (chunk_idx, byte_offset);
-  }
-
-  /* Called when quoted text is ended in phase 1 or 2.  */
-  void on_end_quote (pretty_printer *pp,
-		     output_buffer &buf,
-		     unsigned chunk_idx,
-		     const urlifier &urlifier)
-  {
-    /* If possible, do urlification now.  */
-    if (chunk_idx == m_loc_last_open_quote.m_chunk_idx)
-      {
-	urlify_quoted_string (pp,
-			      &buf.chunk_obstack,
-			      &urlifier,
-			      m_loc_last_open_quote.m_byte_offset,
-			      obstack_object_size (&buf.chunk_obstack));
-	m_loc_last_open_quote = location ();
-	return;
-      }
-    /* Otherwise the quoted text straddles multiple chunks.
-       Stash the location of end of quoted string for use in phase 3.  */
-    size_t byte_offset = obstack_object_size (&buf.chunk_obstack);
-    m_phase_3_quotes.push_back (run (m_loc_last_open_quote,
-				     location (chunk_idx, byte_offset)));
-    m_loc_last_open_quote = location ();
-  }
-
-  bool has_phase_3_quotes_p () const
-  {
-    return m_phase_3_quotes.size () > 0;
-  }
-  void handle_phase_3 (pretty_printer *pp,
-		       const urlifier &urlifier);
-
-private:
-  struct location
-  {
-    location ()
-    : m_chunk_idx (UINT_MAX),
-      m_byte_offset (SIZE_MAX)
-    {
-    }
-
-    location (unsigned chunk_idx,
-	      size_t byte_offset)
-    : m_chunk_idx (chunk_idx),
-      m_byte_offset (byte_offset)
-    {
-    }
-
-    unsigned m_chunk_idx;
-    size_t m_byte_offset;
-  };
-
-  struct run
-  {
-    run (location start, location end)
-    : m_start (start), m_end (end)
-    {
-    }
-
-    location m_start;
-    location m_end;
-  };
-
-  location m_loc_last_open_quote;
-  std::vector<run> m_phase_3_quotes;
-};
-
-static void
-on_begin_quote (const output_buffer &buf,
-		unsigned chunk_idx,
-		const urlifier *urlifier)
-{
-  if (!urlifier)
-    return;
-  if (!buf.cur_chunk_array->m_quotes)
-    buf.cur_chunk_array->m_quotes = new quoting_info ();
-  buf.cur_chunk_array->m_quotes->on_begin_quote (buf, chunk_idx);
-}
-
-static void
-on_end_quote (pretty_printer *pp,
-	      output_buffer &buf,
-	      unsigned chunk_idx,
-	      const urlifier *urlifier)
-{
-  if (!urlifier)
-    return;
-  if (!buf.cur_chunk_array->m_quotes)
-    buf.cur_chunk_array->m_quotes = new quoting_info ();
-  buf.cur_chunk_array->m_quotes->on_end_quote (pp, buf, chunk_idx, *urlifier);
 }
 
 /* The following format specifiers are recognized as being client independent:
@@ -1277,17 +1162,18 @@ on_end_quote (pretty_printer *pp,
      "before %<quoted%> after"
    with a URLIFIER that has a URL for "quoted" might be emitted as:
      "before `BEGIN_URL(http://example.com)quotedEND_URL' after"
-   This is handled here for message fragments that are:
+   This only works for message fragments that are:
    - quoted entirely in phase 1 (e.g. "%<this is quoted%>"), or
    - quoted entirely in phase 2 (e.g. "%qs"),
-   Quoted fragments that use a mixture of both phases
-   (e.g. "%<this is a mixture: %s %>")
-   are stashed into the output_buffer's m_quotes for use in phase 3.  */
+   but *not* in strings that use a mixture of both phases
+   (e.g. "%<this is a mixture: %s %>").   */
 
 void
-pp_format (pretty_printer *pp, text_info *text)
+pp_format (pretty_printer *pp,
+	   text_info *text,
+	   const urlifier *urlifier)
 {
-  output_buffer *buffer = pp_buffer (pp);
+  output_buffer * const buffer = pp_buffer (pp);
   const char *p;
   const char **args;
   struct chunk_info *new_chunk_array;
@@ -1296,6 +1182,9 @@ pp_format (pretty_printer *pp, text_info *text)
   pp_wrapping_mode_t old_wrapping_mode;
   bool any_unnumbered = false, any_numbered = false;
   const char **formatters[PP_NL_ARGMAX];
+
+  /* Keep track of location of last "%", if any.  */
+  size_t quoted_text_start_idx = 0;
 
   /* Allocate a new chunk structure.  */
   new_chunk_array = XOBNEW (&buffer->chunk_obstack, struct chunk_info);
@@ -1343,14 +1232,20 @@ pp_format (pretty_printer *pp, text_info *text)
 	    obstack_grow (&buffer->chunk_obstack, colorstr, strlen (colorstr));
 	    p++;
 
-	    on_begin_quote (*buffer, chunk, urlifier);
+	    /* Stash offset of start of quoted string.  */
+	    quoted_text_start_idx
+	      = obstack_object_size (&buffer->chunk_obstack);
+
 	    continue;
 	  }
 
 	case '>':
 	  {
-	    on_end_quote (pp, *buffer, chunk, urlifier);
-
+	    if (quoted_text_start_idx)
+	      {
+		urlify_quoted_string (pp, urlifier, quoted_text_start_idx);
+		quoted_text_start_idx = 0;
+	      }
 	    const char *colorstr = colorize_stop (pp_show_color (pp));
 	    obstack_grow (&buffer->chunk_obstack, colorstr, strlen (colorstr));
 	  }
@@ -1391,6 +1286,12 @@ pp_format (pretty_printer *pp, text_info *text)
 	  /* Handled in phase 2.  Terminate the plain chunk here.  */
 	  obstack_1grow (&buffer->chunk_obstack, '\0');
 	  args[chunk++] = XOBFINISH (&buffer->chunk_obstack, const char *);
+	  /* We can't yet handle urlifying quoted strings that use
+	     a combination of phase 1 and phase 2 e.g.
+	     "did you mean %<-%s%>".
+	     Stop any phase 1 quoted text if there are going to be any
+	     phase 2 quoted chunks.  */
+	  quoted_text_start_idx = 0;
 	  break;
 	}
 
@@ -1493,6 +1394,7 @@ pp_format (pretty_printer *pp, text_info *text)
       bool plus = false;
       bool hash = false;
       bool quote = false;
+      quoted_text_start_idx = 0;
 
       /* We do not attempt to enforce any ordering on the modifier
 	 characters.  */
@@ -1535,7 +1437,8 @@ pp_format (pretty_printer *pp, text_info *text)
       if (quote)
 	{
 	  pp_begin_quote (pp, pp_show_color (pp));
-	  on_begin_quote (*buffer, chunk, urlifier);
+	  quoted_text_start_idx
+	    = obstack_object_size (&buffer->chunk_obstack);
 	}
 
       switch (*p)
@@ -1707,7 +1610,11 @@ pp_format (pretty_printer *pp, text_info *text)
 
       if (quote)
 	{
-	  on_end_quote (pp, *buffer, chunk, urlifier);
+	  if (quoted_text_start_idx)
+	    {
+	      urlify_quoted_string (pp, urlifier, quoted_text_start_idx);
+	      quoted_text_start_idx = 0;
+	    }
 	  pp_end_quote (pp, pp_show_color (pp));
 	}
 
@@ -1863,7 +1770,7 @@ pp_output_formatted_text (pretty_printer *pp,
 			  const urlifier *urlifier)
 {
   unsigned int chunk;
-  output_buffer *buffer = pp_buffer (pp);
+  output_buffer * const buffer = pp_buffer (pp);
   struct chunk_info *chunk_array = buffer->cur_chunk_array;
   const char **args = chunk_array->args;
 
@@ -2983,7 +2890,7 @@ pp_printf_with_urlifier (pretty_printer *pp,
   va_start (ap, msg);
   text_info text (msg, &ap, errno);
   pp_format (pp, &text, urlifier);
-  pp_output_formatted_text (pp, urlifier);
+  pp_output_formatted_text (pp);
   va_end (ap);
 }
 
@@ -3059,71 +2966,9 @@ test_urlification ()
     pp_printf_with_urlifier (&pp, &urlifier,
 			     "foo %<-f%s%> bar",
 			     "option");
+    /* We don't support this, but make sure we don't crash.  */
     ASSERT_STREQ
-      ("foo `\33]8;;http://example.com\33\\-foption\33]8;;\33\\' bar",
-       pp_formatted_text (&pp));
-  }
-
-  /* Likewise, where there is trailing phase 1 content within the
-     quoted region.  */
-  {
-    pretty_printer pp;
-    pp.url_format = URL_FORMAT_ST;
-    pp_printf_with_urlifier (&pp, &urlifier,
-			     "foo %<-f%sion%> bar %<-f%sion%> baz",
-			     "opt", "opt");
-    ASSERT_STREQ
-      ("foo `\33]8;;http://example.com\33\\-foption\33]8;;\33\\' bar `\33]8;;http://example.com\33\\-foption\33]8;;\33\\' baz",
-       pp_formatted_text (&pp));
-  }
-
-  /* Likewise.  */
-  {
-    pretty_printer pp;
-    pp.url_format = URL_FORMAT_ST;
-    pp_printf_with_urlifier (&pp, &urlifier,
-			     "foo %<%sption%> bar %<-f%sion%> baz",
-			     "-fo", "opt");
-    ASSERT_STREQ
-      ("foo `\33]8;;http://example.com\33\\-foption\33]8;;\33\\' bar `\33]8;;http://example.com\33\\-foption\33]8;;\33\\' baz",
-       pp_formatted_text (&pp));
-  }
-
-  /* Another mixed usage of %< and %s, where the quoted string is built
-     between a mixture of phase 1 and multiple phase 2.  */
-  {
-    pretty_printer pp;
-    pp.url_format = URL_FORMAT_ST;
-    pp_printf_with_urlifier (&pp, &urlifier,
-			     "foo %<-f%s%s%> bar",
-			     "opt", "ion");
-    ASSERT_STREQ
-      ("foo `\33]8;;http://example.com\33\\-foption\33]8;;\33\\' bar",
-       pp_formatted_text (&pp));
-  }
-
-  /* Mixed usage of %< and %s with a prefix.  */
-  {
-    pretty_printer pp;
-    pp.url_format = URL_FORMAT_ST;
-    pp_set_prefix (&pp, xstrdup ("PREFIX"));
-    pp_printf_with_urlifier (&pp, &urlifier,
-			     "foo %<-f%s%> bar",
-			     "option");
-    ASSERT_STREQ
-      ("PREFIXfoo `\33]8;;http://example.com\33\\-foption\33]8;;\33\\' bar",
-       pp_formatted_text (&pp));
-  }
-
-  /* Example of mixed %< and %s with numbered args.  */
-  {
-    pretty_printer pp;
-    pp.url_format = URL_FORMAT_ST;
-    pp_printf_with_urlifier (&pp, &urlifier,
-			     "foo %<-f%2$st%1$sn%> bar",
-			     "io", "op");
-    ASSERT_STREQ
-      ("foo `\33]8;;http://example.com\33\\-foption\33]8;;\33\\' bar",
+      ("foo `-foption' bar",
        pp_formatted_text (&pp));
   }
 }
@@ -3177,6 +3022,8 @@ pretty_print_cc_tests ()
   test_pp_format ();
   test_prefixes_and_wrapping ();
   test_urls ();
+  test_null_urls ();
+  test_urlification ();
   test_utf8 ();
 }
 
