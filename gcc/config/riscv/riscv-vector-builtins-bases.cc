@@ -2453,6 +2453,7 @@ static CONSTEXPR const vfncvt_f<NO_FRM> vfncvt_f_obj;
 static CONSTEXPR const vfncvt_f<HAS_FRM> vfncvt_f_frm_obj;
 static CONSTEXPR const vfncvt_rod_f vfncvt_rod_f_obj;
 <<<<<<< HEAD
+<<<<<<< HEAD
 static CONSTEXPR const reducop<PLUS> vredsum_obj;
 static CONSTEXPR const reducop<UMAX> vredmaxu_obj;
 static CONSTEXPR const reducop<SMAX> vredmax_obj;
@@ -2475,6 +2476,8 @@ static CONSTEXPR const widen_freducop<UNSPEC_UNORDERED> vfwredsum_obj; /*RVV 0.7
 static CONSTEXPR const widen_freducop<UNSPEC_ORDERED> vfwredosum_obj;
 static CONSTEXPR const widen_freducop<UNSPEC_ORDERED, HAS_FRM> vfwredosum_frm_obj;
 =======
+=======
+>>>>>>> xyenchi/test-xtheadv
 static CONSTEXPR const reducop<UNSPEC_REDUC_SUM> vredsum_obj;
 static CONSTEXPR const reducop<UNSPEC_REDUC_MAXU> vredmaxu_obj;
 static CONSTEXPR const reducop<UNSPEC_REDUC_MAX> vredmax_obj;
@@ -2495,7 +2498,10 @@ static CONSTEXPR const freducop<UNSPEC_WREDUC_SUM_UNORDERED> vfwredusum_obj;
 static CONSTEXPR const freducop<UNSPEC_WREDUC_SUM_UNORDERED, HAS_FRM> vfwredusum_frm_obj;
 static CONSTEXPR const freducop<UNSPEC_WREDUC_SUM_ORDERED> vfwredosum_obj;
 static CONSTEXPR const freducop<UNSPEC_WREDUC_SUM_ORDERED, HAS_FRM> vfwredosum_frm_obj;
+<<<<<<< HEAD
 >>>>>>> 6223ea766da (RISC-V: Refactor vector reduction patterns)
+=======
+>>>>>>> xyenchi/test-xtheadv
 static CONSTEXPR const vmv vmv_x_obj;
 static CONSTEXPR const vmv_s vmv_s_obj;
 static CONSTEXPR const vmv vfmv_f_obj;
@@ -2772,7 +2778,11 @@ BASE (vfredmin)
 BASE (vfwredosum)
 BASE (vfwredosum_frm)
 BASE (vfwredusum)
+<<<<<<< HEAD
 BASE (vfwredsum)
+=======
+BASE (vfwredusum_frm)
+>>>>>>> xyenchi/test-xtheadv
 BASE (vmv_x)
 BASE (vmv_s)
 BASE (vfmv_f)

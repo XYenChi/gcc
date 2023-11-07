@@ -329,6 +329,8 @@ static const struct riscv_ext_version riscv_ext_version_table[] =
 
   {"xventanacondops", ISA_SPEC_CLASS_NONE, 1, 0},
 
+  {"xventanacondops", ISA_SPEC_CLASS_NONE, 1, 0},
+
   /* Terminate the list.  */
   {NULL, ISA_SPEC_CLASS_NONE, 0, 0}
 };
@@ -1682,6 +1684,8 @@ static const riscv_ext_flag_table_t riscv_ext_flag_table[] =
   {"xtheadmempair", &gcc_options::x_riscv_xthead_subext, MASK_XTHEADMEMPAIR},
   {"xtheadsync",    &gcc_options::x_riscv_xthead_subext, MASK_XTHEADSYNC},
   {"xtheadv",    &gcc_options::x_riscv_xthead_subext, MASK_XTHEADV},
+
+  {"xventanacondops", &gcc_options::x_riscv_xventana_subext, MASK_XVENTANACONDOPS},
 
   {"xventanacondops", &gcc_options::x_riscv_xventana_subext, MASK_XVENTANACONDOPS},
 

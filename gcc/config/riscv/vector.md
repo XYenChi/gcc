@@ -1903,26 +1903,6 @@
   [(set_attr "type" "vimerge")
    (set_attr "mode" "<MODE>")])
 
-(define_insn "@pred_merge<mode>_scalar"
-  [(set (match_operand:V_VLSI_QHS 0 "register_operand"   "=vd,vd")
-    (if_then_else:V_VLSI_QHS
-      (unspec:<VM>
-        [(match_operand 5 "vector_length_operand"    " rK,rK")
-         (match_operand 6 "const_int_operand"        "  i, i")
-         (match_operand 7 "const_int_operand"        "  i, i")
-         (reg:SI VL_REGNUM)
-         (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE)
-      (vec_merge:V_VLSI_QHS
-	(vec_duplicate:V_VLSI_QHS
-          (match_operand:<VEL> 3 "register_operand"  "  r, r"))
-        (match_operand:V_VLSI_QHS 2 "register_operand"   " vr,vr")
-	(match_operand:<VM> 4 "register_operand"     " vm,vm"))
-      (match_operand:V_VLSI_QHS 1 "vector_merge_operand" " vu, 0")))]
-  "TARGET_VECTOR || TARGET_XTHEADV"
-  "vmerge.vxm\t%0,%2,%3,%4"
-  [(set_attr "type" "vimerge")
-   (set_attr "mode" "<MODE>")])
-
 (define_expand "@pred_merge<mode>_scalar"
   [(set (match_operand:V_VLSI_D 0 "register_operand")
     (if_then_else:V_VLSI_D
@@ -1990,13 +1970,8 @@
             (match_operand:<VSUBEL> 3 "register_operand" "  r, r")))
         (match_operand:V_VLSI_D 2 "register_operand"         " vr,vr")
 	(match_operand:<VM> 4 "register_operand"         " vm,vm"))
-<<<<<<< HEAD
       (match_operand:VI_D 1 "vector_merge_operand"       " vu, 0")))]
   "TARGET_VECTOR || TARGET_XTHEADV"
-=======
-      (match_operand:V_VLSI_D 1 "vector_merge_operand"       " vu, 0")))]
-  "TARGET_VECTOR"
->>>>>>> 1f9bf6f372d (RISC-V: Support VLS modes vec_init auto-vectorization)
   "vmerge.vxm\t%0,%2,%3,%4"
   [(set_attr "type" "vimerge")
    (set_attr "mode" "<MODE>")])

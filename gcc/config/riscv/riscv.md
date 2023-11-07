@@ -428,11 +428,14 @@
 ;; vgather      vector register gather instructions
 ;; vcompress    vector compress instruction
 ;; vmov         whole vector register move
+<<<<<<< HEAD
 ;; Classification of RVV 0.7.1 for XTHREADV instructions which will be added to each RVV .md pattern and used by scheduler.
 ;; 12. Vector integer arithmetic instructions
 ;; 19. Vector dot product instructions
 ;; vidot        vector integer dot product instruction
 ;; vfdot        floating-point signed dot-product 
+=======
+>>>>>>> xyenchi/test-xtheadv
 ;; vector       unknown vector instruction
 (define_attr "type"
   "unknown,branch,jump,jalr,ret,call,load,fpload,store,fpstore,
