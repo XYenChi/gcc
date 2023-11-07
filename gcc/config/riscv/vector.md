@@ -523,7 +523,7 @@
 	 (eq_attr "mode" "RVVM4x2DF") (symbol_ref "riscv_vector::LMUL_4")
 	 (eq_attr "mode" "RVVM2x2DF") (symbol_ref "riscv_vector::LMUL_2")
 	 (eq_attr "mode" "RVVM1x2DF") (symbol_ref "riscv_vector::LMUL_1")
-     "TARGET_VECTOR || TARGET_XTHREADV"
+     "TARGET_VECTOR || TARGET_XTHEADV"
   ]))
 
 ;; It is valid for instruction that require sew/lmul ratio.
@@ -1051,14 +1051,14 @@
 (define_insn "@vlmax_avl<mode>"
   [(set (match_operand:P 0 "register_operand" "=r")
 	(unspec:P [(match_operand:P 1 "const_int_operand" "i")] UNSPEC_VLMAX))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR || TARGET_XTHEADV"
   "")
 
 ;; Set VXRM
 (define_insn "vxrmsi"
   [(set (reg:SI VXRM_REGNUM)
 	(match_operand:SI 0 "const_int_operand" "i"))]
-  "TARGET_VECTOR || TARGET_XTHREADV"
+  "TARGET_VECTOR || TARGET_XTHEADV"
   "csrwi\tvxrm,%0"
   [(set_attr "type" "wrvxrm")
    (set_attr "mode" "SI")])
@@ -1069,7 +1069,7 @@
 	(reg:SI FRM_REGNUM))
    (set (reg:SI FRM_REGNUM)
 	(match_operand:SI 1 "reg_or_int_operand" "r,i"))]
-   "TARGET_VECTOR"
+   "TARGET_VECTOR|| TARGET_XTHEADV"
   "@
    fsrm\t%0,%1
    fsrmi\t%0,%1"
@@ -1080,7 +1080,7 @@
 (define_insn "fsrmsi_restore"
   [(set (reg:SI FRM_REGNUM)
 	(match_operand:SI 0 "reg_or_int_operand" "r,i"))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR|| TARGET_XTHEADV"
   "@
    fsrm\t%0
    fsrmi\t%0"
@@ -1095,7 +1095,7 @@
   [(set (reg:SI FRM_REGNUM)
 	(unspec_volatile:SI [(match_operand:SI 0 "register_operand" "r")]
 			    UNSPECV_FRM_RESTORE_EXIT))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR|| TARGET_XTHEADV"
   "fsrm\t%0"
   [(set_attr "type" "wrfrm")
    (set_attr "mode" "SI")]
@@ -1105,7 +1105,7 @@
 (define_insn "frrmsi"
   [(set (match_operand:SI 0 "register_operand" "=r")
 	(reg:SI FRM_REGNUM))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR|| TARGET_XTHEADV"
   "frrm\t%0"
   [(set_attr "type" "rdfrm")
    (set_attr "mode" "SI")]
@@ -1468,30 +1468,6 @@
    (set (attr "ta") (symbol_ref "INTVAL (operands[4])"))
    (set (attr "ma") (symbol_ref "INTVAL (operands[5])"))])
 
-
-;; RVV 0.7.1
-(define_insn "@vsetvl<mode>"
-  [(set (match_operand:P 0 "register_operand" "=r")
-	(unspec:P [(match_operand:P 1 "csr_operand" "rK")
-		   (match_operand 2 "const_int_operand" "i")
-		   (match_operand 3 "const_int_operand" "i")
-		   (match_operand 4 "const_int_operand" "i")] UNSPEC_VSETVL))
-   (set (reg:SI VL_REGNUM)
-	(unspec:SI [(match_dup 1)
-		    (match_dup 2)
-		    (match_dup 3)] UNSPEC_VSETVL))
-   (set (reg:SI VTYPE_REGNUM)
-	(unspec:SI [(match_dup 2)
-		    (match_dup 3)
-		    (match_dup 4)] UNSPEC_VSETVL))]
-  "TARGET_XTHREADV"
-  "vset%i1vli\t%0,%1,e%2,%m3,d%4"
-  [(set_attr "type" "vsetvl")
-   (set_attr "mode" "<MODE>")
-   (set (attr "sew") (symbol_ref "INTVAL (operands[2])"))
-   (set (attr "vlmul") (symbol_ref "INTVAL (operands[3])"))
-   (set (attr "ediv") (symbol_ref "INTVAL (operands[4])"))])
-
 ;; vsetvl zero,zero,vtype instruction.
 ;; This pattern has no side effects and does not set X0 register.
 (define_insn "vsetvl_vtype_change_only"
@@ -1737,7 +1713,7 @@
         (match_operand:V 2 "register_operand"        " vr,vr,vr,vr")
 	(match_operand:<VM> 4 "register_operand"     " vm,vm,vm,vm"))
       (match_operand:V 1 "vector_merge_operand"      " vu, 0,vu, 0")))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR || TARGET_XTHEADV"
   "vmerge.v%o3m\t%0,%2,%v3,%4"
   [(set_attr "type" "vimerge")
    (set_attr "mode" "<MODE>")])
@@ -1757,7 +1733,7 @@
         (match_operand:VI_QHS 2 "register_operand"   " vr,vr")
 	(match_operand:<VM> 4 "register_operand"     " vm,vm"))
       (match_operand:VI_QHS 1 "vector_merge_operand" " vu, 0")))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR || TARGET_XTHEADV"
   "vmerge.vxm\t%0,%2,%3,%4"
   [(set_attr "type" "vimerge")
    (set_attr "mode" "<MODE>")])
@@ -1808,7 +1784,7 @@
         (match_operand:VI_D 2 "register_operand"     " vr,vr")
 	(match_operand:<VM> 4 "register_operand"     " vm,vm"))
       (match_operand:VI_D 1 "vector_merge_operand"   " vu, 0")))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR || TARGET_XTHEADV"
   "vmerge.vxm\t%0,%2,%3,%4"
   [(set_attr "type" "vimerge")
    (set_attr "mode" "<MODE>")])
@@ -1829,7 +1805,7 @@
         (match_operand:VI_D 2 "register_operand"         " vr,vr")
 	(match_operand:<VM> 4 "register_operand"         " vm,vm"))
       (match_operand:VI_D 1 "vector_merge_operand"       " vu, 0")))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR || TARGET_XTHEADV"
   "vmerge.vxm\t%0,%2,%3,%4"
   [(set_attr "type" "vimerge")
    (set_attr "mode" "<MODE>")])
@@ -2006,7 +1982,7 @@
 	    (sign_extend:<VEL>
 	      (match_operand:<VSUBEL> 3 "register_operand"          " r,  r,  r,  r")))
 	  (match_operand:V_VLSI_D 2 "vector_merge_operand"          "vu,  0, vu,  0")))]
-  "TARGET_VECTOR"
+  "TARGET_VECTOR || TARGET_XTHEADV"
   "@
    vmv.v.x\t%0,%3
    vmv.v.x\t%0,%3
@@ -8252,7 +8228,7 @@
 	     (match_operand:VF 1 "reg_or_mem_operand")
 	     (parallel [(const_int 0)]))
 	   (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE))]
-  "TARGET_VECTOR || TARGET_XTHREADV"
+  "TARGET_VECTOR || TARGET_XTHEADV"
 {
   if (MEM_P (operands[1]))
     {
@@ -8269,7 +8245,7 @@
 	     (match_operand:VF 1 "register_operand" "vr")
 	     (parallel [(const_int 0)]))
 	   (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE))]
-  "TARGET_VECTOR || TARGET_XTHREADV"
+  "TARGET_VECTOR || TARGET_XTHEADV"
   "vfmv.f.s\t%0,%1"
   [(set_attr "type" "vfmovvf")
    (set_attr "mode" "<MODE>")])
@@ -8289,7 +8265,7 @@
 	   (match_operand:V 2 "vector_merge_operand"      " vu,  0, vu,  0")
 	   (match_operand:V 3 "register_operand"          " vr, vr, vr, vr")
 	   (match_operand 4 "pmode_reg_or_uimm5_operand"  " rK, rK, rK, rK")] VSLIDES))]
-  "TARGET_VECTOR || TARGET_XTHREADV"
+  "TARGET_VECTOR || TARGET_XTHEADV"
   "vslide<ud>.v%o4\t%0,%3,%4%p1"
   [(set_attr "type" "vslide<ud>")
    (set_attr "mode" "<MODE>")])
@@ -8309,7 +8285,7 @@
 	   (match_operand:VI_QHS 2 "vector_merge_operand" " vu,  0, vu,  0")
 	   (match_operand:VI_QHS 3 "register_operand"     " vr, vr, vr, vr")
 	   (match_operand:<VEL> 4 "reg_or_0_operand"      " rJ, rJ, rJ, rJ")] VSLIDES1))]
-  "TARGET_VECTOR || TARGET_XTHREADV"
+  "TARGET_VECTOR || TARGET_XTHEADV"
   "vslide<ud>.vx\t%0,%3,%z4%p1"
   [(set_attr "type" "vislide<ud>")
    (set_attr "mode" "<MODE>")])

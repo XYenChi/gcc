@@ -1,6 +1,118 @@
 (include "vector-iterators.md")
 (include "iterators.md")
 
+;;7.5. Vector Strided Instructions
+(define_insn_and_split "*pred_broadcast<mode>"
+  [(set (match_operand:V_VLSI 0 "register_operand"                 "=vr, vr, vd, vd, vr, vr, vr, vr")
+	(if_then_else:V_VLSI
+	  (unspec:<VM>
+	    [(match_operand:<VM> 1 "vector_broadcast_mask_operand" "Wc1,Wc1, vm, vm,Wc1,Wc1,Wb1,Wb1")
+	     (match_operand 4 "vector_length_operand"              " rK, rK, rK, rK, rK, rK, rK, rK")
+	     (match_operand 5 "const_int_operand"                  "  i,  i,  i,  i,  i,  i,  i,  i")
+	     (match_operand 6 "const_int_operand"                  "  i,  i,  i,  i,  i,  i,  i,  i")
+	     (match_operand 7 "const_int_operand"                  "  i,  i,  i,  i,  i,  i,  i,  i")
+	     (reg:SI VL_REGNUM)
+	     (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE)
+	  (vec_duplicate:V_VLSI
+	    (match_operand:<VEL> 3 "direct_broadcast_operand"       " r,  r,Wdm,Wdm,Wdm,Wdm,  r,  r"))
+	  (match_operand:V_VLSI 2 "vector_merge_operand"            "vu,  0, vu,  0, vu,  0, vu,  0")))]
+  "TARGET_XTHREADV"
+  "@
+   vmv.v.x\t%0,%3
+   vmv.v.x\t%0,%3
+   vls<load>.v\t%0,%3,zero,%1.t
+   vls<load>.v\t%0,%3,zero,%1.t
+   vls<load>.v\t%0,%3,zero
+   vls<load>.v\t%0,%3,zero
+   vmv.s.x\t%0,%3
+   vmv.s.x\t%0,%3"
+  "(register_operand (operands[3], <VEL>mode)
+  || CONST_POLY_INT_P (operands[3]))
+  && GET_MODE_BITSIZE (<VEL>mode) > GET_MODE_BITSIZE (Pmode)"
+  [(set (match_dup 0)
+	(if_then_else:V_VLSI (unspec:<VM> [(match_dup 1) (match_dup 4)
+	     (match_dup 5) (match_dup 6) (match_dup 7)
+	     (reg:SI VL_REGNUM) (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE)
+	  (vec_duplicate:V_VLSI (match_dup 3))
+	  (match_dup 2)))]
+  {
+    gcc_assert (can_create_pseudo_p ());
+    if (CONST_POLY_INT_P (operands[3]))
+      {
+	rtx tmp = gen_reg_rtx (<VEL>mode);
+	emit_move_insn (tmp, operands[3]);
+	operands[3] = tmp;
+      }
+    rtx m = assign_stack_local (<VEL>mode, GET_MODE_SIZE (<VEL>mode),
+				GET_MODE_ALIGNMENT (<VEL>mode));
+    m = validize_mem (m);
+    emit_move_insn (m, operands[3]);
+    m = gen_rtx_MEM (<VEL>mode, force_reg (Pmode, XEXP (m, 0)));
+    operands[3] = m;
+
+    /* For SEW = 64 in RV32 system, we expand vmv.s.x:
+       andi a2,a2,1
+       vsetvl zero,a2,e64
+       vlsse.v  */
+    if (satisfies_constraint_Wb1 (operands[1]))
+      {
+	operands[4] = riscv_vector::gen_avl_for_scalar_move (operands[4]);
+	operands[1] = CONSTM1_RTX (<VM>mode);
+      }
+  }
+  [(set_attr "type" "vimov,vimov,vlds,vlds,vlds,vlds,vimovxv,vimovxv")
+   (set_attr "mode" "<MODE>")])
+
+(define_insn "*pred_broadcast<mode>"
+  [(set (match_operand:V_VLSF_ZVFHMIN 0 "register_operand"         "=vr, vr, vr, vr, vr, vr, vr, vr")
+	(if_then_else:V_VLSF_ZVFHMIN
+	  (unspec:<VM>
+	    [(match_operand:<VM> 1 "vector_broadcast_mask_operand" "Wc1,Wc1, vm, vm,Wc1,Wc1,Wb1,Wb1")
+	     (match_operand 4 "vector_length_operand"              " rK, rK, rK, rK, rK, rK, rK, rK")
+	     (match_operand 5 "const_int_operand"                  "  i,  i,  i,  i,  i,  i,  i,  i")
+	     (match_operand 6 "const_int_operand"                  "  i,  i,  i,  i,  i,  i,  i,  i")
+	     (match_operand 7 "const_int_operand"                  "  i,  i,  i,  i,  i,  i,  i,  i")
+	     (reg:SI VL_REGNUM)
+	     (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE)
+	  (vec_duplicate:V_VLSF_ZVFHMIN
+	    (match_operand:<VEL> 3 "direct_broadcast_operand"       " f,  f,Wdm,Wdm,Wdm,Wdm,  f,  f"))
+	  (match_operand:V_VLSF_ZVFHMIN 2 "vector_merge_operand"    "vu,  0, vu,  0, vu,  0, vu,  0")))]
+  "TARGET_XTHREADV"
+  "@
+   vfmv.v.f\t%0,%3
+   vfmv.v.f\t%0,%3
+   vls<load>.v\t%0,%3,zero,%1.t
+   vls<load>.v\t%0,%3,zero,%1.t
+   vls<load>.v\t%0,%3,zero
+   vls<load>.v\t%0,%3,zero
+   vfmv.s.f\t%0,%3
+   vfmv.s.f\t%0,%3"
+  [(set_attr "type" "vfmov,vfmov,vlds,vlds,vlds,vlds,vfmovfv,vfmovfv")
+   (set_attr "mode" "<MODE>")])
+
+;; RVV 0.7.1
+(define_insn "@vsetvl<mode>"
+  [(set (match_operand:P 0 "register_operand" "=r")
+	(unspec:P [(match_operand:P 1 "csr_operand" "rK")
+		   (match_operand 2 "const_int_operand" "i")
+		   (match_operand 3 "const_int_operand" "i")
+		   (match_operand 4 "const_int_operand" "i")] UNSPEC_VSETVL))
+   (set (reg:SI VL_REGNUM)
+	(unspec:SI [(match_dup 1)
+		    (match_dup 2)
+		    (match_dup 3)] UNSPEC_VSETVL))
+   (set (reg:SI VTYPE_REGNUM)
+	(unspec:SI [(match_dup 2)
+		    (match_dup 3)
+		    (match_dup 4)] UNSPEC_VSETVL))]
+  "TARGET_XTHREADV"
+  "vset%i1vli\t%0,%1,e%2,%m3,d%4"
+  [(set_attr "type" "vsetvl")
+   (set_attr "mode" "<MODE>")
+   (set (attr "sew") (symbol_ref "INTVAL (operands[2])"))
+   (set (attr "vlmul") (symbol_ref "INTVAL (operands[3])"))
+   (set (attr "ediv") (symbol_ref "INTVAL (operands[4])"))])
+
 ;; Includes:
 ;; - 7.4. Vector Unit-Stride Instructions
 ;; - todo: 11.15 Vector Integer Merge Instructions
@@ -140,6 +252,41 @@
    (set_attr "")
    (set (attr "avl_type") (symbol_ref "INTVAL (operands[4])"))
    (set_attr "vl_op_idx" "3")])
+   
+;; -------------------------------------------------------------------------------
+;; ---- Predicated Fault-Only-First loads
+;; -------------------------------------------------------------------------------
+;; Includes:
+;; - 7.7. Unit-stride Fault-Only-First Loads
+;; -------------------------------------------------------------------------------
+
+(define_insn "@pred_fault_load<mode>"
+  [(set (match_operand:V 0 "register_operand"              "=vd,    vd,    vr,    vr")
+	(if_then_else:V
+	  (unspec:<VM>
+	    [(match_operand:<VM> 1 "vector_mask_operand" "   vm,    vm,   Wc1,   Wc1")
+	     (match_operand 4 "vector_length_operand"    "   rK,    rK,    rK,    rK")
+	     (match_operand 5 "const_int_operand"        "    i,     i,     i,     i")
+	     (match_operand 6 "const_int_operand"        "    i,     i,     i,     i")
+	     (match_operand 7 "const_int_operand"        "    i,     i,     i,     i")
+	     (reg:SI VL_REGNUM)
+	     (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE)
+	  (unspec:V
+	    [(match_operand:V 3 "memory_operand"         "    m,     m,     m,     m")] UNSPEC_VLEFF)
+	  (match_operand:V 2 "vector_merge_operand"      "   vu,     0,    vu,     0")))
+   (set (reg:SI VL_REGNUM)
+	  (unspec:SI
+	    [(if_then_else:V
+	       (unspec:<VM>
+		[(match_dup 1) (match_dup 4) (match_dup 5)
+		 (match_dup 6) (match_dup 7)
+		 (reg:SI VL_REGNUM) (reg:SI VTYPE_REGNUM)] UNSPEC_VPREDICATE)
+	       (unspec:V [(match_dup 3)] UNSPEC_VLEFF)
+	       (match_dup 2))] UNSPEC_MODIFY_VL))]
+  "TARGET_XTHEADV"
+  "vl<load>ff.v\t%0,%3%p1"
+  [(set_attr "type" "vldff")
+   (set_attr "mode" "<MODE>")])
 
 ;; =========================================================================
 ;; == Quading Ternary arithmetic
