@@ -238,6 +238,37 @@ int riscv_sv_subext
 TargetVariable
 int riscv_xthead_subext
 
+Mask(XTHEADBA)      Var(riscv_xthead_subext)
+
+Mask(XTHEADBB)      Var(riscv_xthead_subext)
+
+Mask(XTHEADBS)      Var(riscv_xthead_subext)
+
+Mask(XTHEADCMO)     Var(riscv_xthead_subext)
+
+Mask(XTHEADCONDMOV) Var(riscv_xthead_subext)
+
+Mask(XTHEADFMEMIDX) Var(riscv_xthead_subext)
+
+Mask(XTHEADFMV)     Var(riscv_xthead_subext)
+
+Mask(XTHEADINT)     Var(riscv_xthead_subext)
+
+Mask(XTHEADMAC)     Var(riscv_xthead_subext)
+
+Mask(XTHEADMEMIDX)  Var(riscv_xthead_subext)
+
+Mask(XTHEADMEMPAIR) Var(riscv_xthead_subext)
+
+Mask(XTHEADSYNC)    Var(riscv_xthead_subext)
+
+Mask(XTHEADV)       Var(riscv_xthead_subext)
+
+TargetVariable
+int riscv_xventana_subext
+
+Mask(XVENTANACONDOPS) Var(riscv_xventana_subext)
+
 Enum
 Name(isa_spec_class) Type(enum riscv_isa_spec_class)
 Supported ISA specs (for use with the -misa-spec= option):
