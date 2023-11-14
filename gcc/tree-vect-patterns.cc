@@ -1817,7 +1817,7 @@ vect_recog_ctz_ffs_pattern (vec_info *vinfo, stmt_vec_info stmt_vinfo,
   tree new_var;
   internal_fn ifn = IFN_LAST, ifnnew = IFN_LAST;
   bool defined_at_zero = true, defined_at_zero_new = false;
-  int val = 0, val_new = 0;
+  int val = 0, val_new = 0, val_cmp = 0;
   int prec;
   int sub = 0, add = 0;
   location_t loc;
@@ -1825,7 +1825,8 @@ vect_recog_ctz_ffs_pattern (vec_info *vinfo, stmt_vec_info stmt_vinfo,
   if (!is_gimple_call (call_stmt))
     return NULL;
 
-  if (gimple_call_num_args (call_stmt) != 1)
+  if (gimple_call_num_args (call_stmt) != 1
+      && gimple_call_num_args (call_stmt) != 2)
     return NULL;
 
   rhs_oprnd = gimple_call_arg (call_stmt, 0);
@@ -1845,9 +1846,10 @@ vect_recog_ctz_ffs_pattern (vec_info *vinfo, stmt_vec_info stmt_vinfo,
     CASE_CFN_CTZ:
       ifn = IFN_CTZ;
       if (!gimple_call_internal_p (call_stmt)
-	  || CTZ_DEFINED_VALUE_AT_ZERO (SCALAR_INT_TYPE_MODE (rhs_type),
-					val) != 2)
+	  || gimple_call_num_args (call_stmt) != 2)
 	defined_at_zero = false;
+      else
+	val = tree_to_shwi (gimple_call_arg (call_stmt, 1));
       break;
     CASE_CFN_FFS:
       ifn = IFN_FFS;
@@ -1906,6 +1908,7 @@ vect_recog_ctz_ffs_pattern (vec_info *vinfo, stmt_vec_info stmt_vinfo,
 
   vect_pattern_detected ("vec_recog_ctz_ffs_pattern", call_stmt);
 
+  val_cmp = val_new;
   if ((ifnnew == IFN_CLZ
        && defined_at_zero
        && defined_at_zero_new
@@ -1917,7 +1920,7 @@ vect_recog_ctz_ffs_pattern (vec_info *vinfo, stmt_vec_info stmt_vinfo,
 	 .CTZ (X) = .POPCOUNT ((X - 1) & ~X).  */
       if (ifnnew == IFN_CLZ)
 	sub = prec;
-      val_new = prec;
+      val_cmp = prec;
 
       if (!TYPE_UNSIGNED (rhs_type))
 	{
@@ -1954,7 +1957,7 @@ vect_recog_ctz_ffs_pattern (vec_info *vinfo, stmt_vec_info stmt_vinfo,
       /* .CTZ (X) = (PREC - 1) - .CLZ (X & -X)
 	 .FFS (X) = PREC - .CLZ (X & -X).  */
       sub = prec - (ifn == IFN_CTZ);
-      val_new = sub - val_new;
+      val_cmp = sub - val_new;
 
       tree neg = vect_recog_temp_ssa_var (rhs_type, NULL);
       pattern_stmt = gimple_build_assign (neg, NEGATE_EXPR, rhs_oprnd);
@@ -1973,7 +1976,7 @@ vect_recog_ctz_ffs_pattern (vec_info *vinfo, stmt_vec_info stmt_vinfo,
       /* .CTZ (X) = PREC - .POPCOUNT (X | -X)
 	 .FFS (X) = (PREC + 1) - .POPCOUNT (X | -X).  */
       sub = prec + (ifn == IFN_FFS);
-      val_new = sub;
+      val_cmp = sub;
 
       tree neg = vect_recog_temp_ssa_var (rhs_type, NULL);
       pattern_stmt = gimple_build_assign (neg, NEGATE_EXPR, rhs_oprnd);
@@ -1991,12 +1994,18 @@ vect_recog_ctz_ffs_pattern (vec_info *vinfo, stmt_vec_info stmt_vinfo,
     {
       /* .FFS (X) = .CTZ (X) + 1.  */
       add = 1;
-      val_new++;
+      val_cmp++;
     }
 
   /* Create B = .IFNNEW (A).  */
   new_var = vect_recog_temp_ssa_var (lhs_type, NULL);
-  pattern_stmt = gimple_build_call_internal (ifnnew, 1, rhs_oprnd);
+  if ((ifnnew == IFN_CLZ || ifnnew == IFN_CTZ) && defined_at_zero_new)
+    pattern_stmt
+      = gimple_build_call_internal (ifnnew, 2, rhs_oprnd,
+				    build_int_cst (integer_type_node,
+						   val_new));
+  else
+    pattern_stmt = gimple_build_call_internal (ifnnew, 1, rhs_oprnd);
   gimple_call_set_lhs (pattern_stmt, new_var);
   gimple_set_location (pattern_stmt, loc);
   *type_out = vec_type;
@@ -2022,7 +2031,7 @@ vect_recog_ctz_ffs_pattern (vec_info *vinfo, stmt_vec_info stmt_vinfo,
     }
 
   if (defined_at_zero
-      && (!defined_at_zero_new || val != val_new))
+      && (!defined_at_zero_new || val != val_cmp))
     {
       append_pattern_def_seq (vinfo, stmt_vinfo, pattern_stmt, vec_type);
       tree ret_var = vect_recog_temp_ssa_var (lhs_type, NULL);
@@ -2142,7 +2151,8 @@ vect_recog_popcount_clz_ctz_ffs_pattern (vec_info *vinfo,
       return NULL;
     }
 
-  if (gimple_call_num_args (call_stmt) != 1)
+  if (gimple_call_num_args (call_stmt) != 1
+      && gimple_call_num_args (call_stmt) != 2)
     return NULL;
 
   rhs_oprnd = gimple_call_arg (call_stmt, 0);
@@ -2180,17 +2190,14 @@ vect_recog_popcount_clz_ctz_ffs_pattern (vec_info *vinfo,
 	  return NULL;
 	addend = (TYPE_PRECISION (TREE_TYPE (rhs_oprnd))
 		  - TYPE_PRECISION (lhs_type));
-	if (gimple_call_internal_p (call_stmt))
+	if (gimple_call_internal_p (call_stmt)
+	    && gimple_call_num_args (call_stmt) == 2)
 	  {
 	    int val1, val2;
-	    int d1
-	      = CLZ_DEFINED_VALUE_AT_ZERO
-		  (SCALAR_INT_TYPE_MODE (TREE_TYPE (rhs_oprnd)), val1);
+	    val1 = tree_to_shwi (gimple_call_arg (call_stmt, 1));
 	    int d2
 	      = CLZ_DEFINED_VALUE_AT_ZERO (SCALAR_INT_TYPE_MODE (lhs_type),
 					   val2);
-	    if (d1 != 2)
-	      break;
 	    if (d2 != 2 || val1 != val2 + addend)
 	      return NULL;
 	  }
@@ -2199,17 +2206,14 @@ vect_recog_popcount_clz_ctz_ffs_pattern (vec_info *vinfo,
 	/* ctzll (x) == ctz (x) for unsigned or signed x != 0, so ok
 	   if it is undefined at zero or if it matches also for the
 	   defined value there.  */
-	if (gimple_call_internal_p (call_stmt))
+	if (gimple_call_internal_p (call_stmt)
+	    && gimple_call_num_args (call_stmt) == 2)
 	  {
 	    int val1, val2;
-	    int d1
-	      = CTZ_DEFINED_VALUE_AT_ZERO
-		  (SCALAR_INT_TYPE_MODE (TREE_TYPE (rhs_oprnd)), val1);
+	    val1 = tree_to_shwi (gimple_call_arg (call_stmt, 1));
 	    int d2
 	      = CTZ_DEFINED_VALUE_AT_ZERO (SCALAR_INT_TYPE_MODE (lhs_type),
 					   val2);
-	    if (d1 != 2)
-	      break;
 	    if (d2 != 2 || val1 != val2)
 	      return NULL;
 	  }
@@ -2259,7 +2263,20 @@ vect_recog_popcount_clz_ctz_ffs_pattern (vec_info *vinfo,
 
   /* Create B = .POPCOUNT (A).  */
   new_var = vect_recog_temp_ssa_var (lhs_type, NULL);
-  pattern_stmt = gimple_build_call_internal (ifn, 1, unprom_diff.op);
+  tree arg2 = NULL_TREE;
+  int val;
+  if (ifn == IFN_CLZ
+      && CLZ_DEFINED_VALUE_AT_ZERO (SCALAR_INT_TYPE_MODE (lhs_type),
+				    val) == 2)
+    arg2 = build_int_cst (integer_type_node, val);
+  else if (ifn == IFN_CTZ
+	   && CTZ_DEFINED_VALUE_AT_ZERO (SCALAR_INT_TYPE_MODE (lhs_type),
+					 val) == 2)
+    arg2 = build_int_cst (integer_type_node, val);
+  if (arg2)
+    pattern_stmt = gimple_build_call_internal (ifn, 2, unprom_diff.op, arg2);
+  else
+    pattern_stmt = gimple_build_call_internal (ifn, 1, unprom_diff.op);
   gimple_call_set_lhs (pattern_stmt, new_var);
   gimple_set_location (pattern_stmt, gimple_location (last_stmt));
   *type_out = vec_type;
