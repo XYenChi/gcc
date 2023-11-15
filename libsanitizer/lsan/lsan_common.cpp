@@ -26,11 +26,21 @@
 #include "sanitizer_common/sanitizer_tls_get_addr.h"
 
 #if CAN_SANITIZE_LEAKS
+
+#  if SANITIZER_APPLE
+// https://github.com/apple-oss-distributions/objc4/blob/8701d5672d3fd3cd817aeb84db1077aafe1a1604/runtime/objc-runtime-new.h#L127
+#    if SANITIZER_IOS && !SANITIZER_IOSSIM
+#      define OBJC_DATA_MASK 0x0000007ffffffff8UL
+#    else
+#      define OBJC_DATA_MASK 0x00007ffffffffff8UL
+#    endif
+#  endif
+
 namespace __lsan {
 
 // This mutex is used to prevent races between DoLeakCheck and IgnoreObject, and
 // also to protect the global list of root regions.
-Mutex global_mutex;
+static Mutex global_mutex;
 
 Flags lsan_flags;
 
@@ -126,15 +136,100 @@ void LeakSuppressionContext::LazyInit() {
   }
 }
 
+Suppression *LeakSuppressionContext::GetSuppressionForAddr(uptr addr) {
+  Suppression *s = nullptr;
+
+  // Suppress by module name.
+  const char *module_name = Symbolizer::GetOrInit()->GetModuleNameForPc(addr);
+  if (!module_name)
+    module_name = "<unknown module>";
+  if (context.Match(module_name, kSuppressionLeak, &s))
+    return s;
+
+  // Suppress by file or function name.
+  SymbolizedStack *frames = Symbolizer::GetOrInit()->SymbolizePC(addr);
+  for (SymbolizedStack *cur = frames; cur; cur = cur->next) {
+    if (context.Match(cur->info.function, kSuppressionLeak, &s) ||
+        context.Match(cur->info.file, kSuppressionLeak, &s)) {
+      break;
+    }
+  }
+  frames->ClearAll();
+  return s;
+}
+
+static uptr GetCallerPC(const StackTrace &stack) {
+  // The top frame is our malloc/calloc/etc. The next frame is the caller.
+  if (stack.size >= 2)
+    return stack.trace[1];
+  return 0;
+}
+
+#  if SANITIZER_APPLE
+// Several pointers in the Objective-C runtime (method cache and class_rw_t,
+// for example) are tagged with additional bits we need to strip.
+static inline void *TransformPointer(void *p) {
+  uptr ptr = reinterpret_cast<uptr>(p);
+  return reinterpret_cast<void *>(ptr & OBJC_DATA_MASK);
+}
+#  endif
+
+// On Linux, treats all chunks allocated from ld-linux.so as reachable, which
+// covers dynamically allocated TLS blocks, internal dynamic loader's loaded
+// modules accounting etc.
+// Dynamic TLS blocks contain the TLS variables of dynamically loaded modules.
+// They are allocated with a __libc_memalign() call in allocate_and_init()
+// (elf/dl-tls.c). Glibc won't tell us the address ranges occupied by those
+// blocks, but we can make sure they come from our own allocator by intercepting
+// __libc_memalign(). On top of that, there is no easy way to reach them. Their
+// addresses are stored in a dynamically allocated array (the DTV) which is
+// referenced from the static TLS. Unfortunately, we can't just rely on the DTV
+// being reachable from the static TLS, and the dynamic TLS being reachable from
+// the DTV. This is because the initial DTV is allocated before our interception
+// mechanism kicks in, and thus we don't recognize it as allocated memory. We
+// can't special-case it either, since we don't know its size.
+// Our solution is to include in the root set all allocations made from
+// ld-linux.so (which is where allocate_and_init() is implemented). This is
+// guaranteed to include all dynamic TLS blocks (and possibly other allocations
+// which we don't care about).
+// On all other platforms, this simply checks to ensure that the caller pc is
+// valid before reporting chunks as leaked.
+bool LeakSuppressionContext::SuppressInvalid(const StackTrace &stack) {
+  uptr caller_pc = GetCallerPC(stack);
+  // If caller_pc is unknown, this chunk may be allocated in a coroutine. Mark
+  // it as reachable, as we can't properly report its allocation stack anyway.
+  return !caller_pc ||
+         (suppress_module && suppress_module->containsAddress(caller_pc));
+}
+
+bool LeakSuppressionContext::SuppressByRule(const StackTrace &stack,
+                                            uptr hit_count, uptr total_size) {
+  for (uptr i = 0; i < stack.size; i++) {
+    Suppression *s = GetSuppressionForAddr(
+        StackTrace::GetPreviousInstructionPc(stack.trace[i]));
+    if (s) {
+      s->weight += total_size;
+      atomic_fetch_add(&s->hit_count, hit_count, memory_order_relaxed);
+      return true;
+    }
+  }
+  return false;
+}
+
+bool LeakSuppressionContext::Suppress(u32 stack_trace_id, uptr hit_count,
+                                      uptr total_size) {
+  LazyInit();
+  StackTrace stack = StackDepotGet(stack_trace_id);
+  if (!SuppressInvalid(stack) && !SuppressByRule(stack, hit_count, total_size))
+    return false;
+  suppressed_stacks_sorted = false;
+  suppressed_stacks.push_back(stack_trace_id);
+  return true;
+}
+
 static LeakSuppressionContext *GetSuppressionContext() {
   CHECK(suppression_ctx);
   return suppression_ctx;
-}
-
-static InternalMmapVectorNoCtor<RootRegion> root_regions;
-
-InternalMmapVectorNoCtor<RootRegion> const *GetRootRegions() {
-  return &root_regions;
 }
 
 void InitCommonLsan() {
@@ -157,11 +252,18 @@ static inline bool CanBeAHeapPointer(uptr p) {
   // Since our heap is located in mmap-ed memory, we can assume a sensible lower
   // bound on heap addresses.
   const uptr kMinAddress = 4 * 4096;
-  if (p < kMinAddress) return false;
-#if defined(__x86_64__)
-  // Accept only canonical form user-space addresses.
-  return ((p >> 47) == 0);
-#elif defined(__mips64)
+  if (p < kMinAddress)
+    return false;
+#  if defined(__x86_64__)
+  // TODO: support LAM48 and 5 level page tables.
+  // LAM_U57 mask format
+  //  * top byte: 0x81 because the format is: [0] [6-bit tag] [0]
+  //  * top-1 byte: 0xff because it should be 0
+  //  * top-2 byte: 0x80 because Linux uses 128 TB VMA ending at 0x7fffffffffff
+  constexpr uptr kLAM_U57Mask = 0x81ff80;
+  constexpr uptr kPointerMask = kLAM_U57Mask << 40;
+  return ((p & kPointerMask) == 0);
+#  elif defined(__mips64)
   return ((p >> 40) == 0);
 #elif defined(__aarch64__)
   unsigned runtimeVMA =
@@ -190,7 +292,11 @@ void ScanRangeForPointers(uptr begin, uptr end,
     pp = pp + alignment - pp % alignment;
   for (; pp + sizeof(void *) <= end; pp += alignment) {
     void *p = *reinterpret_cast<void **>(pp);
-    if (!CanBeAHeapPointer(reinterpret_cast<uptr>(p))) continue;
+#  if SANITIZER_APPLE
+    p = TransformPointer(p);
+#  endif
+    if (!MaybeUserPointer(reinterpret_cast<uptr>(p)))
+      continue;
     uptr chunk = PointsIntoChunk(p);
     if (!chunk) continue;
     // Pointers to self don't count. This matters when tag == kIndirectlyLeaked.
@@ -393,36 +499,52 @@ static void ProcessThreads(SuspendedThreadsList const &suspended_threads,
 
 #endif  // SANITIZER_FUCHSIA
 
-void ScanRootRegion(Frontier *frontier, const RootRegion &root_region,
-                    uptr region_begin, uptr region_end, bool is_readable) {
-  uptr intersection_begin = Max(root_region.begin, region_begin);
-  uptr intersection_end = Min(region_end, root_region.begin + root_region.size);
-  if (intersection_begin >= intersection_end) return;
-  LOG_POINTERS("Root region %p-%p intersects with mapped region %p-%p (%s)\n",
-               (void *)root_region.begin,
-               (void *)(root_region.begin + root_region.size),
-               (void *)region_begin, (void *)region_end,
-               is_readable ? "readable" : "unreadable");
-  if (is_readable)
-    ScanRangeForPointers(intersection_begin, intersection_end, frontier, "ROOT",
-                         kReachable);
+// A map that contains [region_begin, region_end) pairs.
+using RootRegions = DenseMap<detail::DenseMapPair<uptr, uptr>, uptr>;
+
+static RootRegions &GetRootRegionsLocked() {
+  global_mutex.CheckLocked();
+  static RootRegions *regions = nullptr;
+  alignas(RootRegions) static char placeholder[sizeof(RootRegions)];
+  if (!regions)
+    regions = new (placeholder) RootRegions();
+  return *regions;
 }
 
-static void ProcessRootRegion(Frontier *frontier,
-                              const RootRegion &root_region) {
-  MemoryMappingLayout proc_maps(/*cache_enabled*/ true);
-  MemoryMappedSegment segment;
-  while (proc_maps.Next(&segment)) {
-    ScanRootRegion(frontier, root_region, segment.start, segment.end,
-                   segment.IsReadable());
+bool HasRootRegions() { return !GetRootRegionsLocked().empty(); }
+
+void ScanRootRegions(Frontier *frontier,
+                     const InternalMmapVectorNoCtor<Region> &mapped_regions) {
+  if (!flags()->use_root_regions)
+    return;
+
+  InternalMmapVector<Region> regions;
+  GetRootRegionsLocked().forEach([&](const auto &kv) {
+    regions.push_back({kv.first.first, kv.first.second});
+    return true;
+  });
+
+  InternalMmapVector<Region> intersection;
+  Intersect(mapped_regions, regions, intersection);
+
+  for (const Region &r : intersection) {
+    LOG_POINTERS("Root region intersects with mapped region at %p-%p\n",
+                 (void *)r.begin, (void *)r.end);
+    ScanRangeForPointers(r.begin, r.end, frontier, "ROOT", kReachable);
   }
 }
 
 // Scans root regions for heap pointers.
 static void ProcessRootRegions(Frontier *frontier) {
-  if (!flags()->use_root_regions) return;
-  for (uptr i = 0; i < root_regions.size(); i++)
-    ProcessRootRegion(frontier, root_regions[i]);
+  if (!flags()->use_root_regions || !HasRootRegions())
+    return;
+  MemoryMappingLayout proc_maps(/*cache_enabled*/ true);
+  MemoryMappedSegment segment;
+  InternalMmapVector<Region> mapped_regions;
+  while (proc_maps.Next(&segment))
+    if (segment.IsReadable())
+      mapped_regions.push_back({segment.start, segment.end});
+  ScanRootRegions(frontier, mapped_regions);
 }
 
 static void FloodFillTag(Frontier *frontier, ChunkTag tag) {
@@ -885,8 +1007,8 @@ void LeakReport::PrintSummary() {
       allocations += leaks_[i].hit_count;
   }
   InternalScopedString summary;
-  summary.append("%zu byte(s) leaked in %zu allocation(s).", bytes,
-                 allocations);
+  summary.AppendF("%zu byte(s) leaked in %zu allocation(s).", bytes,
+                  allocations);
   ReportErrorSummary(summary.data());
 }
 
@@ -958,37 +1080,38 @@ void __lsan_ignore_object(const void *p) {
 SANITIZER_INTERFACE_ATTRIBUTE
 void __lsan_register_root_region(const void *begin, uptr size) {
 #if CAN_SANITIZE_LEAKS
-  Lock l(&global_mutex);
-  RootRegion region = {reinterpret_cast<uptr>(begin), size};
-  root_regions.push_back(region);
   VReport(1, "Registered root region at %p of size %zu\n", begin, size);
-#endif // CAN_SANITIZE_LEAKS
+  uptr b = reinterpret_cast<uptr>(begin);
+  uptr e = b + size;
+  CHECK_LT(b, e);
+
+  Lock l(&global_mutex);
+  ++GetRootRegionsLocked()[{b, e}];
+#endif  // CAN_SANITIZE_LEAKS
 }
 
 SANITIZER_INTERFACE_ATTRIBUTE
 void __lsan_unregister_root_region(const void *begin, uptr size) {
 #if CAN_SANITIZE_LEAKS
-  Lock l(&global_mutex);
-  bool removed = false;
-  for (uptr i = 0; i < root_regions.size(); i++) {
-    RootRegion region = root_regions[i];
-    if (region.begin == reinterpret_cast<uptr>(begin) && region.size == size) {
-      removed = true;
-      uptr last_index = root_regions.size() - 1;
-      root_regions[i] = root_regions[last_index];
-      root_regions.pop_back();
-      VReport(1, "Unregistered root region at %p of size %zu\n", begin, size);
-      break;
+  uptr b = reinterpret_cast<uptr>(begin);
+  uptr e = b + size;
+  CHECK_LT(b, e);
+  VReport(1, "Unregistered root region at %p of size %zu\n", begin, size);
+
+  {
+    Lock l(&global_mutex);
+    if (auto *f = GetRootRegionsLocked().find({b, e})) {
+      if (--(f->second) == 0)
+        GetRootRegionsLocked().erase(f);
+      return;
     }
   }
-  if (!removed) {
-    Report(
-        "__lsan_unregister_root_region(): region at %p of size %zu has not "
-        "been registered.\n",
-        begin, size);
-    Die();
-  }
-#endif // CAN_SANITIZE_LEAKS
+  Report(
+      "__lsan_unregister_root_region(): region at %p of size %zu has not "
+      "been registered.\n",
+      begin, size);
+  Die();
+#endif  // CAN_SANITIZE_LEAKS
 }
 
 SANITIZER_INTERFACE_ATTRIBUTE

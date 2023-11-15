@@ -71,8 +71,9 @@ void *BackgroundThread(void *arg) {
       } else if (soft_rss_limit_mb >= current_rss_mb &&
                  reached_soft_rss_limit) {
         reached_soft_rss_limit = false;
-        if (SoftRssLimitExceededCallback)
-          SoftRssLimitExceededCallback(false);
+        Report("%s: soft rss limit unexhausted (%zdMb vs %zdMb)\n",
+               SanitizerToolName, soft_rss_limit_mb, current_rss_mb);
+        SetRssLimitExceeded(false);
       }
     }
     if (heap_profile &&
@@ -86,8 +87,10 @@ void *BackgroundThread(void *arg) {
 #endif
 
 void WriteToSyslog(const char *msg) {
+  if (!msg)
+    return;
   InternalScopedString msg_copy;
-  msg_copy.append("%s", msg);
+  msg_copy.Append(msg);
   const char *p = msg_copy.data();
 
   // Print one line at a time.

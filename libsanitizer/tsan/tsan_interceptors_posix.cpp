@@ -35,7 +35,10 @@
 
 using namespace __tsan;
 
-#if SANITIZER_FREEBSD || SANITIZER_MAC
+DECLARE_REAL(void *, memcpy, void *to, const void *from, SIZE_T size)
+DECLARE_REAL(void *, memset, void *block, int c, SIZE_T size)
+
+#if SANITIZER_FREEBSD || SANITIZER_APPLE
 #define stdout __stdoutp
 #define stderr __stderrp
 #endif
@@ -76,6 +79,10 @@ struct ucontext_t {
 #define PTHREAD_ABI_BASE  "GLIBC_2.3.2"
 #elif defined(__aarch64__) || SANITIZER_PPC64V2
 #define PTHREAD_ABI_BASE  "GLIBC_2.17"
+#elif SANITIZER_LOONGARCH64
+#define PTHREAD_ABI_BASE  "GLIBC_2.36"
+#elif SANITIZER_RISCV64
+#  define PTHREAD_ABI_BASE "GLIBC_2.27"
 #endif
 
 extern "C" int pthread_attr_init(void *attr);
@@ -125,6 +132,9 @@ const int SIGSYS = 12;
 const int SIGBUS = 7;
 const int SIGSYS = 31;
 #endif
+#if SANITIZER_HAS_SIGINFO
+const int SI_TIMER = -2;
+#endif
 void *const MAP_FAILED = (void*)-1;
 #if SANITIZER_NETBSD
 const int PTHREAD_BARRIER_SERIAL_THREAD = 1234567;
@@ -151,9 +161,6 @@ const int SIG_SETMASK = 3;
 const int SA_SIGINFO = 4;
 const int SIG_SETMASK = 2;
 #endif
-
-#define COMMON_INTERCEPTOR_NOTHING_IS_INITIALIZED \
-  (!cur_thread_init()->is_inited)
 
 namespace __tsan {
 struct SignalDesc {
@@ -547,59 +554,28 @@ TSAN_INTERCEPTOR(int, sigsetjmp, void *env);
 #define sigsetjmp_symname sigsetjmp
 #endif
 
-#define TSAN_INTERCEPTOR_SETJMP_(x) __interceptor_ ## x
-#define TSAN_INTERCEPTOR_SETJMP__(x) TSAN_INTERCEPTOR_SETJMP_(x)
-#define TSAN_INTERCEPTOR_SETJMP TSAN_INTERCEPTOR_SETJMP__(setjmp_symname)
-#define TSAN_INTERCEPTOR_SIGSETJMP TSAN_INTERCEPTOR_SETJMP__(sigsetjmp_symname)
-
-#define TSAN_STRING_SETJMP SANITIZER_STRINGIFY(setjmp_symname)
-#define TSAN_STRING_SIGSETJMP SANITIZER_STRINGIFY(sigsetjmp_symname)
-
-// Not called.  Merely to satisfy TSAN_INTERCEPT().
-extern "C" SANITIZER_INTERFACE_ATTRIBUTE
-int TSAN_INTERCEPTOR_SETJMP(void *env);
-extern "C" int TSAN_INTERCEPTOR_SETJMP(void *env) {
-  CHECK(0);
-  return 0;
-}
-
-// FIXME: any reason to have a separate declaration?
-extern "C" SANITIZER_INTERFACE_ATTRIBUTE
-int __interceptor__setjmp(void *env);
-extern "C" int __interceptor__setjmp(void *env) {
-  CHECK(0);
-  return 0;
-}
-
-extern "C" SANITIZER_INTERFACE_ATTRIBUTE
-int TSAN_INTERCEPTOR_SIGSETJMP(void *env);
-extern "C" int TSAN_INTERCEPTOR_SIGSETJMP(void *env) {
-  CHECK(0);
-  return 0;
-}
-
-#if !SANITIZER_NETBSD
-extern "C" SANITIZER_INTERFACE_ATTRIBUTE
-int __interceptor___sigsetjmp(void *env);
-extern "C" int __interceptor___sigsetjmp(void *env) {
-  CHECK(0);
-  return 0;
-}
-#endif
-
-extern "C" int setjmp_symname(void *env);
-extern "C" int _setjmp(void *env);
-extern "C" int sigsetjmp_symname(void *env);
-#if !SANITIZER_NETBSD
-extern "C" int __sigsetjmp(void *env);
-#endif
 DEFINE_REAL(int, setjmp_symname, void *env)
 DEFINE_REAL(int, _setjmp, void *env)
 DEFINE_REAL(int, sigsetjmp_symname, void *env)
 #if !SANITIZER_NETBSD
 DEFINE_REAL(int, __sigsetjmp, void *env)
 #endif
-#endif  // SANITIZER_MAC
+
+// The real interceptor for setjmp is special, and implemented in pure asm. We
+// just need to initialize the REAL functions so that they can be used in asm.
+static void InitializeSetjmpInterceptors() {
+  // We can not use TSAN_INTERCEPT to get setjmp addr, because it does &setjmp and
+  // setjmp is not present in some versions of libc.
+  using __interception::InterceptFunction;
+  InterceptFunction(SANITIZER_STRINGIFY(setjmp_symname), (uptr*)&REAL(setjmp_symname), 0, 0);
+  InterceptFunction("_setjmp", (uptr*)&REAL(_setjmp), 0, 0);
+  InterceptFunction(SANITIZER_STRINGIFY(sigsetjmp_symname), (uptr*)&REAL(sigsetjmp_symname), 0,
+                    0);
+#if !SANITIZER_NETBSD
+  InterceptFunction("__sigsetjmp", (uptr*)&REAL(__sigsetjmp), 0, 0);
+#endif
+}
+#endif  // SANITIZER_APPLE
 
 #if SANITIZER_NETBSD
 #define longjmp_symname __longjmp14
@@ -779,10 +755,11 @@ static void *mmap_interceptor(ThreadState *thr, uptr pc, Mmap real_mmap,
   return res;
 }
 
-TSAN_INTERCEPTOR(int, munmap, void *addr, long_t sz) {
-  SCOPED_TSAN_INTERCEPTOR(munmap, addr, sz);
+template <class Munmap>
+static int munmap_interceptor(ThreadState *thr, uptr pc, Munmap real_munmap,
+                                void *addr, SIZE_T sz) {
   UnmapShadow(thr, (uptr)addr, sz);
-  int res = REAL(munmap)(addr, sz);
+  int res = real_munmap(addr, sz);
   return res;
 }
 
@@ -2293,12 +2270,7 @@ static int OnExit(ThreadState *thr) {
   return status;
 }
 
-struct TsanInterceptorContext {
-  ThreadState *thr;
-  const uptr pc;
-};
-
-#if !SANITIZER_MAC
+#if !SANITIZER_APPLE
 static void HandleRecvmsg(ThreadState *thr, uptr pc,
     __sanitizer_msghdr *msg) {
   int fds[64];
@@ -2319,27 +2291,10 @@ static void HandleRecvmsg(ThreadState *thr, uptr pc,
 #define SANITIZER_INTERCEPT_TLS_GET_OFFSET 1
 #undef SANITIZER_INTERCEPT_PTHREAD_SIGMASK
 
-#define COMMON_INTERCEPT_FUNCTION(name) INTERCEPT_FUNCTION(name)
 #define COMMON_INTERCEPT_FUNCTION_VER(name, ver)                          \
   INTERCEPT_FUNCTION_VER(name, ver)
 #define COMMON_INTERCEPT_FUNCTION_VER_UNVERSIONED_FALLBACK(name, ver) \
   (INTERCEPT_FUNCTION_VER(name, ver) || INTERCEPT_FUNCTION(name))
-
-#define COMMON_INTERCEPTOR_WRITE_RANGE(ctx, ptr, size)                    \
-  MemoryAccessRange(((TsanInterceptorContext *)ctx)->thr,                 \
-                    ((TsanInterceptorContext *)ctx)->pc, (uptr)ptr, size, \
-                    true)
-
-#define COMMON_INTERCEPTOR_READ_RANGE(ctx, ptr, size)                       \
-  MemoryAccessRange(((TsanInterceptorContext *) ctx)->thr,                  \
-                    ((TsanInterceptorContext *) ctx)->pc, (uptr) ptr, size, \
-                    false)
-
-#define COMMON_INTERCEPTOR_ENTER(ctx, func, ...) \
-  SCOPED_TSAN_INTERCEPTOR(func, __VA_ARGS__);    \
-  TsanInterceptorContext _ctx = {thr, pc};       \
-  ctx = (void *)&_ctx;                           \
-  (void)ctx;
 
 #define COMMON_INTERCEPTOR_ENTER_NOIGNORE(ctx, func, ...) \
   SCOPED_INTERCEPTOR_RAW(func, __VA_ARGS__);              \
@@ -2426,7 +2381,12 @@ static void HandleRecvmsg(ThreadState *thr, uptr pc,
                             off);                                           \
   } while (false)
 
-#if !SANITIZER_MAC
+#define COMMON_INTERCEPTOR_MUNMAP_IMPL(ctx, addr, sz)           \
+  do {                                                          \
+    return munmap_interceptor(thr, pc, REAL(munmap), addr, sz); \
+  } while (false)
+
+#if !SANITIZER_APPLE
 #define COMMON_INTERCEPTOR_HANDLE_RECVMSG(ctx, msg) \
   HandleRecvmsg(((TsanInterceptorContext *)ctx)->thr, \
       ((TsanInterceptorContext *)ctx)->pc, msg)
@@ -2459,6 +2419,8 @@ static __sanitizer_sighandler_ptr signal_impl(int sig,
 #define SIGNAL_INTERCEPTOR_SIGNAL_IMPL(func, signo, handler) \
   { return (uptr)signal_impl(signo, (__sanitizer_sighandler_ptr)handler); }
 
+#define SIGNAL_INTERCEPTOR_ENTER() LazyInitialize(cur_thread_init())
+
 #include "sanitizer_common/sanitizer_signal_interceptors.inc"
 
 int sigaction_impl(int sig, const __sanitizer_sigaction *act,
@@ -2479,7 +2441,7 @@ int sigaction_impl(int sig, const __sanitizer_sigaction *act,
     // Copy act into sigactions[sig].
     // Can't use struct copy, because compiler can emit call to memcpy.
     // Can't use internal_memcpy, because it copies byte-by-byte,
-    // and signal handler reads the handler concurrently. It it can read
+    // and signal handler reads the handler concurrently. It can read
     // some bytes from old value and some bytes from new value.
     // Use volatile to prevent insertion of memcpy.
     sigactions[sig].handler =
@@ -2741,17 +2703,8 @@ void InitializeInterceptors() {
   InitializeSignalInterceptors();
   InitializeLibdispatchInterceptors();
 
-#if !SANITIZER_MAC
-  // We can not use TSAN_INTERCEPT to get setjmp addr,
-  // because it does &setjmp and setjmp is not present in some versions of libc.
-  using __interception::InterceptFunction;
-  InterceptFunction(TSAN_STRING_SETJMP, (uptr*)&REAL(setjmp_symname), 0, 0);
-  InterceptFunction("_setjmp", (uptr*)&REAL(_setjmp), 0, 0);
-  InterceptFunction(TSAN_STRING_SIGSETJMP, (uptr*)&REAL(sigsetjmp_symname), 0,
-                    0);
-#if !SANITIZER_NETBSD
-  InterceptFunction("__sigsetjmp", (uptr*)&REAL(__sigsetjmp), 0, 0);
-#endif
+#if !SANITIZER_APPLE
+  InitializeSetjmpInterceptors();
 #endif
 
   TSAN_INTERCEPT(longjmp_symname);
@@ -2985,3 +2938,5 @@ extern "C" SANITIZER_INTERFACE_ATTRIBUTE void __tsan_testonly_barrier_wait(
     FutexWait(barrier, cur);
   }
 }
+
+}  // extern "C"

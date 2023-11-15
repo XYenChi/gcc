@@ -46,6 +46,10 @@ struct Metadata {
 
 struct HwasanMapUnmapCallback {
   void OnMap(uptr p, uptr size) const { UpdateMemoryUsage(); }
+  void OnMapSecondary(uptr p, uptr size, uptr user_begin,
+                      uptr user_size) const {
+    UpdateMemoryUsage();
+  }
   void OnUnmap(uptr p, uptr size) const {
     // We are about to unmap a chunk of user memory.
     // It can return as user-requested mmap() or another thread stack.
@@ -74,7 +78,8 @@ typedef SizeClassAllocator64<AP64> PrimaryAllocator;
 typedef CombinedAllocator<PrimaryAllocator> Allocator;
 typedef Allocator::AllocatorCache AllocatorCache;
 
-void AllocatorSwallowThreadLocalCache(AllocatorCache *cache);
+void AllocatorThreadStart(AllocatorCache *cache);
+void AllocatorThreadFinish(AllocatorCache *cache);
 
 class HwasanChunkView {
  public:

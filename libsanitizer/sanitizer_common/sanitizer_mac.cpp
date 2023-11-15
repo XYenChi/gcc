@@ -37,12 +37,12 @@
 extern char **environ;
 #endif
 
-#if defined(__has_include) && __has_include(<os/trace.h>) && defined(__BLOCKS__)
-#define SANITIZER_OS_TRACE 1
-#include <os/trace.h>
-#else
-#define SANITIZER_OS_TRACE 0
-#endif
+#  if defined(__has_include) && __has_include(<os/trace.h>)
+#    define SANITIZER_OS_TRACE 1
+#    include <os/trace.h>
+#  else
+#    define SANITIZER_OS_TRACE 0
+#  endif
 
 // import new crash reporting api
 #if defined(__has_include) && __has_include(<CrashReporterClient.h>)
@@ -60,39 +60,32 @@ extern "C" {
 }
 #endif
 
-#include <asl.h>
-#include <dlfcn.h>  // for dladdr()
-#include <errno.h>
-#include <fcntl.h>
-#include <libkern/OSAtomic.h>
-#include <mach-o/dyld.h>
-#include <mach/mach.h>
-#include <mach/mach_time.h>
-#include <mach/vm_statistics.h>
-#include <malloc/malloc.h>
-#if defined(__has_builtin) && __has_builtin(__builtin_os_log_format)
-# include <os/log.h>
-#else
-   /* Without support for __builtin_os_log_format, fall back to the older
-      method.  */
-# define OS_LOG_DEFAULT 0
-# define os_log_error(A,B,C) \
-  asl_log(nullptr, nullptr, ASL_LEVEL_ERR, "%s", (C));
-#endif
-#include <pthread.h>
-#include <sched.h>
-#include <signal.h>
-#include <spawn.h>
-#include <stdlib.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#include <sys/resource.h>
-#include <sys/stat.h>
-#include <sys/sysctl.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#include <util.h>
+#  include <asl.h>
+#  include <dlfcn.h>  // for dladdr()
+#  include <errno.h>
+#  include <fcntl.h>
+#  include <libkern/OSAtomic.h>
+#  include <mach-o/dyld.h>
+#  include <mach/mach.h>
+#  include <mach/mach_time.h>
+#  include <mach/vm_statistics.h>
+#  include <malloc/malloc.h>
+#  include <os/log.h>
+#  include <pthread.h>
+#  include <pthread/introspection.h>
+#  include <sched.h>
+#  include <signal.h>
+#  include <spawn.h>
+#  include <stdlib.h>
+#  include <sys/ioctl.h>
+#  include <sys/mman.h>
+#  include <sys/resource.h>
+#  include <sys/stat.h>
+#  include <sys/sysctl.h>
+#  include <sys/types.h>
+#  include <sys/wait.h>
+#  include <unistd.h>
+#  include <util.h>
 
 // From <crt_externs.h>, but we don't have that file on iOS.
 extern "C" {
