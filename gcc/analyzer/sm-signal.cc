@@ -281,7 +281,8 @@ public:
 						       src_enode);
     if (dst_enode)
       eg->add_edge (src_enode, dst_enode, NULL, /*state_change (),*/
-		    new signal_delivery_edge_info_t ());
+		    true, /* assume does work  */
+		    make_unique<signal_delivery_edge_info_t> ());
   }
 
   const signal_state_machine &m_sm;

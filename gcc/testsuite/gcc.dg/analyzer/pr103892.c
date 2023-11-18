@@ -26,7 +26,7 @@ struct pipecmd {
 
 static char *argstr_get_word (const char **argstr)
 {
- while (**argstr) {
+ while (**argstr) { /* { dg-warning "infinite loop" } */
   switch (**argstr) {
    case ' ':
    case '\t':

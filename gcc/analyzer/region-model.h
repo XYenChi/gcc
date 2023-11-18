@@ -646,6 +646,7 @@ class region_model
 
   void handle_phi (const gphi *phi, tree lhs, tree rhs,
 		   const region_model &old_state,
+		   hash_set<const svalue *> &svals_changing_meaning,
 		   region_model_context *ctxt);
 
   bool maybe_update_for_edge (const superedge &edge,
@@ -958,6 +959,13 @@ class region_model_context
 
   /* Get the current statement, if any.  */
   virtual const gimple *get_stmt () const = 0;
+
+  virtual const exploded_graph *get_eg () const = 0;
+
+  /* Hooks for detecting infinite loops.  */
+  virtual void maybe_did_work () = 0;
+  virtual bool checking_for_infinite_loop_p () const = 0;
+  virtual void on_unusable_in_infinite_loop () = 0;
 };
 
 /* A "do nothing" subclass of region_model_context.  */
@@ -1010,7 +1018,11 @@ public:
     return false;
   }
 
-  const gimple *get_stmt () const OVERRIDE { return NULL; }
+  const gimple *get_stmt () const override { return NULL; }
+  const exploded_graph *get_eg () const override { return NULL; }
+  void maybe_did_work () override {}
+  bool checking_for_infinite_loop_p () const override { return false; }
+  void on_unusable_in_infinite_loop () override {}
 };
 
 /* A subclass of region_model_context for determining if operations fail
@@ -1137,6 +1149,24 @@ class region_model_context_decorator : public region_model_context
     return m_inner->get_stmt ();
   }
 
+  void maybe_did_work () override
+  {
+    if (m_inner)
+      m_inner->maybe_did_work ();
+  }
+
+  bool checking_for_infinite_loop_p () const override
+  {
+    if (m_inner)
+      return m_inner->checking_for_infinite_loop_p ();
+    return false;
+  }
+  void on_unusable_in_infinite_loop () override
+  {
+    if (m_inner)
+      m_inner->on_unusable_in_infinite_loop ();
+  }
+
 protected:
   region_model_context_decorator (region_model_context *inner)
   : m_inner (inner)
@@ -1205,6 +1235,8 @@ struct model_merger
 
   bool mergeable_svalue_p (const svalue *) const;
 
+  void on_widening_reuse (const widening_svalue *widening_sval);
+
   const region_model *m_model_a;
   const region_model *m_model_b;
   const program_point &m_point;
@@ -1213,6 +1245,8 @@ struct model_merger
   const extrinsic_state *m_ext_state;
   const program_state *m_state_a;
   const program_state *m_state_b;
+
+  hash_set<const svalue *> m_svals_changing_meaning;
 };
 
 /* A record that can (optionally) be written out when

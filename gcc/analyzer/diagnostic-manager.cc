@@ -493,8 +493,8 @@ epath_finder::process_worklist_item (feasible_worklist *worklist,
 	}
 
       feasibility_state succ_state (fnode->get_state ());
-      rejected_constraint *rc = NULL;
-      if (succ_state.maybe_update_for_edge (logger, succ_eedge, &rc))
+      std::unique_ptr<rejected_constraint> rc;
+      if (succ_state.maybe_update_for_edge (logger, succ_eedge, nullptr, &rc))
 	{
 	  gcc_assert (rc == NULL);
 	  feasible_node *succ_fnode
