@@ -3347,7 +3347,7 @@
 
 (define_insn "riscv_frcsr"
   [(set (match_operand:SI 0 "register_operand" "=r")
-	(unspec_volatile [(const_int 0)] UNSPECV_FRCSR))]
+	(unspec_volatile:SI [(const_int 0)] UNSPECV_FRCSR))]
   "TARGET_HARD_FLOAT || TARGET_ZFINX"
   "frcsr\t%0"
   [(set_attr "type" "fmove")])
@@ -3360,7 +3360,7 @@
 
 (define_insn "riscv_frflags"
   [(set (match_operand:SI 0 "register_operand" "=r")
-	(unspec_volatile [(const_int 0)] UNSPECV_FRFLAGS))]
+	(unspec_volatile:SI [(const_int 0)] UNSPECV_FRFLAGS))]
   "TARGET_HARD_FLOAT || TARGET_ZFINX"
   "frflags\t%0"
   [(set_attr "type" "fmove")])
