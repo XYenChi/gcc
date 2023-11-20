@@ -297,12 +297,37 @@ public:
 class GTY(()) ipa_vr
 {
 public:
+<<<<<<< HEAD
   /* The data fields below are valid only if known is true.  */
   bool known;
   enum value_range_kind type;
   wide_int min;
   wide_int max;
   bool nonzero_p (tree) const;
+=======
+  ipa_vr ();
+  ipa_vr (const vrange &);
+  void set_unknown ();
+  bool known_p () const { return m_storage != NULL; }
+  tree type () const { return m_type; }
+  void get_vrange (Value_Range &) const;
+  bool equal_p (const vrange &) const;
+  const vrange_storage *storage () const { return m_storage; }
+  void streamer_read (lto_input_block *, class data_in *);
+  void streamer_write (output_block *) const;
+  void dump (FILE *) const;
+
+private:
+  friend void gt_pch_nx (struct ipa_vr &);
+  friend void gt_ggc_mx (struct ipa_vr &);
+  friend void gt_pch_nx (struct ipa_vr *, gt_pointer_operator, void *);
+  friend void gt_ggc_mx_ipa_vr (void *);
+  friend void gt_pch_nx_ipa_vr (void*);
+  friend void gt_pch_p_6ipa_vr(void*, void*, gt_pointer_operator, void*);
+
+  vrange_storage *m_storage;
+  tree m_type;
+>>>>>>> 53ba8d66955 (inter-procedural value range propagation)
 };
 
 /* A jump function for a callsite represents the values passed as actual
@@ -1206,4 +1231,22 @@ tree build_ref_for_offset (location_t, tree, poly_int64, bool, tree,
 /* In ipa-cp.cc  */
 void ipa_cp_cc_finalize (void);
 
+<<<<<<< HEAD
+=======
+/* Set R to the range of [VAL, VAL] while normalizing addresses to
+   non-zero.  */
+
+inline void
+ipa_range_set_and_normalize (vrange &r, tree val)
+{
+  if (TREE_CODE (val) == ADDR_EXPR)
+    r.set_nonzero (TREE_TYPE (val));
+  else
+    r.set (val, val);
+}
+
+bool ipa_return_value_range (Value_Range &range, tree decl);
+void ipa_record_return_value_range (Value_Range val);
+
+>>>>>>> 53ba8d66955 (inter-procedural value range propagation)
 #endif /* IPA_PROP_H */
