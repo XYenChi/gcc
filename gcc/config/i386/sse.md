@@ -3323,11 +3323,12 @@
  ""
 {
   rtx tmp = gen_reg_rtx (<ssehalfvecmode>mode);
-  emit_insn (gen_vec_extract_hi_<mode> (tmp, operands[1]));
   rtx tmp2 = gen_reg_rtx (<ssehalfvecmode>mode);
-  rtx tmp3 = gen_lowpart (<ssehalfvecmode>mode, operands[1]);
-  emit_insn (gen_add<ssehalfvecmodelower>3 (tmp2, tmp, tmp3));
-  emit_insn (gen_reduc_plus_scal_<ssehalfvecmodelower> (operands[0], tmp2));
+  rtx tmp3 = gen_reg_rtx (<ssehalfvecmode>mode);
+  emit_insn (gen_vec_extract_hi_<mode> (tmp, operands[1]));
+  emit_insn (gen_vec_extract_lo_<mode> (tmp2, operands[1]));
+  emit_insn (gen_add<ssehalfvecmodelower>3 (tmp3, tmp, tmp2));
+  emit_insn (gen_reduc_plus_scal_<ssehalfvecmodelower> (operands[0], tmp3));
   DONE;
 })
 
@@ -3369,11 +3370,12 @@
   ""
 {
   rtx tmp = gen_reg_rtx (<ssehalfvecmode>mode);
-  emit_insn (gen_vec_extract_hi_<mode> (tmp, operands[1]));
   rtx tmp2 = gen_reg_rtx (<ssehalfvecmode>mode);
-  emit_insn (gen_<code><ssehalfvecmodelower>3
-    (tmp2, tmp, gen_lowpart (<ssehalfvecmode>mode, operands[1])));
-  emit_insn (gen_reduc_<code>_scal_<ssehalfvecmodelower> (operands[0], tmp2));
+  rtx tmp3 = gen_reg_rtx (<ssehalfvecmode>mode);
+  emit_insn (gen_vec_extract_hi_<mode> (tmp, operands[1]));
+  emit_insn (gen_vec_extract_lo_<mode> (tmp2, operands[1]));
+  emit_insn (gen_<code><ssehalfvecmodelower>3 (tmp3, tmp, tmp2));
+  emit_insn (gen_reduc_<code>_scal_<ssehalfvecmodelower> (operands[0], tmp3));
   DONE;
 })
 
@@ -3384,11 +3386,12 @@
   "TARGET_AVX512F"
 {
   rtx tmp = gen_reg_rtx (<ssehalfvecmode>mode);
-  emit_insn (gen_vec_extract_hi_<mode> (tmp, operands[1]));
   rtx tmp2 = gen_reg_rtx (<ssehalfvecmode>mode);
-  emit_insn (gen_<code><ssehalfvecmodelower>3
-    (tmp2, tmp, gen_lowpart (<ssehalfvecmode>mode, operands[1])));
-  emit_insn (gen_reduc_<code>_scal_<ssehalfvecmodelower> (operands[0], tmp2));
+  rtx tmp3 = gen_reg_rtx (<ssehalfvecmode>mode);
+  emit_insn (gen_vec_extract_hi_<mode> (tmp, operands[1]));
+  emit_insn (gen_vec_extract_lo_<mode> (tmp2, operands[1]));
+  emit_insn (gen_<code><ssehalfvecmodelower>3 (tmp3, tmp, tmp2));
+  emit_insn (gen_reduc_<code>_scal_<ssehalfvecmodelower> (operands[0], tmp3));
   DONE;
 })
 
@@ -3399,14 +3402,15 @@
   "TARGET_AVX2"
 {
   rtx tmp = gen_reg_rtx (<ssehalfvecmode>mode);
-  emit_insn (gen_vec_extract_hi_<mode> (tmp, operands[1]));
   rtx tmp2 = gen_reg_rtx (<ssehalfvecmode>mode);
-  emit_insn (gen_<code><ssehalfvecmodelower>3
-    (tmp2, tmp, gen_lowpart (<ssehalfvecmode>mode, operands[1])));
   rtx tmp3 = gen_reg_rtx (<ssehalfvecmode>mode);
-  ix86_expand_reduc (gen_<code><ssehalfvecmodelower>3, tmp3, tmp2);
+  emit_insn (gen_vec_extract_hi_<mode> (tmp, operands[1]));
+  emit_insn (gen_vec_extract_lo_<mode> (tmp2, operands[1]));
+  emit_insn (gen_<code><ssehalfvecmodelower>3 (tmp3, tmp, tmp2));
+  rtx tmp4 = gen_reg_rtx (<ssehalfvecmode>mode);
+  ix86_expand_reduc (gen_<code><ssehalfvecmodelower>3, tmp4, tmp3);
   emit_insn (gen_vec_extract<ssehalfvecmodelower><ssescalarmodelower>
-		(operands[0], tmp3, const0_rtx));
+		(operands[0], tmp4, const0_rtx));
   DONE;
 })
 
@@ -3478,11 +3482,12 @@
  ""
 {
   rtx tmp = gen_reg_rtx (<ssehalfvecmode>mode);
-  emit_insn (gen_vec_extract_hi_<mode> (tmp, operands[1]));
   rtx tmp2 = gen_reg_rtx (<ssehalfvecmode>mode);
-  rtx tmp3 = gen_lowpart (<ssehalfvecmode>mode, operands[1]);
-  emit_insn (gen_<code><ssehalfvecmodelower>3 (tmp2, tmp, tmp3));
-  emit_insn (gen_reduc_<code>_scal_<ssehalfvecmodelower> (operands[0], tmp2));
+  rtx tmp3 = gen_reg_rtx (<ssehalfvecmode>mode);
+  emit_insn (gen_vec_extract_hi_<mode> (tmp, operands[1]));
+  emit_insn (gen_vec_extract_lo_<mode> (tmp2, operands[1]));
+  emit_insn (gen_<code><ssehalfvecmodelower>3 (tmp3, tmp, tmp2));
+  emit_insn (gen_reduc_<code>_scal_<ssehalfvecmodelower> (operands[0], tmp3));
   DONE;
 })
 
