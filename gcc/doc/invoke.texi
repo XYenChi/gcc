@@ -5719,8 +5719,66 @@ Give an error whenever the @dfn{base standard} (see @option{-Wpedantic})
 requires a diagnostic, in some cases where there is undefined behavior
 at compile-time and in some other cases that do not prevent compilation
 of programs that are valid according to the standard. This is not
-equivalent to @option{-Werror=pedantic}, since there are errors enabled
-by this option and not enabled by the latter and vice versa.
+equivalent to @option{-Werror=pedantic}: the latter option is unlikely to be
+useful, as it only makes errors of the diagnostics that are controlled by
+@option{-Wpedantic}, whereas this option also affects required diagnostics that
+are always enabled or controlled by options other than @option{-Wpedantic}.
+
+If you want the required diagnostics that are warnings by default to
+be errors instead, but don't also want to enable the @option{-Wpedantic}
+diagnostics, you can specify @option{-pedantic-errors -Wno-pedantic}
+(or @option{-pedantic-errors -Wno-error=pedantic} to enable them but
+only as warnings).
+
+Some required diagnostics are errors by default, but can be reduced to
+warnings using @option{-fpermissive} or their specific warning option,
+e.g. @option{-Wno-error=narrowing}.
+
+Some diagnostics for non-ISO practices are controlled by specific
+warning options other than @option{-Wpedantic}, but are also made
+errors by @option{-pedantic-errors}.  For instance:
+
+@gccoptlist{
+-Wattributes @r{(for standard attributes)}
+-Wchanges-meaning @r{(C++)}
+-Wcomma-subscript @r{(C++23 or later)}
+-Wdeclaration-after-statement @r{(C90 or earlier)}
+-Welaborated-enum-base @r{(C++11 or later)}
+-Wimplicit-int @r{(C99 or later)}
+-Wimplicit-function-declaration @r{(C99 or later)}
+-Wincompatible-pointer-types
+-Wint-conversion
+-Wlong-long @r{(C90 or earlier)}
+-Wmain
+-Wnarrowing @r{(C++11 or later)}
+-Wpointer-arith
+-Wpointer-sign
+-Wincompatible-pointer-types
+-Wregister @r{(C++17 or later)}
+-Wvla @r{(C90 or earlier)}
+-Wwrite-strings @r{(C++11 or later)}
+}
+
+@opindex fpermissive
+@item -fpermissive
+Downgrade some required diagnostics about nonconformant code from
+errors to warnings.  Thus, using @option{-fpermissive} allows some
+nonconforming code to compile.  Some C++ diagnostics are controlled
+only by this flag, but it also downgrades some C and C++ diagnostics
+that have their own flag:
+
+@gccoptlist{
+-Wimplicit-function-declaration @r{(C and Objective-C only)}
+-Wimplicit-int @r{(C and Objective-C only)}
+-Wincompatible-pointer-types @r{(C and Objective-C only)}
+-Wint-conversion @r{(C and Objective-C only)}
+-Wnarrowing @r{(C++)}
+-Wreturn-mismatch @r{(C and Objective-C only)}
+}
+
+The @option{-fpermissive} option is the default for historic C language
+modes (@option{-std=c89}, @option{-std=gnu89}, @option{-std=c90},
+@option{-std=gnu90}).
 
 @item -Wall
 @opindex Wall
@@ -7949,7 +8007,13 @@ types.  This warning is for cases not covered by @option{-Wno-pointer-sign},
 which warns for pointer argument passing or assignment with different
 signedness.
 
-@item -Wno-int-conversion @r{(C and Objective-C only)}
+By default, in C99 and later dialects of C, GCC treats this issue as an
+error.  The error can be downgraded to a warning using
+@option{-fpermissive} (along with certain other errors), or for this
+error alone, with @option{-Wno-error=incompatible-pointer-types}.
+
+This warning is upgraded to an error by @option{-pedantic-errors}.
+
 @opindex Wno-int-conversion
 @opindex Wint-conversion
 Do not warn about incompatible integer to pointer and pointer to integer
