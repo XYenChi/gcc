@@ -383,7 +383,7 @@ symbol_table::process_new_functions (void)
    body for expanding the function but this is difficult to do.  */
 
 void
-cgraph_node::reset (void)
+symtab_node::reset (bool preserve_comdat_group)
 {
   /* If process is set, then we have already begun whole-unit analysis.
      This is *not* testing for whether we've already emitted the function.
@@ -404,6 +404,22 @@ cgraph_node::reset (void)
 
   remove_callees ();
   remove_all_references ();
+  if (!preserve_comdat_group)
+    remove_from_same_comdat_group ();
+
+  if (cgraph_node *cn = dyn_cast <cgraph_node *> (this))
+    {
+      /* If process is set, then we have already begun whole-unit analysis.
+	 This is *not* testing for whether we've already emitted the function.
+	 That case can be sort-of legitimately seen with real function
+	 redefinition errors.  I would argue that the front end should never
+	 present us with such a case, but don't enforce that for now.  */
+      gcc_assert (!cn->process);
+
+      memset (&cn->rtl, 0, sizeof (cn->rtl));
+      cn->inlined_to = NULL;
+      cn->remove_callees ();
+    }
 }
 
 /* Return true when there are references to the node.  INCLUDE_SELF is

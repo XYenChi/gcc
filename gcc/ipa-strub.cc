@@ -1,5 +1,5 @@
 /* strub (stack scrubbing) support.
-   Copyright (C) 2021-2024 Free Software Foundation, Inc.
+   Copyright (C) 2021-2023 Free Software Foundation, Inc.
    Contributed by Alexandre Oliva <oliva@adacore.com>.
 
 This file is part of GCC.
@@ -43,8 +43,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "cgraph.h"
 #include "alloc-pool.h"
 #include "symbol-summary.h"
-#include "sreal.h"
-#include "ipa-cp.h"
 #include "ipa-prop.h"
 #include "ipa-fnsummary.h"
 #include "gimple-fold.h"
@@ -62,7 +60,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "ipa-strub.h"
 #include "symtab-thunks.h"
 #include "attr-fnspec.h"
-#include "target.h"
 
 /* This file introduces two passes that, together, implement
    machine-independent stack scrubbing, strub for short.  It arranges
@@ -634,59 +631,16 @@ strub_always_inline_p (cgraph_node *node)
   return lookup_attribute ("always_inline", DECL_ATTRIBUTES (node->decl));
 }
 
-/* Return TRUE iff the target has strub support for T, a function
-   decl, or a type used in an indirect call, and optionally REPORT the
-   reasons for ineligibility.  If T is a type and error REPORTing is
-   enabled, the LOCation (of the indirect call) should be provided.  */
-static inline bool
-strub_target_support_p (tree t, bool report = false,
-			location_t loc = UNKNOWN_LOCATION)
-{
-  bool result = true;
-
-  if (!targetm.have_strub_support_for (t))
-    {
-      result = false;
-
-      if (!report)
-	return result;
-
-      if (DECL_P (t))
-	sorry_at (DECL_SOURCE_LOCATION (t),
-		  "%qD is not eligible for %<strub%>"
-		  " on the target system", t);
-      else
-	sorry_at (loc,
-		  "unsupported %<strub%> call"
-		  " on the target system");
-    }
-
-  return result;
-}
-
 /* Return TRUE iff NODE is potentially eligible for any strub-enabled mode, and
    optionally REPORT the reasons for ineligibility.  */
 
 static inline bool
 can_strub_p (cgraph_node *node, bool report = false)
 {
-  bool result = strub_target_support_p (node->decl, report);
+  bool result = true;
 
-  if (!report && (!result || strub_always_inline_p (node)))
+  if (!report && strub_always_inline_p (node))
     return result;
-
-  if (flag_split_stack)
-    {
-      result = false;
-
-      if (!report)
-	return result;
-
-      sorry_at (DECL_SOURCE_LOCATION (node->decl),
-		"%qD is not eligible for %<strub%>"
-		" because %<-fsplit-stack%> is enabled",
-		node->decl);
-    }
 
   if (lookup_attribute ("noipa", DECL_ATTRIBUTES (node->decl)))
     {
@@ -2054,17 +2008,36 @@ walk_regimplify_phi (gphi *stmt)
   return needs_commit;
 }
 
-/* Create a reference type to use for PARM when turning it into a
-   reference.  */
+/* Create a reference type to use for PARM when turning it into a reference.
+   NONALIASED causes the reference type to gain its own separate alias set, so
+   that accessing the indirectly-passed parm won'will not add aliasing
+   noise.  */
 
 static tree
-build_ref_type_for (tree parm)
+build_ref_type_for (tree parm, bool nonaliased = true)
 {
   gcc_checking_assert (TREE_CODE (parm) == PARM_DECL);
 
   tree ref_type = build_reference_type (TREE_TYPE (parm));
 
-  return ref_type;
+  if (!nonaliased)
+    return ref_type;
+
+  /* Each PARM turned indirect still points to the distinct memory area at the
+     wrapper, and the reference in unchanging, so we might qualify it, but...
+     const is not really important, since we're only using default defs for the
+     reference parm anyway, and not introducing any defs, and restrict seems to
+     cause trouble.  E.g., libgnat/s-concat3.adb:str_concat_3 has memmoves that,
+     if it's wrapped, the memmoves are deleted in dse1.  Using a distinct alias
+     set seems to not run afoul of this problem, and it hopefully enables the
+     compiler to tell the pointers do point to objects that are not otherwise
+     aliased.  */
+  tree qref_type = build_variant_type_copy (ref_type);
+
+  TYPE_ALIAS_SET (qref_type) = new_alias_set ();
+  record_alias_subset (TYPE_ALIAS_SET (qref_type), get_alias_set (ref_type));
+
+  return qref_type;
 }
 
 /* Add cgraph edges from current_function_decl to callees in SEQ with frequency
@@ -2115,7 +2088,7 @@ gsi_insert_finally_seq_after_call (gimple_stmt_iterator gsi, gimple_seq seq)
 		    || (call && gimple_call_nothrow_p (call))
 		    || (eh_lp <= 0
 			&& (TREE_NOTHROW (cfun->decl)
-			    || !opt_for_fn (cfun->decl, flag_exceptions))));
+			    || !flag_exceptions)));
 
   if (noreturn_p && nothrow_p)
     return;
@@ -2444,20 +2417,12 @@ pass_ipa_strub::adjust_at_calls_call (cgraph_edge *e, int named_args,
 			 && (TREE_TYPE (gimple_call_arg (ocall, named_args))
 			     == get_pwmt ())));
 
-  tree tsup;
-  if (!(tsup = gimple_call_fndecl (ocall)))
-    tsup = TREE_TYPE (TREE_TYPE (gimple_call_fn (ocall)));
-  if (!strub_target_support_p (tsup, true, gimple_location (ocall)))
-    return;
-
   /* If we're already within a strub context, pass on the incoming watermark
      pointer, and omit the enter and leave calls around the modified call, as an
      optimization, or as a means to satisfy a tail-call requirement.  */
-  tree swmp = ((opt_for_fn (e->caller->decl, optimize_size)
-		|| opt_for_fn (e->caller->decl, optimize) > 2
+  tree swmp = ((optimize_size || optimize > 2
 		|| gimple_call_must_tail_p (ocall)
-		|| (opt_for_fn (e->caller->decl, optimize) == 2
-		    && gimple_call_tail_p (ocall)))
+		|| (optimize == 2 && gimple_call_tail_p (ocall)))
 	       ? strub_watermark_parm (e->caller->decl)
 	       : NULL_TREE);
   bool omit_own_watermark = swmp;
@@ -2866,22 +2831,14 @@ pass_ipa_strub::execute (function *)
 	   parm = DECL_CHAIN (parm),
 	   nparm = DECL_CHAIN (nparm),
 	   nparmt = nparmt ? TREE_CHAIN (nparmt) : NULL_TREE)
-      if (TREE_THIS_VOLATILE (parm)
-	  || !(0 /* DECL_BY_REFERENCE (narg) */
-	       || is_gimple_reg_type (TREE_TYPE (nparm))
-	       || VECTOR_TYPE_P (TREE_TYPE (nparm))
-	       || TREE_CODE (TREE_TYPE (nparm)) == COMPLEX_TYPE
-	       || (tree_fits_uhwi_p (TYPE_SIZE_UNIT (TREE_TYPE (nparm)))
-		   && (tree_to_uhwi (TYPE_SIZE_UNIT (TREE_TYPE (nparm)))
-		       <= 4 * UNITS_PER_WORD))))
+      if (!(0 /* DECL_BY_REFERENCE (narg) */
+	    || is_gimple_reg_type (TREE_TYPE (nparm))
+	    || VECTOR_TYPE_P (TREE_TYPE (nparm))
+	    || TREE_CODE (TREE_TYPE (nparm)) == COMPLEX_TYPE
+	    || (tree_fits_uhwi_p (TYPE_SIZE_UNIT (TREE_TYPE (nparm)))
+		&& (tree_to_uhwi (TYPE_SIZE_UNIT (TREE_TYPE (nparm)))
+		    <= 4 * UNITS_PER_WORD))))
 	{
-	  /* No point in indirecting pointer types.  Presumably they
-	     won't ever pass the size-based test above, but check the
-	     assumption here, because getting this wrong would mess
-	     with attribute access and possibly others.  We deal with
-	     fn spec below.  */
-	  gcc_checking_assert (!POINTER_TYPE_P (TREE_TYPE (nparm)));
-
 	  indirect_nparms.add (nparm);
 
 	  /* ??? Is there any case in which it is not safe to suggest the parms
@@ -2892,7 +2849,9 @@ pass_ipa_strub::execute (function *)
 	     if with transparent reference, and the wrapper doesn't take any
 	     extra parms that could point into wrapper's parms.  So we can
 	     probably drop the TREE_ADDRESSABLE and keep the TRUE.  */
-	  tree ref_type = build_ref_type_for (nparm);
+	  tree ref_type = build_ref_type_for (nparm,
+					      true
+					      || !TREE_ADDRESSABLE (parm));
 
 	  DECL_ARG_TYPE (nparm) = TREE_TYPE (nparm) = ref_type;
 	  relayout_decl (nparm);
@@ -2967,9 +2926,7 @@ pass_ipa_strub::execute (function *)
 		}
 	    }
 
-	/* ??? Maybe we could adjust it instead.  Note we don't need
-	   to mess with attribute access: pointer-typed parameters are
-	   not modified, so they can remain unchanged.  */
+	/* ??? Maybe we could adjust it instead.  */
 	if (drop_fnspec)
 	  remove_named_attribute_unsharing ("fn spec",
 					    &TYPE_ATTRIBUTES (nftype));
@@ -3155,16 +3112,21 @@ pass_ipa_strub::execute (function *)
 				       resdecl,
 				       build_int_cst (TREE_TYPE (resdecl), 0));
 		  }
-		else if (aggregate_value_p (resdecl, TREE_TYPE (thunk_fndecl)))
+		else if (!is_gimple_reg_type (restype))
 		  {
-		    restmp = resdecl;
-
-		    if (VAR_P (restmp))
+		    if (aggregate_value_p (resdecl, TREE_TYPE (thunk_fndecl)))
 		      {
-			add_local_decl (cfun, restmp);
-			BLOCK_VARS (DECL_INITIAL (current_function_decl))
-			  = restmp;
+			restmp = resdecl;
+
+			if (VAR_P (restmp))
+			  {
+			    add_local_decl (cfun, restmp);
+			    BLOCK_VARS (DECL_INITIAL (current_function_decl))
+			      = restmp;
+			  }
 		      }
+		    else
+		      restmp = create_tmp_var (restype, "retval");
 		  }
 		else
 		  restmp = create_tmp_reg (restype, "retval");
@@ -3182,6 +3144,7 @@ pass_ipa_strub::execute (function *)
 		   i++, arg = DECL_CHAIN (arg), nparm = DECL_CHAIN (nparm))
 		{
 		  tree save_arg = arg;
+		  tree tmp = arg;
 
 		  /* Arrange to pass indirectly the parms, if we decided to do
 		     so, and revert its type in the wrapper.  */
@@ -3189,9 +3152,10 @@ pass_ipa_strub::execute (function *)
 		    {
 		      tree ref_type = TREE_TYPE (nparm);
 		      TREE_ADDRESSABLE (arg) = true;
-		      arg = build1 (ADDR_EXPR, ref_type, arg);
+		      tree addr = build1 (ADDR_EXPR, ref_type, arg);
+		      tmp = arg = addr;
 		    }
-		  else if (!TREE_THIS_VOLATILE (arg))
+		  else
 		    DECL_NOT_GIMPLE_REG_P (arg) = 0;
 
 		  /* Convert the argument back to the type used by the calling
@@ -3200,29 +3164,16 @@ pass_ipa_strub::execute (function *)
 		     double to be passed on unchanged to the wrapped
 		     function.  */
 		  if (TREE_TYPE (nparm) != DECL_ARG_TYPE (nparm))
-		    {
-		      tree tmp = arg;
-		      /* If ARG is e.g. volatile, we must copy and
-			 convert in separate statements.  */
-		      if (!is_gimple_val (arg))
-			{
-			  tmp = create_tmp_reg (TYPE_MAIN_VARIANT
-						(TREE_TYPE (arg)), "arg");
-			  gimple *stmt = gimple_build_assign (tmp, arg);
-			  gsi_insert_after (&bsi, stmt, GSI_NEW_STMT);
-			}
-		      arg = fold_convert (DECL_ARG_TYPE (nparm), tmp);
-		    }
+		    arg = fold_convert (DECL_ARG_TYPE (nparm), arg);
 
 		  if (!is_gimple_val (arg))
 		    {
-		      tree tmp = create_tmp_reg (TYPE_MAIN_VARIANT
-						 (TREE_TYPE (arg)), "arg");
+		      tmp = create_tmp_reg (TYPE_MAIN_VARIANT
+					    (TREE_TYPE (arg)), "arg");
 		      gimple *stmt = gimple_build_assign (tmp, arg);
 		      gsi_insert_after (&bsi, stmt, GSI_NEW_STMT);
-		      arg = tmp;
 		    }
-		  vargs.quick_push (arg);
+		  vargs.quick_push (tmp);
 		  arg = save_arg;
 		}
 	    /* These strub arguments are adjusted later.  */

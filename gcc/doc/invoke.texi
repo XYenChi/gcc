@@ -622,28 +622,34 @@ Objective-C and Objective-C++ Dialects}.
 
 @item Program Instrumentation Options
 @xref{Instrumentation Options,,Program Instrumentation Options}.
-@gccoptlist{-p  -pg  -fprofile-arcs  --coverage  -ftest-coverage @gol
--fprofile-abs-path @gol
--fprofile-dir=@var{path}  -fprofile-generate  -fprofile-generate=@var{path} @gol
--fprofile-info-section  -fprofile-info-section=@var{name} @gol
--fprofile-note=@var{path} -fprofile-prefix-path=@var{path} @gol
--fprofile-update=@var{method} -fprofile-filter-files=@var{regex} @gol
--fprofile-exclude-files=@var{regex} @gol
--fprofile-reproducible=@r{[}multithreaded@r{|}parallel-runs@r{|}serial@r{]} @gol
--fsanitize=@var{style}  -fsanitize-recover  -fsanitize-recover=@var{style} @gol
--fasan-shadow-offset=@var{number}  -fsanitize-sections=@var{s1},@var{s2},... @gol
--fsanitize-undefined-trap-on-error  -fbounds-check @gol
--fcf-protection=@r{[}full@r{|}branch@r{|}return@r{|}none@r{|}check@r{]} @gol
--fharden-compares -fharden-conditional-branches @gol
--fstack-protector  -fstack-protector-all  -fstack-protector-strong @gol
--fstack-protector-explicit  -fstack-check @gol
--fstack-limit-register=@var{reg}  -fstack-limit-symbol=@var{sym} @gol
--fno-stack-limit  -fsplit-stack @gol
--fvtable-verify=@r{[}std@r{|}preinit@r{|}none@r{]} @gol
--fvtv-counts  -fvtv-debug @gol
--finstrument-functions @gol
--finstrument-functions-exclude-function-list=@var{sym},@var{sym},@dots{} @gol
--finstrument-functions-exclude-file-list=@var{file},@var{file},@dots{}} @gol
+@gccoptlist{-p  -pg  -fprofile-arcs  --coverage  -ftest-coverage
+-fprofile-abs-path
+-fprofile-dir=@var{path}  -fprofile-generate  -fprofile-generate=@var{path}
+-fprofile-info-section  -fprofile-info-section=@var{name}
+-fprofile-note=@var{path} -fprofile-prefix-path=@var{path}
+-fprofile-update=@var{method} -fprofile-filter-files=@var{regex}
+-fprofile-exclude-files=@var{regex}
+-fprofile-reproducible=@r{[}multithreaded@r{|}parallel-runs@r{|}serial@r{]}
+-fsanitize=@var{style}  -fsanitize-recover  -fsanitize-recover=@var{style}
+-fsanitize-trap   -fsanitize-trap=@var{style}
+-fasan-shadow-offset=@var{number}  -fsanitize-sections=@var{s1},@var{s2},...
+-fsanitize-undefined-trap-on-error  -fbounds-check
+-fcf-protection=@r{[}full@r{|}branch@r{|}return@r{|}none@r{|}check@r{]}
+-fharden-compares -fharden-conditional-branches  -fhardened
+-fharden-control-flow-redundancy  -fhardcfr-skip-leaf
+-fhardcfr-check-exceptions  -fhardcfr-check-returning-calls
+-fhardcfr-check-noreturn-calls=@r{[}always@r{|}no-xthrow@r{|}nothrow@r{|}never@r{]}
+-fstack-protector  -fstack-protector-all  -fstack-protector-strong
+-fstack-protector-explicit  -fstack-check
+-fstack-limit-register=@var{reg}  -fstack-limit-symbol=@var{sym}
+-fno-stack-limit  -fsplit-stack
+-fstrub=disable  -fstrub=strict  -fstrub=relaxed
+-fstrub=all  -fstrub=at-calls  -fstrub=internal
+-fvtable-verify=@r{[}std@r{|}preinit@r{|}none@r{]}
+-fvtv-counts  -fvtv-debug
+-finstrument-functions  -finstrument-functions-once
+-finstrument-functions-exclude-function-list=@var{sym},@var{sym},@dots{}
+-finstrument-functions-exclude-file-list=@var{file},@var{file},@dots{}
 -fprofile-prefix-map=@var{old}=@var{new}
 
 @item Preprocessor Options
@@ -16476,6 +16482,57 @@ without @option{-fsplit-stack} always has a large stack.  Support for
 this is implemented in the gold linker in GNU binutils release 2.21
 and later.
 
+@opindex -fstrub=disable
+@item -fstrub=disable
+Disable stack scrubbing entirely, ignoring any @code{strub} attributes.
+See @xref{Common Type Attributes}.
+
+@opindex fstrub=strict
+@item -fstrub=strict
+Functions default to @code{strub} mode @code{disabled}, and apply
+@option{strict}ly the restriction that only functions associated with
+@code{strub}-@code{callable} modes (@code{at-calls}, @code{callable} and
+@code{always_inline} @code{internal}) are @code{callable} by functions
+with @code{strub}-enabled modes (@code{at-calls} and @code{internal}).
+
+@opindex fstrub=relaxed
+@item -fstrub=relaxed
+Restore the default stack scrub (@code{strub}) setting, namely,
+@code{strub} is only enabled as required by @code{strub} attributes
+associated with function and data types.  @code{Relaxed} means that
+strub contexts are only prevented from calling functions explicitly
+associated with @code{strub} mode @code{disabled}.  This option is only
+useful to override other @option{-fstrub=*} options that precede it in
+the command line.
+
+@opindex fstrub=at-calls
+@item -fstrub=at-calls
+Enable @code{at-calls} @code{strub} mode where viable.  The primary use
+of this option is for testing.  It exercises the @code{strub} machinery
+in scenarios strictly local to a translation unit.  This @code{strub}
+mode modifies function interfaces, so any function that is visible to
+other translation units, or that has its address taken, will @emph{not}
+be affected by this option.  Optimization options may also affect
+viability.  See the @code{strub} attribute documentation for details on
+viability and eligibility requirements.
+
+@opindex fstrub=internal
+@item -fstrub=internal
+Enable @code{internal} @code{strub} mode where viable.  The primary use
+of this option is for testing.  This option is intended to exercise
+thoroughly parts of the @code{strub} machinery that implement the less
+efficient, but interface-preserving @code{strub} mode.  Functions that
+would not be affected by this option are quite uncommon.
+
+@opindex fstrub=all
+@item -fstrub=all
+Enable some @code{strub} mode where viable.  When both strub modes are
+viable, @code{at-calls} is preferred.  @option{-fdump-ipa-strubm} adds
+function attributes that tell which mode was selected for each function.
+The primary use of this option is for testing, to exercise thoroughly
+the @code{strub} machinery.
+
+@opindex fvtable-verify
 @item -fvtable-verify=@r{[}std@r{|}preinit@r{|}none@r{]}
 @opindex fvtable-verify
 This option is only available when compiling C++ code.
@@ -18352,6 +18409,14 @@ and inlining decisions.
 
 @item inline
 Dump after function inlining.
+
+@item strubm
+Dump after selecting @code{strub} modes, and recording the selections as
+function attributes.
+
+@item strub
+Dump @code{strub} transformations: interface changes, function wrapping,
+and insertion of builtin calls for stack scrubbing and watermarking.
 
 @end table
 

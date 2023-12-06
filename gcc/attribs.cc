@@ -27,6 +27,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "attribs.h"
 #include "fold-const.h"
+#include "ipa-strub.h"
 #include "stor-layout.h"
 #include "langhooks.h"
 #include "plugin.h"
@@ -761,8 +762,8 @@ decl_attributes (tree *node, tree attributes, int flags,
 	  flags &= ~(int) ATTR_FLAG_TYPE_IN_PLACE;
 	}
 
-      if (spec->function_type_required && TREE_CODE (*anode) != FUNCTION_TYPE
-	  && TREE_CODE (*anode) != METHOD_TYPE)
+      if (spec->function_type_required
+	  && !FUNC_OR_METHOD_TYPE_P (*anode))
 	{
 	  if (TREE_CODE (*anode) == POINTER_TYPE
 	      && FUNC_OR_METHOD_TYPE_P (TREE_TYPE (*anode)))
@@ -858,7 +859,39 @@ decl_attributes (tree *node, tree attributes, int flags,
 	  tree ret = (spec->handler) (cur_and_last_decl, name, args,
 				      flags|cxx11_flag, &no_add_attrs);
 
-	  *anode = cur_and_last_decl[0];
+	  /* Fix up typedefs clobbered by attribute handlers.  */
+	  if (TREE_CODE (*node) == TYPE_DECL
+	      && anode == &TREE_TYPE (*node)
+	      && DECL_ORIGINAL_TYPE (*node)
+	      && TYPE_NAME (*anode) == *node
+	      && TYPE_NAME (cur_and_last_decl[0]) != *node)
+	    {
+	      tree t = cur_and_last_decl[0];
+	      DECL_ORIGINAL_TYPE (*node) = t;
+	      tree tt = build_variant_type_copy (t);
+	      cur_and_last_decl[0] = tt;
+	      TREE_TYPE (*node) = tt;
+	      TYPE_NAME (tt) = *node;
+	    }
+
+	  if (*anode != cur_and_last_decl[0])
+	    {
+	      /* Even if !spec->function_type_required, allow the attribute
+		 handler to request the attribute to be applied to the function
+		 type, rather than to the function pointer type, by setting
+		 cur_and_last_decl[0] to the function type.  */
+	      if (!fn_ptr_tmp
+		  && POINTER_TYPE_P (*anode)
+		  && TREE_TYPE (*anode) == cur_and_last_decl[0]
+		  && FUNC_OR_METHOD_TYPE_P (TREE_TYPE (*anode)))
+		{
+		  fn_ptr_tmp = TREE_TYPE (*anode);
+		  fn_ptr_quals = TYPE_QUALS (*anode);
+		  anode = &fn_ptr_tmp;
+		}
+	      *anode = cur_and_last_decl[0];
+	    }
+
 	  if (ret == error_mark_node)
 	    {
 	      warning (OPT_Wattributes, "%qE attribute ignored", name);
@@ -1460,9 +1493,20 @@ comp_type_attributes (const_tree type1, const_tree type2)
   if ((lookup_attribute ("nocf_check", TYPE_ATTRIBUTES (type1)) != NULL)
       ^ (lookup_attribute ("nocf_check", TYPE_ATTRIBUTES (type2)) != NULL))
     return 0;
+  int strub_ret = strub_comptypes (CONST_CAST_TREE (type1),
+				   CONST_CAST_TREE (type2));
+  if (strub_ret == 0)
+    return strub_ret;
   /* As some type combinations - like default calling-convention - might
      be compatible, we have to call the target hook to get the final result.  */
-  return targetm.comp_type_attributes (type1, type2);
+  int target_ret = targetm.comp_type_attributes (type1, type2);
+  if (target_ret == 0)
+    return target_ret;
+  if (strub_ret == 2 || target_ret == 2)
+    return 2;
+  if (strub_ret == 1 && target_ret == 1)
+    return 1;
+  gcc_unreachable ();
 }
 
 /* PREDICATE acts as a function of type:
