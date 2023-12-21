@@ -90,26 +90,15 @@ host_triplet = @host@
 target_triplet = @target@
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/../config/acx.m4 \
-	$(top_srcdir)/../config/enable.m4 \
-	$(top_srcdir)/../config/futex.m4 \
-	$(top_srcdir)/../config/hwcaps.m4 \
-	$(top_srcdir)/../config/iconv.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/../libtool.m4 \
+	$(top_srcdir)/../ltoptions.m4 $(top_srcdir)/../ltsugar.m4 \
+	$(top_srcdir)/../ltversion.m4 $(top_srcdir)/../lt~obsolete.m4 \
+	$(top_srcdir)/../config/acx.m4 \
+	$(top_srcdir)/../config/depstand.m4 \
 	$(top_srcdir)/../config/lead-dot.m4 \
-	$(top_srcdir)/../config/lib-ld.m4 \
-	$(top_srcdir)/../config/lib-link.m4 \
-	$(top_srcdir)/../config/lib-prefix.m4 \
-	$(top_srcdir)/../config/lthostflags.m4 \
 	$(top_srcdir)/../config/multi.m4 \
 	$(top_srcdir)/../config/no-executables.m4 \
-	$(top_srcdir)/../config/override.m4 \
-	$(top_srcdir)/../config/stdint.m4 \
-	$(top_srcdir)/../config/toolexeclibdir.m4 \
-	$(top_srcdir)/../config/unwind_ipinfo.m4 \
-	$(top_srcdir)/../libtool.m4 $(top_srcdir)/../ltoptions.m4 \
-	$(top_srcdir)/../ltsugar.m4 $(top_srcdir)/../ltversion.m4 \
-	$(top_srcdir)/../lt~obsolete.m4 $(top_srcdir)/crossconfig.m4 \
-	$(top_srcdir)/linkage.m4 $(top_srcdir)/acinclude.m4 \
+	$(top_srcdir)/../config/override.m4 $(top_srcdir)/acinclude.m4 \
 	$(top_srcdir)/../config/gc++filt.m4 \
 	$(top_srcdir)/../config/tls.m4 $(top_srcdir)/../config/gthr.m4 \
 	$(top_srcdir)/../config/cet.m4 $(top_srcdir)/configure.ac
@@ -119,9 +108,9 @@ DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
 	$(am__configure_deps)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
+mkinstalldirs = $(SHELL) $(top_srcdir)/../mkinstalldirs
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = scripts/testsuite_flags scripts/extract_symvers \
-	doc/xsl/customization.xsl
+CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -135,8 +124,6 @@ AM_V_at = $(am__v_at_@AM_V@)
 am__v_at_ = $(am__v_at_@AM_DEFAULT_V@)
 am__v_at_0 = @
 am__v_at_1 = 
-depcomp =
-am__depfiles_maybe =
 SOURCES =
 RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
 	ctags-recursive dvi-recursive html-recursive info-recursive \
@@ -180,77 +167,43 @@ am__define_uniq_tagged_files = \
 ETAGS = etags
 CTAGS = ctags
 CSCOPE = cscope
-DIST_SUBDIRS = include libsupc++ src doc po testsuite python
-ABI_TWEAKS_SRCDIR = @ABI_TWEAKS_SRCDIR@
+DIST_SUBDIRS = $(SUBDIRS)
 ACLOCAL = @ACLOCAL@
-ALLOCATOR_H = @ALLOCATOR_H@
-ALLOCATOR_NAME = @ALLOCATOR_NAME@
-ALLOC_FILE = @ALLOC_FILE@
 AMTAR = @AMTAR@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AR = @AR@
 AS = @AS@
-ATOMICITY_SRCDIR = @ATOMICITY_SRCDIR@
-ATOMIC_FLAGS = @ATOMIC_FLAGS@
-ATOMIC_WORD_SRCDIR = @ATOMIC_WORD_SRCDIR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
-BACKTRACE_CPPFLAGS = @BACKTRACE_CPPFLAGS@
-BACKTRACE_SUPPORTED = @BACKTRACE_SUPPORTED@
-BACKTRACE_SUPPORTS_THREADS = @BACKTRACE_SUPPORTS_THREADS@
-BACKTRACE_USES_MALLOC = @BACKTRACE_USES_MALLOC@
-BASIC_FILE_CC = @BASIC_FILE_CC@
-BASIC_FILE_H = @BASIC_FILE_H@
 CC = @CC@
-CCODECVT_CC = @CCODECVT_CC@
-CCOLLATE_CC = @CCOLLATE_CC@
-CCTYPE_CC = @CCTYPE_CC@
+CCAS = @CCAS@
+CCASDEPMODE = @CCASDEPMODE@
+CCASFLAGS = @CCASFLAGS@
+CCDEPMODE = @CCDEPMODE@
+CC_FOR_BUILD = @CC_FOR_BUILD@
 CFLAGS = @CFLAGS@
-CLOCALE_CC = @CLOCALE_CC@
-CLOCALE_H = @CLOCALE_H@
-CLOCALE_INTERNAL_H = @CLOCALE_INTERNAL_H@
-CMESSAGES_CC = @CMESSAGES_CC@
-CMESSAGES_H = @CMESSAGES_H@
-CMONEY_CC = @CMONEY_CC@
-CNUMERIC_CC = @CNUMERIC_CC@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
-CPU_DEFINES_SRCDIR = @CPU_DEFINES_SRCDIR@
-CPU_OPT_BITS_RANDOM = @CPU_OPT_BITS_RANDOM@
-CPU_OPT_EXT_RANDOM = @CPU_OPT_EXT_RANDOM@
-CSTDIO_H = @CSTDIO_H@
-CTIME_CC = @CTIME_CC@
-CTIME_H = @CTIME_H@
 CXX = @CXX@
 CXXCPP = @CXXCPP@
-CXXFILT = @CXXFILT@
+CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
-C_INCLUDE_DIR = @C_INCLUDE_DIR@
-DBLATEX = @DBLATEX@
-DEBUG_FLAGS = @DEBUG_FLAGS@
 DEFS = @DEFS@
-DOT = @DOT@
-DOXYGEN = @DOXYGEN@
+DEPDIR = @DEPDIR@
 DSYMUTIL = @DSYMUTIL@
 DUMPBIN = @DUMPBIN@
 ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
-ERROR_CONSTANTS_SRCDIR = @ERROR_CONSTANTS_SRCDIR@
 EXEEXT = @EXEEXT@
-EXTRA_CFLAGS = @EXTRA_CFLAGS@
-EXTRA_CXX_FLAGS = @EXTRA_CXX_FLAGS@
 FGREP = @FGREP@
-FORMAT_FILE = @FORMAT_FILE@
-FREESTANDING_FLAGS = @FREESTANDING_FLAGS@
-GLIBCXX_INCLUDES = @GLIBCXX_INCLUDES@
 GLIBCXX_LIBS = @GLIBCXX_LIBS@
+GM2_FOR_TARGET = @GM2_FOR_TARGET@
 GREP = @GREP@
-HWCAP_CFLAGS = @HWCAP_CFLAGS@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -258,16 +211,11 @@ INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LD = @LD@
 LDFLAGS = @LDFLAGS@
-LIBICONV = @LIBICONV@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
-LONG_DOUBLE_128_FLAGS = @LONG_DOUBLE_128_FLAGS@
-LONG_DOUBLE_ALT128_COMPAT_FLAGS = @LONG_DOUBLE_ALT128_COMPAT_FLAGS@
-LONG_DOUBLE_COMPAT_FLAGS = @LONG_DOUBLE_COMPAT_FLAGS@
-LTLIBICONV = @LTLIBICONV@
 LTLIBOBJS = @LTLIBOBJS@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
@@ -276,9 +224,6 @@ NM = @NM@
 NMEDIT = @NMEDIT@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
-OPTIMIZE_CXXFLAGS = @OPTIMIZE_CXXFLAGS@
-OPT_LDFLAGS = @OPT_LDFLAGS@
-OS_INC_SRCDIR = @OS_INC_SRCDIR@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
 PACKAGE = @PACKAGE@
@@ -289,27 +234,12 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
-PDFLATEX = @PDFLATEX@
 RANLIB = @RANLIB@
-SECTION_FLAGS = @SECTION_FLAGS@
-SECTION_LDFLAGS = @SECTION_LDFLAGS@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
-SYMVER_FILE = @SYMVER_FILE@
-TOPLEVEL_INCLUDES = @TOPLEVEL_INCLUDES@
-USE_NLS = @USE_NLS@
 VERSION = @VERSION@
-VIEW_FILE = @VIEW_FILE@
-VTV_CXXFLAGS = @VTV_CXXFLAGS@
-VTV_CXXLINKFLAGS = @VTV_CXXLINKFLAGS@
-VTV_PCH_CXXFLAGS = @VTV_PCH_CXXFLAGS@
-WARN_FLAGS = @WARN_FLAGS@
-XMLCATALOG = @XMLCATALOG@
-XMLLINT = @XMLLINT@
-XSLTPROC = @XSLTPROC@
-XSL_STYLE_DIR = @XSL_STYLE_DIR@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -317,19 +247,20 @@ abs_top_srcdir = @abs_top_srcdir@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
+am__include = @am__include@
 am__leading_dot = @am__leading_dot@
+am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
-baseline_dir = @baseline_dir@
-baseline_subdir_switch = @baseline_subdir_switch@
 bindir = @bindir@
 build = @build@
 build_alias = @build_alias@
 build_cpu = @build_cpu@
+build_libsubdir = @build_libsubdir@
 build_os = @build_os@
+build_subdir = @build_subdir@
 build_vendor = @build_vendor@
 builddir = @builddir@
-check_msgfmt = @check_msgfmt@
 datadir = @datadir@
 datarootdir = @datarootdir@
 docdir = @docdir@
@@ -338,24 +269,14 @@ enable_shared = @enable_shared@
 enable_static = @enable_static@
 exec_prefix = @exec_prefix@
 get_gcc_base_ver = @get_gcc_base_ver@
-glibcxx_MOFILES = @glibcxx_MOFILES@
-glibcxx_PCHFLAGS = @glibcxx_PCHFLAGS@
-glibcxx_POFILES = @glibcxx_POFILES@
 glibcxx_builddir = @glibcxx_builddir@
-glibcxx_compiler_pic_flag = @glibcxx_compiler_pic_flag@
-glibcxx_compiler_shared_flag = @glibcxx_compiler_shared_flag@
-glibcxx_cxx98_abi = @glibcxx_cxx98_abi@
-glibcxx_localedir = @glibcxx_localedir@
-glibcxx_lt_pic_flag = @glibcxx_lt_pic_flag@
-glibcxx_prefixdir = @glibcxx_prefixdir@
 glibcxx_srcdir = @glibcxx_srcdir@
-glibcxx_toolexecdir = @glibcxx_toolexecdir@
-glibcxx_toolexeclibdir = @glibcxx_toolexeclibdir@
-gxx_include_dir = @gxx_include_dir@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
+host_noncanonical = @host_noncanonical@
 host_os = @host_os@
+host_subdir = @host_subdir@
 host_vendor = @host_vendor@
 htmldir = @htmldir@
 includedir = @includedir@
@@ -366,100 +287,90 @@ libexecdir = @libexecdir@
 libtool_VERSION = @libtool_VERSION@
 localedir = @localedir@
 localstatedir = @localstatedir@
-lt_host_flags = @lt_host_flags@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 multi_basedir = @multi_basedir@
 oldincludedir = @oldincludedir@
 pdfdir = @pdfdir@
-port_specific_symbol_files = @port_specific_symbol_files@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
-python_mod_dir = @python_mod_dir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
+slibdir = @slibdir@
 srcdir = @srcdir@
 sysconfdir = @sysconfdir@
 target = @target@
 target_alias = @target_alias@
 target_cpu = @target_cpu@
+target_noncanonical = @target_noncanonical@
 target_os = @target_os@
+target_subdir = @target_subdir@
 target_vendor = @target_vendor@
-thread_header = @thread_header@
-tmake_file = @tmake_file@
+toolexecdir = @toolexecdir@
+toolexeclibdir = @toolexeclibdir@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 toplevel_builddir = @toplevel_builddir@
 toplevel_srcdir = @toplevel_srcdir@
 
-# May be used by various substitution variables.
-gcc_version := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
-MAINT_CHARSET = latin1
-mkinstalldirs = $(SHELL) $(toplevel_srcdir)/mkinstalldirs
-PWD_COMMAND = $${PWDCMD-pwd}
-STAMP = echo timestamp >
-toolexecdir = $(glibcxx_toolexecdir)
-toolexeclibdir = $(glibcxx_toolexeclibdir)
-@ENABLE_WERROR_FALSE@WERROR_FLAG = 
-@ENABLE_WERROR_TRUE@WERROR_FLAG = -Werror
-@ENABLE_EXTERN_TEMPLATE_FALSE@XTEMPLATE_FLAGS = 
-@ENABLE_EXTERN_TEMPLATE_TRUE@XTEMPLATE_FLAGS = -fno-implicit-templates
-@GLIBCXX_LDBL_ALT128_COMPAT_FALSE@LDBL_128_FLAGS = 
-@GLIBCXX_LDBL_ALT128_COMPAT_TRUE@LDBL_128_FLAGS = $(LONG_DOUBLE_128_FLAGS)
-
-# These bits are all figured out from configure.  Look in acinclude.m4
-# or configure.ac to see how they are set.  See GLIBCXX_EXPORT_FLAGS.
-CONFIG_CXXFLAGS = \
-	$(SECTION_FLAGS) $(HWCAP_CFLAGS) -frandom-seed=$@ $(LDBL_128_FLAGS)
-
-WARN_CXXFLAGS = \
-	$(WARN_FLAGS) $(WERROR_FLAG) -fdiagnostics-show-location=once 
-
-
-# -I/-D flags to pass when compiling.
-AM_CPPFLAGS = $(GLIBCXX_INCLUDES) $(CPPFLAGS)
-@GLIBCXX_HOSTED_TRUE@hosted_source = src doc po testsuite python
-SUBDIRS = include libsupc++ $(hosted_source)
-ACLOCAL_AMFLAGS = -I . -I .. -I ../config
-@BUILD_XML_FALSE@STAMP_XML = 
-
-# Documentation conditionals for output.
-@BUILD_XML_TRUE@STAMP_XML = doc-xml
-@BUILD_XML_FALSE@STAMP_INSTALL_XML = 
-@BUILD_XML_TRUE@STAMP_INSTALL_XML = doc-install-xml
-@BUILD_HTML_FALSE@STAMP_HTML = 
-@BUILD_HTML_TRUE@STAMP_HTML = doc-html
-@BUILD_HTML_FALSE@STAMP_INSTALL_HTML = 
-@BUILD_HTML_TRUE@STAMP_INSTALL_HTML = doc-install-html
-@BUILD_MAN_FALSE@STAMP_MAN = 
-@BUILD_MAN_TRUE@STAMP_MAN = doc-man
-@BUILD_MAN_FALSE@STAMP_INSTALL_MAN = 
-@BUILD_MAN_TRUE@STAMP_INSTALL_MAN = doc-install-man
-@BUILD_PDF_FALSE@STAMP_PDF = 
-@BUILD_PDF_TRUE@STAMP_PDF = doc-pdf
-@BUILD_PDF_FALSE@STAMP_INSTALL_PDF = 
-@BUILD_PDF_TRUE@STAMP_INSTALL_PDF = doc-install-pdf
-@BUILD_EPUB_FALSE@STAMP_EPUB = doc-epub
-@BUILD_EPUB_TRUE@STAMP_EPUB = doc-epub
-@BUILD_EPUB_FALSE@STAMP_INSTALL_EPUB = doc-install-epub
-@BUILD_EPUB_TRUE@STAMP_INSTALL_EPUB = doc-install-epub
+# Makefile for libgm2.
+#   Copyright 2013-2022  Free Software Foundation, Inc.
+#
+# This file is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
+#
+#
+# if this file is changed then you need to run
+#
+# autoreconf2.64
+#
+# Modula-2 support.
+AUTOMAKE_OPTIONS = 1.8 foreign
+SUFFIXES = .c .mod .def .o .obj .lo .a
+ACLOCAL_AMFLAGS = -I .. -I ../config
 
 # Multilib support.
 MAKEOVERRIDES = 
+AM_CFLAGS = -I $(srcdir)/../libgcc -I $(MULTIBUILDTOP)../../gcc/include
+gcc_version := $(shell @get_gcc_base_ver@ $(top_srcdir)/../gcc/BASE-VER)
+TOP_GCCDIR := $(shell cd $(top_srcdir) && cd .. && pwd)
+TARGET_LONGDOUBLE_ABI := $(if $(strip $(filter powerpc64le%,$(target))),-mabi=ieeelongdouble)
+GCC_DIR = $(TOP_GCCDIR)/gcc
+GM2_SRC = $(GCC_DIR)/m2
+SUBDIRS = libm2min libm2log libm2cor libm2iso libm2pim
+GM2_BUILDDIR := $(shell pwd)
+gm2_cdir = $(libdir)/gcc/$(target_alias)/$(gcc_version)/include
+@ENABLE_DARWIN_AT_RPATH_FALSE@DARWIN_AT_RPATH = yes
+@ENABLE_DARWIN_AT_RPATH_TRUE@DARWIN_AT_RPATH = yes
 
 # Work around what appears to be a GNU make bug handling MAKEFLAGS
 # values defined in terms of make variables, as is the case for CC and
 # friends when we are called from the top level Makefile.
 AM_MAKEFLAGS = \
+        "GCC_DIR=$(GCC_DIR)" \
+        "GM2_SRC=$(GM2_SRC)" \
 	"AR_FLAGS=$(AR_FLAGS)" \
 	"CC_FOR_BUILD=$(CC_FOR_BUILD)" \
 	"CC_FOR_TARGET=$(CC_FOR_TARGET)" \
+	"GM2_FOR_TARGET=$(GM2_FOR_TARGET)" \
 	"CFLAGS=$(CFLAGS)" \
 	"CXXFLAGS=$(CXXFLAGS)" \
 	"CFLAGS_FOR_BUILD=$(CFLAGS_FOR_BUILD)" \
 	"CFLAGS_FOR_TARGET=$(CFLAGS_FOR_TARGET)" \
+        "CFLAGS_LONGDOUBLE=$(CFLAGS_LONGDOUBLE)" \
 	"EXPECT=$(EXPECT)" \
 	"INSTALL=$(INSTALL)" \
 	"INSTALL_DATA=$(INSTALL_DATA)" \
@@ -470,6 +381,8 @@ AM_MAKEFLAGS = \
 	"LIBCFLAGS_FOR_TARGET=$(LIBCFLAGS_FOR_TARGET)" \
 	"MAKE=$(MAKE)" \
 	"MAKEINFO=$(MAKEINFO) $(MAKEINFOFLAGS)" \
+	"PICFLAG=$(PICFLAG)" \
+	"PICFLAG_FOR_TARGET=$(PICFLAG_FOR_TARGET)" \
 	"SHELL=$(SHELL)" \
 	"RUNTESTFLAGS=$(RUNTESTFLAGS)" \
 	"exec_prefix=$(exec_prefix)" \
@@ -487,7 +400,12 @@ AM_MAKEFLAGS = \
 	"NM_FOR_BUILD=$(NM_FOR_BUILD)" \
 	"NM_FOR_TARGET=$(NM_FOR_TARGET)" \
 	"DESTDIR=$(DESTDIR)" \
-	"WERROR=$(WERROR)"
+	"WERROR=$(WERROR)" \
+        "TARGET_LIB_PATH=$(TARGET_LIB_PATH)" \
+        "TARGET_LIB_PATH_libgm2=$(TARGET_LIB_PATH_libgm2)" \
+        "TARGET_LONGDOUBLE_ABI=$(TARGET_LONGDOUBLE_ABI)" \
+	"LIBTOOL=$(GM2_BUILDDIR)/libtool" \
+	"DARWIN_AT_RPATH=$(DARWIN_AT_RPATH)"
 
 
 # Subdir rules rely on $(FLAGS_TO_PASS)
@@ -502,21 +420,22 @@ all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
 .SUFFIXES:
+.SUFFIXES: .c .mod .def .o .obj .lo .a
 am--refresh: Makefile
 	@:
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(top_srcdir)/fragment.am $(top_srcdir)/../multilib.am $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(top_srcdir)/../multilib.am $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
-	      echo ' cd $(srcdir) && $(AUTOMAKE) --foreign --ignore-deps'; \
-	      $(am__cd) $(srcdir) && $(AUTOMAKE) --foreign --ignore-deps \
+	      echo ' cd $(srcdir) && $(AUTOMAKE) --foreign'; \
+	      $(am__cd) $(srcdir) && $(AUTOMAKE) --foreign \
 		&& exit 0; \
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign --ignore-deps Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign --ignore-deps Makefile
+	  $(AUTOMAKE) --foreign Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
@@ -526,7 +445,7 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	    echo ' cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__depfiles_maybe)'; \
 	    cd $(top_builddir) && $(SHELL) ./config.status $@ $(am__depfiles_maybe);; \
 	esac;
-$(top_srcdir)/fragment.am $(top_srcdir)/../multilib.am $(am__empty):
+$(top_srcdir)/../multilib.am $(am__empty):
 
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	$(SHELL) ./config.status --recheck
@@ -551,12 +470,6 @@ $(srcdir)/config.h.in: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 
 distclean-hdr:
 	-rm -f config.h stamp-h1
-scripts/testsuite_flags: $(top_builddir)/config.status $(top_srcdir)/scripts/testsuite_flags.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
-scripts/extract_symvers: $(top_builddir)/config.status $(top_srcdir)/scripts/extract_symvers.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
-doc/xsl/customization.xsl: $(top_builddir)/config.status $(top_srcdir)/doc/xsl/customization.xsl.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -604,6 +517,7 @@ $(am__recursive_targets):
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
 tags: tags-recursive
+TAGS: tags
 
 tags-am: $(TAGS_DEPENDENCIES) $(am__tagged_files)
 	set x; \
@@ -716,23 +630,41 @@ distclean: distclean-recursive
 distclean-am: clean-am distclean-generic distclean-hdr \
 	distclean-libtool distclean-local distclean-tags
 
+dvi: dvi-recursive
+
 dvi-am:
 
+html: html-recursive
+
 html-am:
+
+info: info-recursive
 
 info-am:
 
 install-data-am:
 
+install-dvi: install-dvi-recursive
+
 install-dvi-am:
 
 install-exec-am: install-exec-local
 
+install-html: install-html-recursive
+
 install-html-am:
+
+install-info: install-info-recursive
 
 install-info-am:
 
+install-man:
+
+install-pdf: install-pdf-recursive
+
 install-pdf-am:
+
+install-ps: install-ps-recursive
 
 install-ps-am:
 
@@ -750,7 +682,11 @@ mostlyclean: mostlyclean-recursive
 mostlyclean-am: mostlyclean-generic mostlyclean-libtool \
 	mostlyclean-local
 
+pdf: pdf-recursive
+
 pdf-am:
+
+ps: ps-recursive
 
 ps-am:
 
@@ -775,64 +711,6 @@ uninstall-am:
 
 .PRECIOUS: Makefile
 
-
-# Testsuite/check forwarding targets.
-check-%:
-	cd testsuite && $(MAKE) $@
-
-# Documentation forwarding targets.
-doc-%:
-	cd doc && $(MAKE) $@
-
-# Documentation primary rules.
-#
-# xml:
-# html:
-# pdf:
-# man:
-# info:
-# ps:
-# dvi:
-# epub:
-# install-xml:
-# install-html:
-# install-pdf:
-# install-man:
-# install-info:
-# install-ps:
-# install-dvi:
-# install-epub:
-
-xml: $(STAMP_XML)
-install-xml: $(STAMP_INSTALL_XML)
-
-html: $(STAMP_HTML)
-install-html: $(STAMP_INSTALL_HTML)
-
-man: $(STAMP_MAN)
-install-man: $(STAMP_INSTALL_MAN)
-
-pdf: $(STAMP_PDF)
-install-pdf: $(STAMP_INSTALL_PDF)
-
-epub: $(STAMP_EPUB)
-install-epub: $(STAMP_INSTALL_EPUB)
-
-info:
-install-info:
-
-ps:
-install-ps:
-
-dvi:
-install-dvi:
-
-# All the machinations with string instantiations messes up the
-# automake-generated TAGS rule. Make a simple one here.
-TAGS: tags-recursive $(LISP)
-
-# target overrides
--include $(tmake_file)
 
 # GNU Make needs to see an explicit $(MAKE) variable in the command it
 # runs to enable its job server during parallel builds.  Hence the
