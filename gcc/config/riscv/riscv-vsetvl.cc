@@ -1657,7 +1657,7 @@ private:
   }
   inline void use_max_sew (vsetvl_info &prev, const vsetvl_info &next)
   {
-    auto max_sew = std::max (prev.get_sew (), next.get_sew ());
+    int max_sew = MAX (prev.get_sew (), next.get_sew ());
     prev.set_sew (max_sew);
     use_min_of_max_sew (prev, next);
   }
@@ -1691,7 +1691,7 @@ private:
   inline void use_max_sew_and_lmul_with_prev_ratio (vsetvl_info &prev,
 						    const vsetvl_info &next)
   {
-    auto max_sew = std::max (prev.get_sew (), next.get_sew ());
+    int max_sew = MAX (prev.get_sew (), next.get_sew ());
     prev.set_vlmul (calculate_vlmul (max_sew, prev.get_ratio ()));
     prev.set_sew (max_sew);
   }
