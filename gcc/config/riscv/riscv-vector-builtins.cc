@@ -916,6 +916,32 @@ static CONSTEXPR const rvv_arg_type_info ext_vcreate_args[]
   = {rvv_arg_type_info (RVV_BASE_vector),
      rvv_arg_type_info_end};
 
+/* A list of args for vector_type func (const scalar_type *, size_t)
+ * function.  */
+static CONSTEXPR const rvv_arg_type_info scalar_const_ptr_size_args[]
+  = {rvv_arg_type_info (RVV_BASE_scalar_const_ptr),
+     rvv_arg_type_info (RVV_BASE_size), rvv_arg_type_info_end};
+
+/* A list of args for vector_type func (const scalar_type *, eew8_index_type)
+ * function.  */
+static CONSTEXPR const rvv_arg_type_info scalar_const_ptr_index_args[]
+  = {rvv_arg_type_info (RVV_BASE_scalar_const_ptr),
+     rvv_arg_type_info (RVV_BASE_unsigned_vector), rvv_arg_type_info_end};
+
+/* A list of args for void func (scalar_type *, eew8_index_type, vector_type)
+ * function.  */
+static CONSTEXPR const rvv_arg_type_info scalar_ptr_index_args[]
+  = {rvv_arg_type_info (RVV_BASE_scalar_ptr),
+     rvv_arg_type_info (RVV_BASE_unsigned_vector),
+     rvv_arg_type_info (RVV_BASE_vector), rvv_arg_type_info_end};
+
+/* A list of args for void func (scalar_type *, size_t, vector_type)
+ * function.  */
+static CONSTEXPR const rvv_arg_type_info scalar_ptr_size_args[]
+  = {rvv_arg_type_info (RVV_BASE_scalar_ptr),
+     rvv_arg_type_info (RVV_BASE_size), rvv_arg_type_info (RVV_BASE_vector),
+     rvv_arg_type_info_end};
+
 /* A list of none preds that will be registered for intrinsic functions.  */
 static CONSTEXPR const predication_type_index none_preds[]
   = {PRED_TYPE_none, NUM_PRED_TYPES};
@@ -1428,6 +1454,14 @@ static CONSTEXPR const rvv_op_info iu_shift_vvv_ops
      OP_TYPE_vv,			/* Suffix */
      rvv_arg_type_info (RVV_BASE_vector), /* Return type */
      shift_vv_args /* Args */};
+
+/* A static operand information for scalar_type func (vector_type, size_t)
+ * function registration. */
+static CONSTEXPR const rvv_op_info iu_x_s_u_ops
+  = {iu_ops,          /* Types */
+     OP_TYPE_vx,        /* Suffix */
+     rvv_arg_type_info (RVV_BASE_scalar), /* Return type */
+     v_size_args /* Args */};
 
 /* A static operand information for vector_type func (vector_type, size_t)
  * function registration. */
@@ -2604,6 +2638,133 @@ static CONSTEXPR const rvv_op_info all_v_vcreate_lmul4_x2_ops
      rvv_arg_type_info (RVV_BASE_vlmul_ext_x2), /* Return type */
      ext_vcreate_args /* Args */};
 
+/* A static operand information for vector_type func (const scalar_type *,
+ * size_t) function registration.  */
+static CONSTEXPR const rvv_op_info all_v_scalar_const_ptr_size_ops
+  = {all_ops,				  /* Types  */
+     OP_TYPE_v,				  /* Suffix  */
+     rvv_arg_type_info (RVV_BASE_vector), /* Return type  */
+     scalar_const_ptr_size_args /* Args */};
+
+/* A static operand information for void func (scalar_type *, size_t,
+ * vector_type) function registration.  */
+static CONSTEXPR const rvv_op_info all_v_scalar_ptr_size_ops
+  = {all_ops,				/* Types  */
+     OP_TYPE_v,				/* Suffix  */
+     rvv_arg_type_info (RVV_BASE_void), /* Return type  */
+     scalar_ptr_size_args /* Args */};
+
+/* A static operand information for vector_type func (const scalar_type *,
+ * index_type) function registration.  */
+static CONSTEXPR const rvv_op_info all_v_scalar_const_ptr_index_ops
+  = {all_ops,				  /* Types  */
+     OP_TYPE_v,				  /* Suffix  */
+     rvv_arg_type_info (RVV_BASE_vector), /* Return type  */
+     scalar_const_ptr_index_args /* Args */};
+
+/* A static operand information for void func (scalar_type *, index_type,
+ * vector_type) function registration.  */
+static CONSTEXPR const rvv_op_info all_v_scalar_ptr_index_ops
+  = {all_ops,				/* Types  */
+     OP_TYPE_v,				/* Suffix  */
+     rvv_arg_type_info (RVV_BASE_void), /* Return type  */
+     scalar_ptr_index_args /* Args */};
+
+/* A static operand information for vector_type func (vector_type).
+   Some ins just supports SEW=32, such as crypto vectol Zvkg extension.
+ * function registration.  */
+static CONSTEXPR const rvv_arg_type_info vs_lmul_x2_args[]
+  = {rvv_arg_type_info (RVV_BASE_vlmul_ext_x2),
+     rvv_arg_type_info (RVV_BASE_vector), rvv_arg_type_info_end};
+
+static CONSTEXPR const rvv_arg_type_info vs_lmul_x4_args[]
+  = {rvv_arg_type_info (RVV_BASE_vlmul_ext_x4),
+     rvv_arg_type_info (RVV_BASE_vector), rvv_arg_type_info_end};
+
+static CONSTEXPR const rvv_arg_type_info vs_lmul_x8_args[]
+  = {rvv_arg_type_info (RVV_BASE_vlmul_ext_x8),
+     rvv_arg_type_info (RVV_BASE_vector), rvv_arg_type_info_end};
+
+static CONSTEXPR const rvv_arg_type_info vs_lmul_x16_args[]
+  = {rvv_arg_type_info (RVV_BASE_vlmul_ext_x16),
+     rvv_arg_type_info (RVV_BASE_vector), rvv_arg_type_info_end};
+
+static CONSTEXPR const rvv_op_info u_vvv_crypto_sew32_ops
+  = {crypto_sew32_ops,			   /* Types */
+     OP_TYPE_vv,					   /* Suffix */
+     rvv_arg_type_info (RVV_BASE_vector), /* Return type */
+     vv_args /* Args */};
+
+static CONSTEXPR const rvv_op_info u_vvvv_crypto_sew32_ops
+  = {crypto_sew32_ops,			   /* Types */
+     OP_TYPE_vv,					   /* Suffix */
+     rvv_arg_type_info (RVV_BASE_vector), /* Return type */
+     vvv_args /* Args */};
+
+static CONSTEXPR const rvv_op_info u_vvv_size_crypto_sew32_ops
+  = {crypto_sew32_ops,			   /* Types */
+     OP_TYPE_vi,					   /* Suffix */
+     rvv_arg_type_info (RVV_BASE_vector), /* Return type */
+     vv_size_args /* Args */};
+
+static CONSTEXPR const rvv_op_info u_vv_size_crypto_sew32_ops
+  = {crypto_sew32_ops,			   /* Types */
+     OP_TYPE_vi,					   /* Suffix */
+     rvv_arg_type_info (RVV_BASE_vector), /* Return type */
+     v_size_args /* Args */};
+
+static CONSTEXPR const rvv_op_info u_vvs_crypto_sew32_ops
+  = {crypto_sew32_ops,			   /* Types */
+     OP_TYPE_vs,					   /* Suffix */
+     rvv_arg_type_info (RVV_BASE_vector), /* Return type */
+     vv_args /* Args */};
+
+static CONSTEXPR const rvv_op_info u_vvs_crypto_sew32_lmul_x2_ops
+  = {crypto_sew32_ops,			   /* Types */
+     OP_TYPE_vs,					   /* Suffix */
+     rvv_arg_type_info (RVV_BASE_vlmul_ext_x2), /* Return type */
+     vs_lmul_x2_args /* Args */};
+
+static CONSTEXPR const rvv_op_info u_vvs_crypto_sew32_lmul_x4_ops
+  = {crypto_sew32_ops,			   /* Types */
+     OP_TYPE_vs,					   /* Suffix */
+     rvv_arg_type_info (RVV_BASE_vlmul_ext_x4), /* Return type */
+     vs_lmul_x4_args /* Args */};
+
+static CONSTEXPR const rvv_op_info u_vvs_crypto_sew32_lmul_x8_ops
+  = {crypto_sew32_ops,			   /* Types */
+     OP_TYPE_vs,					   /* Suffix */
+     rvv_arg_type_info (RVV_BASE_vlmul_ext_x8), /* Return type */
+     vs_lmul_x8_args /* Args */};
+
+static CONSTEXPR const rvv_op_info u_vvs_crypto_sew32_lmul_x16_ops
+  = {crypto_sew32_ops,			   /* Types */
+     OP_TYPE_vs,					   /* Suffix */
+     rvv_arg_type_info (RVV_BASE_vlmul_ext_x16), /* Return type */
+     vs_lmul_x16_args /* Args */};
+
+/* A static operand information for vector_type func (vector_type).
+   Some ins just supports SEW=64, such as crypto vectol Zvbc extension
+   vclmul.vv, vclmul.vx.
+ * function registration.  */
+static CONSTEXPR const rvv_op_info u_vvv_crypto_sew64_ops
+  = {crypto_sew64_ops,			   /* Types */
+     OP_TYPE_vv,					   /* Suffix */
+     rvv_arg_type_info (RVV_BASE_vector), /* Return type */
+     vv_args /* Args */};
+
+static CONSTEXPR const rvv_op_info u_vvx_crypto_sew64_ops
+  = {crypto_sew64_ops,			   /* Types */
+     OP_TYPE_vx,					   /* Suffix */
+     rvv_arg_type_info (RVV_BASE_vector), /* Return type */
+     vx_args /* Args */};
+
+static CONSTEXPR const rvv_op_info u_vvvv_crypto_sew64_ops
+  = {crypto_sew64_ops,			   /* Types */
+     OP_TYPE_vv,					   /* Suffix */
+     rvv_arg_type_info (RVV_BASE_vector), /* Return type */
+     vvv_args /* Args */};
+
 /* A list of all RVV base function types.  */
 static CONSTEXPR const function_type_info function_types[] = {
 #define DEF_RVV_TYPE_INDEX(                                                    \
@@ -2687,6 +2848,10 @@ static function_group_info function_groups[] = {
 #define DEF_RVV_FUNCTION(NAME, SHAPE, PREDS, OPS_INFO)                         \
   {#NAME, &bases::NAME, &shapes::SHAPE, PREDS, OPS_INFO, REQUIRED_EXTENSIONS},
 #include "riscv-vector-builtins-functions.def"
+#undef DEF_RVV_FUNCTION
+#define DEF_RVV_FUNCTION(NAME, SHAPE, PREDS, OPS_INFO)                         \
+  {#NAME, &bases::NAME, &shapes::SHAPE, PREDS, OPS_INFO, REQUIRED_EXTENSIONS},
+#include "thead-vector-builtins-functions.def"
 };
 
 /* The RVV types, with their built-in
