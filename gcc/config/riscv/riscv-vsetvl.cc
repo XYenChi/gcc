@@ -2243,7 +2243,23 @@ private:
     return true;
   }
 
-  bool preds_has_same_avl_p (const vsetvl_info &curr_info)
+  bool has_compatible_reaching_vsetvl_p (vsetvl_info info)
+  {
+    unsigned int index;
+    sbitmap_iterator sbi;
+    EXECUTE_IF_SET_IN_BITMAP (m_vsetvl_def_in[info.get_bb ()->index ()], 0,
+			      index, sbi)
+      {
+	const auto prev_info = *m_vsetvl_def_exprs[index];
+	if (!prev_info.valid_p ())
+	  continue;
+	if (m_dem.compatible_p (prev_info, info))
+	  return true;
+      }
+    return false;
+  }
+
+  bool preds_all_same_avl_and_ratio_p (const vsetvl_info &curr_info)
   {
     gcc_assert (
       !bitmap_empty_p (m_vsetvl_def_in[curr_info.get_bb ()->index ()]));
@@ -3067,22 +3083,8 @@ pre_vsetvl::earliest_fuse_vsetvl_info (int iter)
 	    {
 	      vsetvl_info new_curr_info = curr_info;
 	      new_curr_info.set_bb (crtl->ssa->bb (eg->dest));
-	      bool has_compatible_p = false;
-	      unsigned int def_expr_index;
-	      sbitmap_iterator sbi2;
-	      EXECUTE_IF_SET_IN_BITMAP (
-		m_vsetvl_def_in[new_curr_info.get_bb ()->index ()], 0,
-		def_expr_index, sbi2)
-		{
-		  vsetvl_info &prev_info = *m_vsetvl_def_exprs[def_expr_index];
-		  if (!prev_info.valid_p ())
-		    continue;
-		  if (m_dem.compatible_p (prev_info, new_curr_info))
-		    {
-		      has_compatible_p = true;
-		      break;
-		    }
-		}
+	      bool has_compatible_p
+		= has_compatible_reaching_vsetvl_p (new_curr_info);
 	      if (!has_compatible_p)
 		{
 		  if (dump_file && (dump_flags & TDF_DETAILS))
@@ -3137,7 +3139,10 @@ pre_vsetvl::earliest_fuse_vsetvl_info (int iter)
 	      else
 		{
 		  /* Cancel lift up if probabilities are equal.  */
-		  if (successors_probability_equal_p (eg->src))
+		  if (successors_probability_equal_p (eg->src)
+		      || (dest_block_info.probability
+			    > src_block_info.probability
+			  && !has_compatible_reaching_vsetvl_p (curr_info)))
 		    {
 		      if (dump_file && (dump_flags & TDF_DETAILS))
 			{
@@ -3145,8 +3150,8 @@ pre_vsetvl::earliest_fuse_vsetvl_info (int iter)
 				   "      Reset bb %u:",
 				   eg->src->index);
 			  prev_info.dump (dump_file, "        ");
-			  fprintf (dump_file,
-				   "	due to (same probability):");
+			  fprintf (dump_file, "	due to (same probability or no "
+					      "compatible reaching):");
 			  curr_info.dump (dump_file, "        ");
 			}
 		      src_block_info.set_empty_info ();
