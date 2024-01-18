@@ -9094,9 +9094,9 @@ vectorizable_store (vec_info *vinfo,
   auto_vec<tree> vec_offsets;
   auto_delete_vec<auto_vec<tree>> gvec_oprnds (group_size);
   for (i = 0; i < group_size; i++)
-    gvec_oprnds.quick_push (new auto_vec<tree> (ncopies));
-  auto_vec<tree, 1> vec_oprnds;
-  for (j = 0; j < ncopies; j++)
+    gvec_oprnds.quick_push (new auto_vec<tree> ());
+
+  if (memory_access_type == VMAT_LOAD_STORE_LANES)
     {
       gcc_assert (!slp && grouped_store);
       unsigned inside_cost = 0, prologue_cost = 0;
