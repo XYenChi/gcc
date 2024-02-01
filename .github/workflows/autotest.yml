@@ -39,11 +39,17 @@ jobs:
       - name: set gcc remote
         run: |
           cd gcc
+          pwd
           git remote add xyenchi https://github.com/XYenChi/gcc.git
+          git remote add origin https://github.com/gcc-mirror/gcc.git
           git fetch
       - name: checkout to release gcc 12.3.0
         run: |
+          git checkout origin master
+          pwd
+          git branch
           git checkout releases/gcc-12.3.0
+          git checkout -b new-ruyisdk-gcc-12.3.0
           git pull xyenchi new-ruyisdk-gcc-12.3.0
       - name: configure riscv gnu toolchain
         run: |
