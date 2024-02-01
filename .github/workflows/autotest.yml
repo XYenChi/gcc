@@ -41,9 +41,7 @@ jobs:
           pwd
           git remote add xyenchi https://github.com/XYenChi/gcc.git
           git fetch
-          git tag
-          git branch show
-          git checkout releases/gcc-12.3.0
+          git checkout 8fc1a49c9312b05d925b7d21f1d2145d70818151
           git pull xyenchi new-ruyisdk-gcc-12.3.0
           pwd
           ls
