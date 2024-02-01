@@ -1,5 +1,5 @@
 ;; RISC-V generic out-of-order core scheduling model.
-;; Copyright (C) 2017-2023 Free Software Foundation, Inc.
+;; Copyright (C) 2017-2024 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -184,7 +184,7 @@
 (define_insn_reservation "generic_ooo_vec_alu" 3
   (and (eq_attr "tune" "generic_ooo")
        (eq_attr "type" "vialu,viwalu,vext,vicalu,vshift,vnshift,viminmax,vicmp,\
-		        vimov,vsalu,vaalu,vsshift,vnclip,vmov,vfmov"))
+		        vimov,vsalu,vaalu,vsshift,vnclip,vmov,vfmov,vector"))
   "generic_ooo_vxu_issue,generic_ooo_vxu_alu")
 
 ;; Vector float comparison, conversion etc.
