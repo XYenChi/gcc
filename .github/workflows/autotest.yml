@@ -47,7 +47,6 @@ jobs:
           git checkout origin master
           pwd
           git branch
-          git checkout releases/gcc-12.3.0
           git checkout -b new-ruyisdk-gcc-12.3.0
           git pull xyenchi new-ruyisdk-gcc-12.3.0
       - name: configure riscv gnu toolchain
