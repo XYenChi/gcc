@@ -40,6 +40,7 @@ jobs:
           git fetch
           git branch
           git checkout origin/master
+          git tag
           git checkout releases/gcc-12.3.0
           git pull xyenchi new-ruyisdk-gcc-12.3.0
           pwd
