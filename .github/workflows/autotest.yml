@@ -44,7 +44,6 @@ jobs:
           git fetch
       - name: checkout to release gcc 12.3.0
         run: |
-          git checkout origin master
           pwd
           git branch
           git checkout -b new-ruyisdk-gcc-12.3.0
