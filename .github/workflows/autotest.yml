@@ -37,8 +37,10 @@ jobs:
           cd riscv-gnu-toolchain
           cd gcc
           git remote add xyenchi https://github.com/XYenChi/gcc.git
+          git remote add origin https://github.com/gcc-mirror/gcc.git
           git fetch
-          git checkout -b new-ruyisdk-gcc-12.3.0
+          git checkout origin master
+          git checkout releases/gcc-12.3.0
           git pull xyenchi new-ruyisdk-gcc-12.3.0
           pwd
           ls
