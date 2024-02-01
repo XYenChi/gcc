@@ -35,10 +35,10 @@ jobs:
       - name: git submodule init
         run: |
           cd riscv-gnu-toolchain
+          pwd
 
       - name: set gcc remote
         run: |
-          cd gcc
           pwd
           git remote add xyenchi https://github.com/XYenChi/gcc.git
           git fetch
@@ -46,11 +46,12 @@ jobs:
         run: |
           pwd
           git branch
-          git checkout -b new-ruyisdk-gcc-12.3.0
-          git pull xyenchi new-ruyisdk-gcc-12.3.0
+          git checkout xyenchi/new-ruyisdk-gcc-12.3.0
       - name: configure riscv gnu toolchain
         run: |
-          cd ..
+          pwd
+          ls
+          cd ~/riscv-gnu-toolchain
           ./configure --prefix="$PWD/opt-gcc" --with-arch=rv64gc --with-abi=lp64d
       - name: make
         run: make -j $(nproc)
