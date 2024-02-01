@@ -39,7 +39,7 @@ jobs:
           git remote add xyenchi https://github.com/XYenChi/gcc.git
           git fetch
           git checkout -b new-ruyisdk-gcc-12.3.0
-          git pull origin new-ruyisdk-gcc-12.3.0
+          git pull xyenchi new-ruyisdk-gcc-12.3.0
           pwd
           ls
           cd ..
