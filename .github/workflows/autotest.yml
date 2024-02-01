@@ -41,7 +41,6 @@ jobs:
           cd gcc
           pwd
           git remote add xyenchi https://github.com/XYenChi/gcc.git
-          git remote add origin https://github.com/gcc-mirror/gcc.git
           git fetch
       - name: checkout to release gcc 12.3.0
         run: |
