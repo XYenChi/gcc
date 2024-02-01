@@ -35,6 +35,7 @@ jobs:
       - name: git submodule init
         run: |
           cd riscv-gnu-toolchain
+          git submodule init
           pwd
           cd gcc
           pwd
