@@ -44,6 +44,8 @@ jobs:
           cd gcc
           git remote add xyenchi https://github.com/XYenChi/gcc.git
           git fetch
+          git log
+          git checkout -b new-ruyisdk-gcc-12.3.0
           git pull xyenchi new-ruyisdk-gcc-12.3.0
           cd ..
           ./configure --prefix="$PWD/opt-gcc" --with-arch=rv64gc --with-abi=lp64d
