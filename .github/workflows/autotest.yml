@@ -32,16 +32,18 @@ jobs:
       - name: Clone the riscv-gnu-toolchain repo
         run: git clone https://github.com/XYenChi/riscv-gnu-toolchain.git --depth=1
 
-      - name: Cache riscv-gnu-toolchain repo
-        uses: actions/cache@v3
-        with:
-          path: ~/riscv-gnu-toolchain
+      # - name: Cache riscv-gnu-toolchain repo
+       # uses: actions/cache@v3
+       # with:
+       #   path: ~/riscv-gnu-toolchain
           
       - name: git submodule init
         run: |
+          pwd
           cd riscv-gnu-toolchain
           ls
           cd gcc
+          pwd
           git remote add xyenchi https://github.com/XYenChi/gcc.git
           git fetch
           git log
