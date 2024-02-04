@@ -3047,7 +3047,8 @@ riscv_rtx_costs (rtx x, machine_mode mode, int outer_code, int opno ATTRIBUTE_UN
     case SET:
       /* If we are called for an INSN that's a simple set of a register,
 	 then cost based on the SET_SRC alone.  */
-      if (outer_code == INSN && REG_P (SET_DEST (x)))
+      if (outer_code == INSN
+	  && register_operand (SET_DEST (x), GET_MODE (SET_DEST (x))))
 	{
 	  riscv_rtx_costs (SET_SRC (x), mode, outer_code, opno, total, speed);
 	  return true;
@@ -3164,7 +3165,7 @@ riscv_rtx_costs (rtx x, machine_mode mode, int outer_code, int opno ATTRIBUTE_UN
 	  rtx and_rhs = XEXP (x, 1);
 	  rtx ashift_lhs = XEXP (XEXP (x, 0), 0);
 	  rtx ashift_rhs = XEXP (XEXP (x, 0), 1);
-	  if (REG_P (ashift_lhs)
+	  if (register_operand (ashift_lhs, GET_MODE (ashift_lhs))
 	      && CONST_INT_P (ashift_rhs)
 	      && CONST_INT_P (and_rhs)
 	      && ((INTVAL (and_rhs) >> INTVAL (ashift_rhs)) == 0xffffffff))
@@ -3180,7 +3181,7 @@ riscv_rtx_costs (rtx x, machine_mode mode, int outer_code, int opno ATTRIBUTE_UN
 	}
       /* bclr pattern for zbs.  */
       if (TARGET_ZBS
-	  && REG_P (XEXP (x, 1))
+	  && register_operand (XEXP (x, 1), GET_MODE (XEXP (x, 1)))
 	  && GET_CODE (XEXP (x, 0)) == ROTATE
 	  && CONST_INT_P (XEXP ((XEXP (x, 0)), 0))
 	  && INTVAL (XEXP ((XEXP (x, 0)), 0)) == -2)
@@ -3336,7 +3337,8 @@ riscv_rtx_costs (rtx x, machine_mode mode, int outer_code, int opno ATTRIBUTE_UN
       if (TARGET_ZBA
 	  && (TARGET_64BIT && (mode == DImode))
 	  && GET_CODE (XEXP (x, 0)) == ZERO_EXTEND
-	  && REG_P (XEXP (XEXP (x, 0), 0))
+	  && register_operand (XEXP (XEXP (x, 0), 0),
+			       GET_MODE (XEXP (XEXP (x, 0), 0)))
 	  && GET_MODE (XEXP (XEXP (x, 0), 0)) == SImode)
 	{
 	  *total = COSTS_N_INSNS (1);
@@ -3347,7 +3349,8 @@ riscv_rtx_costs (rtx x, machine_mode mode, int outer_code, int opno ATTRIBUTE_UN
 	  && ((!TARGET_64BIT && (mode == SImode)) ||
 	      (TARGET_64BIT && (mode == DImode)))
 	  && (GET_CODE (XEXP (x, 0)) == ASHIFT)
-	  && REG_P (XEXP (XEXP (x, 0), 0))
+	  && register_operand (XEXP (XEXP (x, 0), 0),
+			       GET_MODE (XEXP (XEXP (x, 0), 0)))
 	  && CONST_INT_P (XEXP (XEXP (x, 0), 1))
 	  && IN_RANGE (INTVAL (XEXP (XEXP (x, 0), 1)), 1, 3))
 	{
@@ -3360,7 +3363,8 @@ riscv_rtx_costs (rtx x, machine_mode mode, int outer_code, int opno ATTRIBUTE_UN
       if (TARGET_ZBA
 	  && mode == word_mode
 	  && GET_CODE (XEXP (x, 0)) == MULT
-	  && REG_P (XEXP (XEXP (x, 0), 0))
+	  && register_operand (XEXP (XEXP (x, 0), 0),
+			       GET_MODE (XEXP (XEXP (x, 0), 0)))
 	  && CONST_INT_P (XEXP (XEXP (x, 0), 1))
 	  && pow2p_hwi (INTVAL (XEXP (XEXP (x, 0), 1)))
 	  && IN_RANGE (exact_log2 (INTVAL (XEXP (XEXP (x, 0), 1))), 1, 3))
@@ -3382,7 +3386,7 @@ riscv_rtx_costs (rtx x, machine_mode mode, int outer_code, int opno ATTRIBUTE_UN
       if (TARGET_ZBA
 	  && (TARGET_64BIT && (mode == DImode))
 	  && (GET_CODE (XEXP (x, 0)) == AND)
-	  && (REG_P (XEXP (x, 1))))
+	  && register_operand (XEXP (x, 1), GET_MODE (XEXP (x, 1))))
 	{
 	  do {
 	    rtx and_lhs = XEXP (XEXP (x, 0), 0);
