@@ -42,6 +42,8 @@ jobs:
           cd riscv-gnu-toolchain
           git submodule update --init
           cd gcc
+          git fetch
+          git checkout releases/gcc-12.3.0
           git remote add xyenchi https://github.com/XYenChi/gcc.git
           git remote show
           git fetch
