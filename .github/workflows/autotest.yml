@@ -40,13 +40,11 @@ jobs:
       - name: git submodule init
         run: |
           cd riscv-gnu-toolchain
-          git submodule init
-          git submodule update
+          git submodule update --init
           cd gcc
-          pwd
           git remote add xyenchi https://github.com/XYenChi/gcc.git
+          git remote show
           git fetch
-          git log
           git checkout -b new-ruyisdk-gcc-12.3.0
           git pull xyenchi new-ruyisdk-gcc-12.3.0
           cd ..
