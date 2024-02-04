@@ -39,9 +39,9 @@ jobs:
           
       - name: git submodule init
         run: |
-          pwd
           cd riscv-gnu-toolchain
-          ls
+          git submodule init
+          git submodule update
           cd gcc
           pwd
           git remote add xyenchi https://github.com/XYenChi/gcc.git
