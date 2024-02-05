@@ -2270,9 +2270,8 @@ private:
       }
   }
 
-  void remove_vsetvl_insn (const vsetvl_info &info)
+  void remove_vsetvl_insn (rtx_insn *rinsn)
   {
-    rtx_insn *rinsn = info.get_insn ()->rtl ();
     if (dump_file)
       {
 	fprintf (dump_file, "  Eliminate insn %d:\n", INSN_UID (rinsn));
@@ -3218,7 +3217,7 @@ pre_vsetvl::emit_vsetvl ()
 	  if (curr_info.delete_p ())
 	    {
 	      if (vsetvl_insn_p (insn->rtl ()))
-		remove_vsetvl_insn (curr_info);
+		remove_vsetvl_insn (curr_info.get_insn ()->rtl ());
 	      continue;
 	    }
 	  else if (curr_info.valid_p ())
@@ -3256,7 +3255,7 @@ pre_vsetvl::emit_vsetvl ()
   for (const vsetvl_info &item : m_delete_list)
     {
       gcc_assert (vsetvl_insn_p (item.get_insn ()->rtl ()));
-      remove_vsetvl_insn (item);
+      remove_vsetvl_insn (item.get_insn ()->rtl ());
     }
 
   /* Insert vsetvl info that was not deleted after lift up.  */
@@ -3421,7 +3420,7 @@ pre_vsetvl::remove_vsetvl_pre_insns ()
 		       INSN_UID (rinsn));
 	      print_rtl_single (dump_file, rinsn);
 	    }
-	  remove_insn (rinsn);
+	  remove_vsetvl_insn (rinsn);
 	}
 }
 
