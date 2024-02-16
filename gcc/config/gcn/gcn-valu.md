@@ -3114,6 +3114,17 @@
     DONE;
   })
 
+(define_expand "reduc_<fexpander>_scal_<mode>"
+  [(match_operand:<SCALAR_MODE> 0 "register_operand")
+   (fminmaxop:V_FP
+     (match_operand:V_FP 1 "register_operand"))]
+  "!TARGET_RDNA2_PLUS"
+  {
+    /* fmin/fmax are identical to smin/smax.  */
+    emit_insn (gen_reduc_<expander>_scal_<mode> (operands[0], operands[1]));
+    DONE;
+  })
+
 ;; Warning: This "-ffast-math" implementation converts in-order reductions
 ;;          into associative reductions. It's also used where OpenMP or
 ;;          OpenACC paralellization has already broken the in-order semantics.
