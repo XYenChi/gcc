@@ -561,7 +561,7 @@ maybe_undo_optimize_bit_field_compare (tree type,
 				       tree cst,
 				       const svalue *arg1)
 {
-  if (type != unsigned_char_type_node)
+  if (!INTEGRAL_TYPE_P (type))
     return NULL;
 
   const binding_map &map = compound_sval->get_map ();
