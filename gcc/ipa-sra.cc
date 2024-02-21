@@ -84,6 +84,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "internal-fn.h"
 #include "symtab-clones.h"
 #include "attribs.h"
+<<<<<<< HEAD
+=======
+#include "sreal.h"
+#include "ipa-cp.h"
+#include "ipa-prop.h"
+>>>>>>> c8742849e22 (ipa: Convert lattices from pure array to vector (PR 113476))
 
 static void ipa_sra_summarize_function (cgraph_node *);
 

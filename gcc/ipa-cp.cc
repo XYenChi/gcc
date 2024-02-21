@@ -109,6 +109,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple-expr.h"
 #include "gimple.h"
 #include "predict.h"
+#include "sreal.h"
 #include "alloc-pool.h"
 #include "tree-pass.h"
 #include "cgraph.h"
@@ -118,6 +119,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "gimple-fold.h"
 #include "symbol-summary.h"
 #include "tree-vrp.h"
+#include "ipa-cp.h"
 #include "ipa-prop.h"
 #include "tree-pretty-print.h"
 #include "tree-inline.h"
@@ -129,6 +131,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "dbgcnt.h"
 #include "symtab-clones.h"
 
+<<<<<<< HEAD
 template <typename valtype> class ipcp_value;
 
 /* Describes a particular source for an IPA-CP value.  */
@@ -388,6 +391,8 @@ public:
   /* There is a virtual call based on this parameter.  */
   bool virt_call;
 };
+=======
+>>>>>>> c8742849e22 (ipa: Convert lattices from pure array to vector (PR 113476))
 
 /* Allocation pools for values and their sources in ipa-cp.  */
 
@@ -421,7 +426,6 @@ ipa_get_parm_lattices (class ipa_node_params *info, int i)
 {
   gcc_assert (i >= 0 && i < ipa_get_param_count (info));
   gcc_checking_assert (!info->ipcp_orig_node);
-  gcc_checking_assert (info->lattices);
   return &(info->lattices[i]);
 }
 
@@ -1805,7 +1809,7 @@ ipa_value_from_jfunc (class ipa_node_params *info, struct ipa_jump_func *jfunc,
 	{
 	  ipcp_lattice<tree> *lat;
 
-	  if (!info->lattices
+	  if (info->lattices.is_empty ()
 	      || idx >= ipa_get_param_count (info))
 	    return NULL_TREE;
 	  lat = ipa_get_scalar_lat (info, idx);
@@ -1868,7 +1872,7 @@ ipa_context_from_jfunc (ipa_node_params *info, cgraph_edge *cs, int csidx,
 	}
       else
 	{
-	  if (!info->lattices
+	  if (info->lattices.is_empty ()
 	      || srcidx >= ipa_get_param_count (info))
 	    return ctx;
 	  ipcp_lattice<ipa_polymorphic_call_context> *lat;
@@ -2005,7 +2009,7 @@ ipa_agg_value_from_jfunc (ipa_node_params *info, cgraph_node *node,
 				 item->value.load_agg.by_ref);
 	}
     }
-  else if (info->lattices)
+  else if (!info->lattices.is_empty ())
     {
       class ipcp_param_lattices *src_plats
 	= ipa_get_parm_lattices (info, src_idx);
@@ -2878,7 +2882,6 @@ merge_agg_lats_step (class ipcp_param_lattices *dest_plats,
 	return false;
       dest_plats->aggs_count++;
       new_al = ipcp_agg_lattice_pool.allocate ();
-      memset (new_al, 0, sizeof (*new_al));
 
       new_al->offset = offset;
       new_al->size = val_size;
@@ -4212,8 +4215,7 @@ ipcp_propagate_stage (class ipa_topo_info *topo)
         determine_versionability (node, info);
 
 	unsigned nlattices = ipa_get_param_count (info);
-	void *chunk = XCNEWVEC (class ipcp_param_lattices, nlattices);
-	info->lattices = new (chunk) ipcp_param_lattices[nlattices];
+	info->lattices.safe_grow_cleared (nlattices, true);
 	initialize_node_lattices (node);
       }
     ipa_size_summary *s = ipa_size_summaries->get (node);
@@ -6448,7 +6450,7 @@ ipcp_store_vr_results (void)
 
       if (info->ipcp_orig_node)
 	info = ipa_node_params_sum->get (info->ipcp_orig_node);
-      if (!info->lattices)
+      if (info->lattices.is_empty ())
 	/* Newly expanded artificial thunks do not have lattices.  */
 	continue;
 
