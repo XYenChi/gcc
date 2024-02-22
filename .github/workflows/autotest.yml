@@ -47,11 +47,20 @@ jobs:
           git remote add xyenchi https://github.com/XYenChi/gcc.git
           git fetch
           git checkout -b new-ruyisdk-gcc-12.3.0
-          git pull xyenchi new-ruyisdk-gcc-12.3.0
       - name: configure riscv-gnu-toolchain repo
         run: |
           cd riscv-gnu-toolchain
           ./configure --prefix="$PWD/opt-gcc" --with-arch=rv64gc --with-abi=lp64d
+      - name: Cache
+        uses: actions/cache@v3
+        with: 
+          path: 
+            ~/riscv-gnu-toolchain
+          key: ${{ runner.os }}
+      - name: pull update
+        run: |
+          cd riscv-gnu-toolchain/gcc
+          git pull xyenchi new-ruyisdk-gcc-12.3.0
       - name: make
         run: |
           cd riscv-gnu-toolchain
