@@ -5996,8 +5996,6 @@ gimple_lower_bitint (void)
 		      && (TREE_CODE (rhs1) != SSA_NAME
 			  || !SSA_NAME_OCCURS_IN_ABNORMAL_PHI (rhs1)))
 		    {
-<<<<<<< HEAD
-=======
 		      if (is_gimple_assign (use_stmt))
 			switch (gimple_assign_rhs_code (use_stmt))
 			  {
@@ -6048,7 +6046,6 @@ gimple_lower_bitint (void)
 			  default:
 			    break;
 			}
->>>>>>> 5e7a176e88a (bitint: Handle VIEW_CONVERT_EXPRs between large/huge BITINT_TYPEs and VECTOR/COMPLEX_TYPE etc. [PR114073])
 		      if (TREE_CODE (TREE_TYPE (rhs1)) != BITINT_TYPE
 			  || (bitint_precision_kind (TREE_TYPE (rhs1))
 			      < bitint_prec_large)

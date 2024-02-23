@@ -1,5 +1,11 @@
 /* { dg-do compile } */
+<<<<<<< HEAD
 /* { dg-options "--param=riscv-autovec-preference=scalable -march=rv32gcv -mabi=ilp32" } */
+=======
+/* { dg-options "-mrvv-vector-bits=scalable -march=rv32gcv -mabi=ilp32" } */
+// PR113249
+/* { dg-additional-options "-fno-schedule-insns -fno-schedule-insns2" } */
+>>>>>>> 0a01d1232ff (RISC-V: Introduce gcc option mrvv-vector-bits for RVV)
 
 #include "riscv_vector.h"
 
