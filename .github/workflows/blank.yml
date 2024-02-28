@@ -1,0 +1,43 @@
+name: every-commits-test
+on: 
+        push:
+                branches: [ "test-script" ]
+        workflow_dispatch:
+jobs:
+        build:
+                runs-on: ubuntu-latest
+                steps:
+                        - uses: actions/checkout@v3
+                          with:
+                                fetch-depth: 0
+                        - name: Download the system dependency
+                          run: |
+                            sudo apt-get update
+                            sudo apt-get install autoconf automake autotools-dev curl python3 python3-pip libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev ninja-build git cmake libglib2.0-dev python3-pyelftools
+                        
+                        - name: Clone the riscv-gnu-toolchain repo
+                          run: git clone https://github.com/XYenChi/riscv-gnu-toolchain.git --depth=1
+                 
+                        - name: init submodule gcc 
+                          run: |
+                            cd riscv-gnu-toolchain
+                            git submodule update --init
+                            cd gcc
+                            git fetch
+                            git checkout releases/gcc-12.3.0
+                            git remote add xyenchi https://github.com/XYenChi/gcc.git
+                            git fetch
+                            git checkout -b test-script
+                        - name: configure riscv-gnu-toolchain repo
+                          run: |
+                            cd riscv-gnu-toolchain
+                            ./configure --prefix="$PWD/opt-gcc" --with-arch=rv64gc --with-abi=lp64d
+                        - name: test every commit
+                          run: |
+                                cd riscv-gnu-toolchain/gcc
+                                git pull xyenchi test-script
+                                for commit in $(git rev-list 8fc1a49c9312b05d925b7d21f1d2145d70818151..HEAD); do
+                                        git checkout $commit
+                                        cd ~/gcc/gcc/riscv-gnu-toolchain
+                                        make -j $(nproc)
+                                        
