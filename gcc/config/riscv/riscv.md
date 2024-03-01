@@ -1838,7 +1838,7 @@
    andi\t%0,%1,0xff
    lbu\t%0,%1"
   [(set_attr "move_type" "andi,load")
-   (set_attr "type" "multi")
+   (set_attr "type" "arith,load")
    (set_attr "mode" "<SUPERQI:MODE>")])
 
 ;;
@@ -1863,7 +1863,7 @@
    sext.w\t%0,%1
    lw\t%0,%1"
   [(set_attr "move_type" "move,load")
-   (set_attr "type" "multi")
+   (set_attr "type" "move,load")
    (set_attr "mode" "DI")])
 
 (define_expand "extend<SHORT:mode><SUPERQI:mode>2"
@@ -1940,7 +1940,7 @@
        || reg_or_0_operand (operands[1], HFmode))"
   { return riscv_output_move (operands[0], operands[1]); }
   [(set_attr "move_type" "fmove,fmove,mtc,fpload,fpstore,store,mtc,mfc,move,load,store")
-   (set_attr "type" "fmove")
+   (set_attr "type" "fmove,fmove,mtc,fpload,fpstore,store,mtc,mfc,move,load,store")
    (set_attr "mode" "HF")])
 
 (define_insn "*movhf_softfloat"
@@ -1951,7 +1951,7 @@
        || reg_or_0_operand (operands[1], HFmode))"
   { return riscv_output_move (operands[0], operands[1]); }
   [(set_attr "move_type" "fmove,move,load,store,mtc,mfc")
-   (set_attr "type" "fmove")
+   (set_attr "type" "fmove,move,load,store,mtc,mfc")
    (set_attr "mode" "HF")])
 
 (define_insn "*movhf_softfloat_boxing"
@@ -2184,7 +2184,7 @@
   { return riscv_output_move (operands[0], operands[1]); }
   [(set_attr "move_type" "move,const,load,store,mtc,fpload,mfc,fmove,fpstore,rdvlenb")
    (set_attr "mode" "DI")
-   (set_attr "type" "move")
+   (set_attr "type" "move,move,load,store,move,fpload,move,fmove,fpstore,move")
    (set_attr "ext" "base,base,base,base,d,d,d,d,d,vector")])
 
 (define_insn "*movdi_64bit"
@@ -2196,7 +2196,7 @@
   { return riscv_output_move (operands[0], operands[1]); }
   [(set_attr "move_type" "move,const,load,store,mtc,fpload,mfc,fmove,fpstore,rdvlenb")
    (set_attr "mode" "DI")
-   (set_attr "type" "move")
+   (set_attr "type" "move,move,load,store,mtc,fpload,mfc,fmove,fpstore,move")
    (set_attr "ext" "base,base,base,base,d,d,d,d,d,vector")])
 
 ;; 32-bit Integer moves
@@ -2219,7 +2219,7 @@
   { return riscv_output_move (operands[0], operands[1]); }
   [(set_attr "move_type" "move,const,load,store,mtc,fpload,mfc,fpstore,rdvlenb")
    (set_attr "mode" "SI")
-   (set_attr "type" "move")
+   (set_attr "type" "move,move,load,store,mtc,fpload,mfc,fpstore,move")
    (set_attr "ext" "base,base,base,base,f,f,f,f,vector")])
 
 ;; 16-bit Integer moves
@@ -2246,7 +2246,7 @@
   { return riscv_output_move (operands[0], operands[1]); }
   [(set_attr "move_type" "move,const,load,store,mtc,mfc,rdvlenb")
    (set_attr "mode" "HI")
-   (set_attr "type" "move")
+   (set_attr "type" "move,move,load,store,mtc,mfc,move")
    (set_attr "ext" "base,base,base,base,f,f,vector")])
 
 ;; HImode constant generation; see riscv_move_integer for details.
@@ -2290,7 +2290,7 @@
   { return riscv_output_move (operands[0], operands[1]); }
   [(set_attr "move_type" "move,const,load,store,mtc,mfc,rdvlenb")
    (set_attr "mode" "QI")
-   (set_attr "type" "move")
+   (set_attr "type" "move,move,load,store,mtc,mfc,move")
    (set_attr "ext" "base,base,base,base,f,f,vector")])
 
 ;; 32-bit floating point moves
@@ -2312,7 +2312,7 @@
        || reg_or_0_operand (operands[1], SFmode))"
   { return riscv_output_move (operands[0], operands[1]); }
   [(set_attr "move_type" "fmove,fmove,mtc,fpload,fpstore,store,mtc,mfc,move,load,store")
-   (set_attr "type" "fmove")
+   (set_attr "type" "fmove,fmove,mtc,fpload,fpstore,store,mtc,mfc,move,load,store")
    (set_attr "mode" "SF")])
 
 (define_insn "*movsf_softfloat"
@@ -2323,7 +2323,7 @@
        || reg_or_0_operand (operands[1], SFmode))"
   { return riscv_output_move (operands[0], operands[1]); }
   [(set_attr "move_type" "move,load,store")
-   (set_attr "type" "fmove")
+   (set_attr "type" "move,load,store")
    (set_attr "mode" "SF")])
 
 ;; 64-bit floating point moves
@@ -2348,7 +2348,7 @@
        || reg_or_0_operand (operands[1], DFmode))"
   { return riscv_output_move (operands[0], operands[1]); }
   [(set_attr "move_type" "fmove,fmove,mtc,fpload,fpstore,store,mtc,mfc,move,load,store")
-   (set_attr "type" "fmove")
+   (set_attr "type" "fmove,fmove,mtc,fpload,fpstore,store,mtc,mfc,move,load,store")
    (set_attr "mode" "DF")])
 
 (define_insn "*movdf_hardfloat_rv64"
@@ -2359,7 +2359,7 @@
        || reg_or_0_operand (operands[1], DFmode))"
   { return riscv_output_move (operands[0], operands[1]); }
   [(set_attr "move_type" "fmove,fmove,mtc,fpload,fpstore,store,mtc,mfc,move,load,store")
-   (set_attr "type" "fmove")
+   (set_attr "type" "fmove,fmove,mtc,fpload,fpstore,store,mtc,mfc,move,load,store")
    (set_attr "mode" "DF")])
 
 (define_insn "*movdf_softfloat"
@@ -2370,7 +2370,7 @@
        || reg_or_0_operand (operands[1], DFmode))"
   { return riscv_output_move (operands[0], operands[1]); }
   [(set_attr "move_type" "move,load,store")
-   (set_attr "type" "fmove")
+   (set_attr "type" "fmove,fpload,fpstore")
    (set_attr "mode" "DF")])
 
 (define_insn "movsidf2_low_rv32"
