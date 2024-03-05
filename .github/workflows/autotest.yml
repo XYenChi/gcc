@@ -48,7 +48,7 @@ jobs:
           git checkout releases/gcc-12.3.0
           git remote add xyenchi https://github.com/XYenChi/gcc.git
           git fetch
-          git checkout -b new-ruyisdk-gcc-12.3.0
+          git checkout -b riscv+vect
       - name: configure riscv-gnu-toolchain repo
         run: |
           cd riscv-gnu-toolchain
