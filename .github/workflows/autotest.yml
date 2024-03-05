@@ -54,11 +54,11 @@ jobs:
           cd riscv-gnu-toolchain
           ./configure --prefix="$PWD/opt-gcc" --with-arch=rv64gc --with-abi=lp64d
       - name: Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4.0.1
         with: 
           path: 
             ~/gcc/gcc/riscv-gnu-toolchain
-          key: ${{ runner.os }}
+          key: ${8fc1a49c9312b05d925b7d21f1d2145d70818151}
       - name: pull update
         run: |
           cd riscv-gnu-toolchain/gcc
@@ -98,7 +98,7 @@ jobs:
           git checkout releases/gcc-12.3.0
           git remote add xyenchi https://github.com/XYenChi/gcc.git
           git fetch
-          git checkout -b new-ruyisdk-gcc-12.3.0
+          git checkout -b riscv+vect
       - name: configure riscv-gnu-toolchain repo
         run: |
           cd riscv-gnu-toolchain
