@@ -3,7 +3,7 @@
 /* { dg-do compile } */
 /* { dg-options "-O3 -fno-early-inlining -fno-ipa-sra -fno-ipa-cp -fdump-ipa-inline -fdump-tree-optimized"  } */
 
-extern int __attribute__ ((noinline, noclone, used, noipa))
+extern int __attribute__ ((noinline, noclone, used))
 stuff (int i)
 {
   return 0;

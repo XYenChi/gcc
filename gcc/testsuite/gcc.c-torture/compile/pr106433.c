@@ -2,7 +2,7 @@
 
 int m, *p;
 
-__attribute__ ((simd,noipa)) int
+__attribute__ ((simd)) int
 bar (int x)
 {
   if (x)

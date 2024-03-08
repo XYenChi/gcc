@@ -1,5 +1,5 @@
 /* { dg-do compile } */
-/* { dg-options "-O2 -fdump-ipa-icf-optimized -fno-ipa-vrp"  } */
+/* { dg-options "-O2 -fdump-ipa-icf-optimized"  } */
 
 class A
 {

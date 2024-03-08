@@ -71,7 +71,7 @@ public:
 	= m_symtab->add_cgraph_insertion_hook (m_symtab_insertion, this);
   }
 
-  /* Disable insertion hook invocation.  */
+  /* Enable insertion hook invocation.  */
   void disable_insertion_hook ()
   {
     if (m_symtab_insertion_hook != NULL)
