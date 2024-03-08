@@ -333,47 +333,6 @@ is_a <frange> (vrange &v)
   return v.m_discriminator == VR_FRANGE;
 }
 
-template <>
-inline bool
-is_a <unsupported_range> (vrange &v)
-{
-  return v.m_discriminator == VR_UNKNOWN;
-}
-
-// For resizable ranges, resize the range up to HARD_MAX_RANGES if the
-// NEEDED pairs is greater than the current capacity of the range.
-
-inline void
-irange::maybe_resize (int needed)
-{
-  if (!m_resizable || m_max_ranges == HARD_MAX_RANGES)
-    return;
-
-  if (needed > m_max_ranges)
-    {
-      m_max_ranges = HARD_MAX_RANGES;
-      wide_int *newmem = new wide_int[m_max_ranges * 2];
-      unsigned n = num_pairs () * 2;
-      for (unsigned i = 0; i < n; ++i)
-	newmem[i] = m_base[i];
-      m_base = newmem;
-    }
-}
-
-template<unsigned N, bool RESIZABLE>
-inline
-int_range<N, RESIZABLE>::~int_range ()
-{
-  if (RESIZABLE && m_base != m_ranges)
-    delete[] m_base;
-}
-
-// This is an "infinite" precision irange for use in temporary
-// calculations.  It starts with a sensible default covering 99% of
-// uses, and goes up to HARD_MAX_RANGES when needed.  Any allocated
-// storage is freed upon destruction.
-typedef int_range<3, /*RESIZABLE=*/true> int_range_max;
-
 class vrange_visitor
 {
 public:

@@ -1952,8 +1952,7 @@ bit_value_binop (enum tree_code code, signop sgn, int width,
 		  }
 		else
 		  {
-		    widest_int upper
-		      = wi::udiv_trunc (wi::zext (r1max, width), r2min);
+		    widest_int upper = wi::udiv_trunc (r1max, r2min);
 		    unsigned int lzcount = wi::clz (upper);
 		    unsigned int bits = wi::get_precision (upper) - lzcount;
 		    *mask = wi::mask <widest_int> (bits, false);
