@@ -87,9 +87,8 @@ void ReportErrorSummary(const char *error_message, const char *alt_tool_name) {
   if (!common_flags()->print_summary)
     return;
   InternalScopedString buff;
-  buff.AppendF("SUMMARY: %s: %s",
-               alt_tool_name ? alt_tool_name : SanitizerToolName,
-               error_message);
+  buff.append("SUMMARY: %s: %s",
+              alt_tool_name ? alt_tool_name : SanitizerToolName, error_message);
   __sanitizer_report_error_summary(buff.data());
 }
 

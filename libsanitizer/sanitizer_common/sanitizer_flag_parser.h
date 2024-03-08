@@ -178,6 +178,8 @@ class FlagParser {
   bool ParseFile(const char *path, bool ignore_missing);
   void PrintFlagDescriptions();
 
+  static LowLevelAllocator Alloc;
+
  private:
   void fatal_error(const char *err);
   bool is_space(char c);
@@ -191,7 +193,7 @@ class FlagParser {
 template <typename T>
 static void RegisterFlag(FlagParser *parser, const char *name, const char *desc,
                          T *var) {
-  FlagHandler<T> *fh = new (GetGlobalLowLevelAllocator()) FlagHandler<T>(var);
+  FlagHandler<T> *fh = new (FlagParser::Alloc) FlagHandler<T>(var);
   parser->RegisterHandler(name, fh, desc);
 }
 

@@ -10,8 +10,6 @@
 // run-time libraries.
 //===----------------------------------------------------------------------===//
 
-#include <errno.h>
-
 #include "sanitizer_allocator_internal.h"
 #include "sanitizer_platform.h"
 #include "sanitizer_internal_defs.h"
@@ -118,7 +116,7 @@ Symbolizer::Symbolizer(IntrusiveList<SymbolizerTool> tools)
       start_hook_(0), end_hook_(0) {}
 
 Symbolizer::SymbolizerScope::SymbolizerScope(const Symbolizer *sym)
-    : sym_(sym), errno_(errno) {
+    : sym_(sym) {
   if (sym_->start_hook_)
     sym_->start_hook_();
 }
@@ -126,7 +124,6 @@ Symbolizer::SymbolizerScope::SymbolizerScope(const Symbolizer *sym)
 Symbolizer::SymbolizerScope::~SymbolizerScope() {
   if (sym_->end_hook_)
     sym_->end_hook_();
-  errno = errno_;
 }
 
 void Symbolizer::LateInitializeTools() {

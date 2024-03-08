@@ -14,7 +14,6 @@
 
 #include "sanitizer_common.h"
 #include "sanitizer_platform.h"
-<<<<<<< HEAD
 
 /* TARGET_OS_OSX is not present in SDKs before Darwin16 (macOS 10.12) use
    TARGET_OS_MAC (we have no support for iOS in any form for these versions,
@@ -35,10 +34,7 @@
 #define TARGET_OS_WATCH 0
 #endif
 
-#if SANITIZER_MAC
-=======
 #if SANITIZER_APPLE
->>>>>>> 28219f7f99a (libsanitizer: merge from upstream (c425db2eb558c263))
 #include "sanitizer_posix.h"
 
 namespace __sanitizer {

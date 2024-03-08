@@ -151,10 +151,12 @@ PtraceRegistersStatus SuspendedThreadsListMac::GetRegistersAndSP(
                          &reg_count);
   if (err != KERN_SUCCESS) {
     VReport(1, "Error - unable to get registers for a thread\n");
+    // KERN_INVALID_ARGUMENT indicates that either the flavor is invalid,
+    // or the thread does not exist. The other possible error case,
     // MIG_ARRAY_TOO_LARGE, means that the state is too large, but it's
     // still safe to proceed.
-    return err == MIG_ARRAY_TOO_LARGE ? REGISTERS_UNAVAILABLE
-                                      : REGISTERS_UNAVAILABLE_FATAL;
+    return err == KERN_INVALID_ARGUMENT ? REGISTERS_UNAVAILABLE_FATAL
+                                        : REGISTERS_UNAVAILABLE;
   }
 
   buffer->resize(RoundUpTo(sizeof(regs), sizeof(uptr)) / sizeof(uptr));

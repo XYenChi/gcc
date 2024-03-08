@@ -80,7 +80,6 @@ static const char *conv(ReportType typ) {
     case ReportTypeMutexBadUnlock:
     case ReportTypeMutexBadReadLock:
     case ReportTypeMutexBadReadUnlock:
-    case ReportTypeMutexHeldWrongContext:
       return kSuppressionMutex;
     case ReportTypeSignalUnsafe:
     case ReportTypeErrnoInSignal:

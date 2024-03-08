@@ -47,8 +47,8 @@
 #include "hwasan_allocator.h"
 #include "hwasan_flags.h"
 #include "hwasan_thread.h"
+
 #include "sanitizer_common/sanitizer_placement_new.h"
-#include "sanitizer_common/sanitizer_thread_arg_retval.h"
 
 namespace __hwasan {
 
@@ -129,9 +129,9 @@ class HwasanThreadList {
 
   void ReleaseThread(Thread *t) {
     RemoveThreadStats(t);
-    RemoveThreadFromLiveList(t);
     t->Destroy();
     DontNeedThread(t);
+    RemoveThreadFromLiveList(t);
     SpinMutexLock l(&free_list_mutex_);
     free_list_.push_back(t);
   }
@@ -155,7 +155,7 @@ class HwasanThreadList {
   }
 
   template <class CB>
-  Thread *FindThreadLocked(CB cb) SANITIZER_CHECK_LOCKED(live_list_mutex_) {
+  Thread *FindThreadLocked(CB cb) SANITIZER_CHECK_LOCKED(stats_mutex_) {
     CheckLocked();
     for (Thread *t : live_list_)
       if (cb(t))
@@ -189,7 +189,7 @@ class HwasanThreadList {
     CHECK(IsAligned(free_space_, align));
     Thread *t = (Thread *)(free_space_ + ring_buffer_size_);
     free_space_ += thread_alloc_size_;
-    CHECK_LE(free_space_, free_space_end_);
+    CHECK(free_space_ <= free_space_end_ && "out of thread memory");
     return t;
   }
 
@@ -210,6 +210,5 @@ class HwasanThreadList {
 
 void InitThreadList(uptr storage, uptr size);
 HwasanThreadList &hwasanThreadList();
-ThreadArgRetval &hwasanThreadArgRetval();
 
 } // namespace __hwasan

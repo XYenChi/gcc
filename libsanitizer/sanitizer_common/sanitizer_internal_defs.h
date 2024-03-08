@@ -13,12 +13,6 @@
 #define SANITIZER_DEFS_H
 
 #include "sanitizer_platform.h"
-#include "sanitizer_redefine_builtins.h"
-
-// GCC does not understand __has_feature.
-#if !defined(__has_feature)
-#define __has_feature(x) 0
-#endif
 
 #ifndef SANITIZER_DEBUG
 # define SANITIZER_DEBUG 0
@@ -231,7 +225,7 @@ typedef u64 tid_t;
 # define WARN_UNUSED_RESULT
 #else  // _MSC_VER
 # define ALWAYS_INLINE inline __attribute__((always_inline))
-# define ALIAS(x) __attribute__((alias(SANITIZER_STRINGIFY(x))))
+# define ALIAS(x) __attribute__((alias(x)))
 // Please only use the ALIGNED macro before the type.
 // Using ALIGNED after the variable declaration is not portable!
 # define ALIGNED(x) __attribute__((aligned(x)))
@@ -268,12 +262,6 @@ typedef u64 tid_t;
 #  define FALLTHROUGH [[clang::fallthrough]]
 #else
 #  define FALLTHROUGH
-#endif
-
-#if __has_attribute(uninitialized)
-#  define UNINITIALIZED __attribute__((uninitialized))
-#else
-#  define UNINITIALIZED
 #endif
 
 // Unaligned versions of basic types.

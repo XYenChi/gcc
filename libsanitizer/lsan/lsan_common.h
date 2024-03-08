@@ -18,7 +18,6 @@
 #include "sanitizer_common/sanitizer_common.h"
 #include "sanitizer_common/sanitizer_internal_defs.h"
 #include "sanitizer_common/sanitizer_platform.h"
-#include "sanitizer_common/sanitizer_range.h"
 #include "sanitizer_common/sanitizer_stackdepot.h"
 #include "sanitizer_common/sanitizer_stoptheworld.h"
 #include "sanitizer_common/sanitizer_symbolizer.h"
@@ -74,6 +73,11 @@ enum IgnoreObjectResult {
   kIgnoreObjectInvalid
 };
 
+struct Range {
+  uptr begin;
+  uptr end;
+};
+
 //// --------------------------------------------------------------------------
 //// Poisoning prototypes.
 //// --------------------------------------------------------------------------
@@ -86,8 +90,8 @@ bool WordIsPoisoned(uptr addr);
 //// --------------------------------------------------------------------------
 
 // Wrappers for ThreadRegistry access.
-void LockThreads() SANITIZER_NO_THREAD_SAFETY_ANALYSIS;
-void UnlockThreads() SANITIZER_NO_THREAD_SAFETY_ANALYSIS;
+void LockThreadRegistry() SANITIZER_NO_THREAD_SAFETY_ANALYSIS;
+void UnlockThreadRegistry() SANITIZER_NO_THREAD_SAFETY_ANALYSIS;
 // If called from the main thread, updates the main thread's TID in the thread
 // registry. We need this to handle processes that fork() without a subsequent
 // exec(), which invalidates the recorded TID. To update it, we must call
@@ -150,13 +154,13 @@ IgnoreObjectResult IgnoreObject(const void *p);
 
 struct ScopedStopTheWorldLock {
   ScopedStopTheWorldLock() {
-    LockThreads();
+    LockThreadRegistry();
     LockAllocator();
   }
 
   ~ScopedStopTheWorldLock() {
     UnlockAllocator();
-    UnlockThreads();
+    UnlockThreadRegistry();
   }
 
   ScopedStopTheWorldLock &operator=(const ScopedStopTheWorldLock &) = delete;
@@ -221,6 +225,11 @@ void InitializePlatformSpecificModules();
 void ProcessGlobalRegions(Frontier *frontier);
 void ProcessPlatformSpecificAllocations(Frontier *frontier);
 
+struct RootRegion {
+  uptr begin;
+  uptr size;
+};
+
 // LockStuffAndStopTheWorld can start to use Scan* calls to collect into
 // this Frontier vector before the StopTheWorldCallback actually runs.
 // This is used when the OS has a unified callback API for suspending
@@ -231,11 +240,9 @@ struct CheckForLeaksParam {
   bool success = false;
 };
 
-using Region = Range;
-
-bool HasRootRegions();
-void ScanRootRegions(Frontier *frontier,
-                     const InternalMmapVectorNoCtor<Region> &region);
+InternalMmapVectorNoCtor<RootRegion> const *GetRootRegions();
+void ScanRootRegion(Frontier *frontier, RootRegion const &region,
+                    uptr region_begin, uptr region_end, bool is_readable);
 // Run stoptheworld while holding any platform-specific locks, as well as the
 // allocator and thread registry locks.
 void LockStuffAndStopTheWorld(StopTheWorldCallback callback,

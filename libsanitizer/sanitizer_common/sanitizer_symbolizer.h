@@ -132,7 +132,7 @@ class Symbolizer final {
 
   // Release internal caches (if any).
   void Flush();
-  // Attempts to demangle the provided C++ mangled name. Never returns nullptr.
+  // Attempts to demangle the provided C++ mangled name.
   const char *Demangle(const char *name);
 
   // Allow user to install hooks that would be called before/after Symbolizer
@@ -183,7 +183,7 @@ class Symbolizer final {
   // If stale, need to reload the modules before looking up addresses.
   bool modules_fresh_;
 
-  // Platform-specific default demangler, returns nullptr on failure.
+  // Platform-specific default demangler, must not return nullptr.
   const char *PlatformDemangle(const char *name);
 
   static Symbolizer *symbolizer_;
@@ -208,7 +208,6 @@ class Symbolizer final {
     ~SymbolizerScope();
    private:
     const Symbolizer *sym_;
-    int errno_;  // Backup errno in case symbolizer change the value.
   };
 
   // Calls `LateInitialize()` on all items in `tools_`.

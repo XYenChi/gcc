@@ -238,7 +238,7 @@ void InitThreads() {
 bool MemIsApp(uptr p) {
 // Memory outside the alias range has non-zero tags.
 #  if !defined(HWASAN_ALIASING_MODE)
-  CHECK_EQ(GetTagFromPointer(p), 0);
+  CHECK(GetTagFromPointer(p) == 0);
 #  endif
 
   return (p >= kHighMemStart && p <= kHighMemEnd) ||
@@ -257,15 +257,8 @@ extern "C" void __hwasan_thread_exit() {
   Thread *t = GetCurrentThread();
   // Make sure that signal handler can not see a stale current thread pointer.
   atomic_signal_fence(memory_order_seq_cst);
-  if (t) {
-    // Block async signals on the thread as the handler can be instrumented.
-    // After this point instrumented code can't access essential data from TLS
-    // and will crash.
-    // Bionic already calls __hwasan_thread_exit with blocked signals.
-    if (SANITIZER_GLIBC)
-      BlockSignals();
+  if (t)
     hwasanThreadList().ReleaseThread(t);
-  }
 }
 
 #  if HWASAN_WITH_INTERCEPTORS
