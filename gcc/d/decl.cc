@@ -1497,21 +1497,11 @@ get_symbol_decl (Declaration *decl)
   if (decl->storage_class & STCvolatile)
     TREE_THIS_VOLATILE (decl->csym) = 1;
 
-<<<<<<< HEAD
-  /* Visibility attributes are used by the debugger.  */
-  if (decl->visibility.kind == Visibility::private_)
-    TREE_PRIVATE (decl->csym) = 1;
-  else if (decl->visibility.kind == Visibility::protected_)
-    TREE_PROTECTED (decl->csym) = 1;
-
-  /* Likewise, so could the deprecated attribute.  */
-=======
   /* Symbol was marked register.  */
   if (decl->storage_class & STCregister)
     DECL_REGISTER (decl->csym) = 1;
 
   /* Symbol was declared with deprecated attribute.  */
->>>>>>> 91418c42089 (d: Add `@register' attribute to compiler and library.)
   if (decl->storage_class & STCdeprecated)
     TREE_DEPRECATED (decl->csym) = 1;
 

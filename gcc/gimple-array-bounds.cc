@@ -279,8 +279,6 @@ array_bounds_checker::check_array_ref (location_t location, tree ref,
     up_bound_p1 = int_const_binop (PLUS_EXPR, up_bound,
 				   build_int_cst (TREE_TYPE (up_bound), 1));
 
-<<<<<<< HEAD
-=======
 /* Given the LOW_SUB_ORG, LOW_SUB and UP_SUB, and the computed UP_BOUND
    and UP_BOUND_P1, check whether the array reference REF is out of bound.
    When out of bounds, set OUT_OF_BOUND to true.
@@ -296,7 +294,6 @@ check_out_of_bounds_and_warn (location_t location, tree ref,
 			      bool *out_of_bound)
 {
   tree min, max;
->>>>>>> 5bdc5155138 (Convert users of legacy API to get_legacy_range() function.)
   tree low_bound = array_ref_low_bound (ref);
 
   tree artype = TREE_TYPE (TREE_OPERAND (ref, 0));
@@ -322,11 +319,7 @@ check_out_of_bounds_and_warn (location_t location, tree ref,
 
   if (warned)
     ; /* Do nothing.  */
-<<<<<<< HEAD
-  else if (vr && vr->kind () == VR_ANTI_RANGE)
-=======
   else if (get_legacy_range (*vr, min, max) == VR_ANTI_RANGE)
->>>>>>> 5bdc5155138 (Convert users of legacy API to get_legacy_range() function.)
     {
       if (up_bound
 	  && TREE_CODE (up_sub) == INTEGER_CST
@@ -350,11 +343,6 @@ check_out_of_bounds_and_warn (location_t location, tree ref,
 			 up_sub, artype);
   else if (TREE_CODE (low_sub) == INTEGER_CST
 	   && tree_int_cst_lt (low_sub, low_bound))
-<<<<<<< HEAD
-    warned = warning_at (location, OPT_Warray_bounds_,
-			 "array subscript %E is below array bounds of %qT",
-			 low_sub, artype);
-=======
     {
       *out_of_bound = true;
       if (for_array_bound)
@@ -430,7 +418,6 @@ array_bounds_checker::check_array_ref (location_t location, tree ref,
 					 ignore_off_by_one, warn_array_bounds,
 					 &out_of_bound);
 
->>>>>>> 5bdc5155138 (Convert users of legacy API to get_legacy_range() function.)
 
   if (!warned && sam == special_array_member::int_0)
     warned = warning_at (location, OPT_Wzero_length_bounds,

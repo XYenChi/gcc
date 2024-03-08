@@ -47,13 +47,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-phinodes.h"
 #include "cfgexpand.h"
 #include "attribs.h"
-<<<<<<< HEAD
-
-=======
 #include "sreal.h"
 #include "ipa-cp.h"
 #include "ipa-prop.h"
->>>>>>> c8742849e22 (ipa: Convert lattices from pure array to vector (PR 113476))
 
 /* Actual prefixes of different newly synthetized parameters.  Keep in sync
    with IPA_PARAM_PREFIX_* defines.  */
